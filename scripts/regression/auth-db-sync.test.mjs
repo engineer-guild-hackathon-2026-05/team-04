@@ -9,6 +9,12 @@ assert.match(
   '認証後のDB同期では、DB read 成功時だけ mergedRestrictedIngredients でstateを更新してください。',
 );
 
+assert.match(
+  source,
+  /mergeSyncedRestrictedIngredients\(\s*locallyStoredRestrictedIngredients,\s*restrictedIngredientSync\.localIds,\s*\)/,
+  'DB同期時も、DBに保存されない diet-* などの非ingredient制限はlocalStorage由来で維持してください。',
+);
+
 assert.doesNotMatch(
   source,
   /restrictedIngredientSync\.localIds\.length\s*>\s*0/,
@@ -26,7 +32,10 @@ const previousBuggySync = (localRestrictedIngredients, databaseRestrictedIngredi
 const fixedSync = (localRestrictedIngredients, databaseRestrictedIngredients) => {
   const ingredientMasterIds = new Set(['ing-egg', 'ing-shrimp']);
   const localOnlyRestrictionIds = localRestrictedIngredients.filter((id) => !ingredientMasterIds.has(id));
-  return [...databaseRestrictedIngredients, ...localOnlyRestrictionIds];
+  return [
+    ...databaseRestrictedIngredients,
+    ...localOnlyRestrictionIds.filter((id) => !databaseRestrictedIngredients.includes(id)),
+  ];
 };
 
 assert.deepEqual(
@@ -43,6 +52,11 @@ assert.deepEqual(
   fixedSync(['ing-egg', 'diet-vegan'], []),
   ['diet-vegan'],
   '修正: DBに保存しない diet option は ingredient DB sync 後も保持します。',
+);
+assert.deepEqual(
+  fixedSync(['ing-egg', 'diet-vegan'], ['ing-shrimp']),
+  ['ing-shrimp', 'diet-vegan'],
+  '修正: ingredient制限はDB値を正とし、非ingredient制限だけを補完します。',
 );
 
 console.log('auth-db-sync regression checks passed');

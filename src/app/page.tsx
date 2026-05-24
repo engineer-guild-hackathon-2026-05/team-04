@@ -210,69 +210,87 @@ export default function Home() {
     if (parsed?.preferredCuisines) setPreferredCuisines(parsed.preferredCuisines);
 
     const syncSupabaseSession = async () => {
-      const demoSession = await fetchDemoSession();
-      if (demoSession === 'authenticated') {
-        const demoProfile = readDemoProfile();
+      try {
+        const demoSession = await fetchDemoSession();
+        if (demoSession === 'authenticated') {
+          const demoProfile = readDemoProfile();
+          setIsLoggedIn(true);
+          setCurrentView('list');
+          setUserName(
+            parsed?.userName || demoProfile?.userName || demoProfile?.email?.split('@')[0] || 'デモユーザー',
+          );
+          setAuthStatus('authenticated');
+          return;
+        }
+
+        if (demoSession === 'failed') {
+          console.error('Demo session check failed. Falling back to Supabase auth.');
+        }
+
+        const supabase = createClient();
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
+        if (!session?.user) {
+          setIsLoggedIn(false);
+          setCurrentView('landing');
+          setAuthStatus('unauthenticated');
+          return;
+        }
+
         setIsLoggedIn(true);
         setCurrentView('list');
-        setUserName(parsed?.userName || demoProfile?.userName || demoProfile?.email?.split('@')[0] || 'デモユーザー');
+
+        const fallbackName =
+          session.user.user_metadata?.name ||
+          session.user.user_metadata?.display_name ||
+          session.user.email?.split('@')[0] ||
+          '旅するグルメ';
+        setUserName(fallbackName);
+
+        try {
+          const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('name')
+            .eq('id', session.user.id)
+            .maybeSingle();
+          if (profileError) throw profileError;
+
+          if (profile?.name) {
+            setUserName(profile.name);
+            writeStoredProfile({ userName: profile.name });
+          }
+
+          const restrictedIngredientSync = await fetchRestrictedIngredientLocalIds(
+            supabase,
+            session.user.id,
+          );
+
+          if (restrictedIngredientSync.ok) {
+            const mergedRestrictedIngredients = mergeSyncedRestrictedIngredients(
+              locallyStoredRestrictedIngredients,
+              restrictedIngredientSync.localIds,
+            );
+            setRestrictedIngredients(mergedRestrictedIngredients);
+            writeStoredProfile({ restrictedIngredients: mergedRestrictedIngredients });
+          } else {
+            console.warn(
+              'Supabase restricted ingredient sync failed. Keeping local restrictions.',
+              restrictedIngredientSync.error,
+            );
+          }
+        } catch (profileSyncError) {
+          console.warn('Authenticated session kept, but profile preference sync failed.', profileSyncError);
+        }
+
         setAuthStatus('authenticated');
-        return;
-      }
-
-      if (demoSession === 'failed') {
-        console.error('Demo session check failed. Continuing with Supabase auth fallback.');
-      }
-
-      const supabase = createClient();
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
-      if (!session?.user) {
+      } catch (error) {
+        console.error('Auth session sync failed. Treating the user as signed out.', error);
         setIsLoggedIn(false);
         setCurrentView('landing');
         setAuthStatus('unauthenticated');
-        return;
       }
-
-      setIsLoggedIn(true);
-      setCurrentView('list');
-
-      const fallbackName =
-        session.user.user_metadata?.name ||
-        session.user.user_metadata?.display_name ||
-        session.user.email?.split('@')[0] ||
-        '旅するグルメ';
-      setUserName(fallbackName);
-
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('name')
-        .eq('id', session.user.id)
-        .maybeSingle();
-      if (profile?.name) {
-        setUserName(profile.name);
-        writeStoredProfile({ userName: profile.name });
-      }
-
-      const restrictedIngredientSync = await fetchRestrictedIngredientLocalIds(
-        supabase,
-        session.user.id,
-      );
-
-      if (restrictedIngredientSync.ok) {
-        const mergedRestrictedIngredients = mergeSyncedRestrictedIngredients(
-          locallyStoredRestrictedIngredients,
-          restrictedIngredientSync.localIds,
-        );
-        setRestrictedIngredients(mergedRestrictedIngredients);
-        writeStoredProfile({ restrictedIngredients: mergedRestrictedIngredients });
-      } else {
-        console.warn('Supabase restricted ingredient sync failed. Keeping local restrictions.', restrictedIngredientSync.error);
-      }
-
-      setAuthStatus('authenticated');
     };
 
     void syncSupabaseSession();
@@ -359,7 +377,7 @@ export default function Home() {
       return;
     }
     if (demoSession === 'failed') {
-      console.error('Demo session check failed while saving profile. Continuing with Supabase auth fallback.');
+      console.error('Demo session check failed while saving profile. Falling back to Supabase auth.');
     }
 
     const supabase = createClient();
@@ -370,7 +388,12 @@ export default function Home() {
     if (!user) return;
 
     try {
-      await supabase.from('profiles').update({ name: profile.userName }).eq('id', user.id);
+      const { error: profileUpdateError } = await supabase
+        .from('profiles')
+        .update({ name: profile.userName })
+        .eq('id', user.id);
+      if (profileUpdateError) throw profileUpdateError;
+
       await replaceRestrictedIngredients(supabase, user.id, profile.restrictedIngredients);
     } catch (dbErr) {
       console.warn('Supabase DB update failed. Synchronized locally.', dbErr);

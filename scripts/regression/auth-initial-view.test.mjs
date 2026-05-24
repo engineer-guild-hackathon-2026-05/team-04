@@ -21,15 +21,10 @@ assert.doesNotMatch(
   'ログイン済み更新時にLPが一瞬表示されるため、currentView の初期値を landing に戻さないでください。',
 );
 
-const authCheckingGuardIndex = source.indexOf("authStatus === 'checking'");
-const navbarIndex = source.indexOf('<Navbar');
-const landingViewIndex = source.indexOf('<LandingView');
-
-assert.ok(authCheckingGuardIndex !== -1, '認証確認中のローディング表示を追加してください。');
-assert.ok(navbarIndex !== -1 && landingViewIndex !== -1, 'Navbar と LandingView の描画位置を検査できません。');
-assert.ok(
-  authCheckingGuardIndex < navbarIndex && authCheckingGuardIndex < landingViewIndex,
-  '認証確認中は Navbar や LandingView より先にローディング表示へ分岐してください。',
+assert.match(
+  source,
+  /if \(authStatus === 'checking'\) \{\s*return \([\s\S]*?role="status"[\s\S]*?\);\s*\}\s*return \(/,
+  '認証確認中は実際の早期returnでローディング表示し、Navbar/LandingViewを描画しないでください。',
 );
 
 assert.match(
@@ -40,15 +35,73 @@ assert.match(
 
 assert.match(
   source,
-  /setAuthStatus\('authenticated'\)/,
-  '認証済みセッション確定時に authStatus を authenticated にしてください。',
+  /if \(demoSession === 'authenticated'\) \{[\s\S]*?setIsLoggedIn\(true\);[\s\S]*?setCurrentView\('list'\);[\s\S]*?setAuthStatus\('authenticated'\);[\s\S]*?return;/,
+  'デモ認証済み分岐では、ログイン済み/list/authenticated を同じ分岐内で確定してください。',
+);
+
+assert.doesNotMatch(
+  source,
+  /if \(demoSession === 'unauthenticated'\) \{[\s\S]*?setIsLoggedIn\(false\);[\s\S]*?setCurrentView\('landing'\);[\s\S]*?setAuthStatus\('unauthenticated'\);[\s\S]*?return;/,
+  'デモcookieなしだけで未ログイン確定せず、Supabase セッション確認へフォールバックしてください。',
+);
+
+const failedBlockStart = source.indexOf("if (demoSession === 'failed')");
+const supabaseFallbackStart = source.indexOf('const supabase = createClient();', failedBlockStart);
+assert.ok(failedBlockStart !== -1 && supabaseFallbackStart !== -1, 'デモ認証チェック失敗時のSupabase fallbackを検査できません。');
+const failedBlock = source.slice(failedBlockStart, supabaseFallbackStart);
+assert.doesNotMatch(
+  failedBlock,
+  /setAuthStatus\('unauthenticated'\)|return;/,
+  'デモ認証チェック失敗だけで未ログイン確定せず、Supabase セッション確認へフォールバックしてください。',
+);
+assert.match(
+  failedBlock,
+  /Falling back to Supabase auth/,
+  'デモ認証チェック失敗時はSupabase セッション確認へフォールバックすることを明示してください。',
+);
+assert.match(
+  source.slice(supabaseFallbackStart),
+  /const supabase = createClient\(\);[\s\S]*?supabase\.auth\.getSession\(\)/,
+  'デモ認証チェック失敗時はSupabase セッション確認へフォールバックしてください。',
 );
 
 assert.match(
   source,
-  /setAuthStatus\('unauthenticated'\)/,
-  '未ログイン確定時に authStatus を unauthenticated にしてください。',
+  /if \(!session\?\.user\) \{[\s\S]*?setIsLoggedIn\(false\);[\s\S]*?setCurrentView\('landing'\);[\s\S]*?setAuthStatus\('unauthenticated'\);[\s\S]*?return;/,
+  'Supabase セッションなし分岐では、未ログイン/landing/unauthenticated を同じ分岐内で確定してください。',
 );
 
+const sessionUserIndex = source.indexOf('if (!session?.user)');
+const restrictedSyncIndex = source.indexOf('const restrictedIngredientSync = await fetchRestrictedIngredientLocalIds');
+assert.ok(sessionUserIndex !== -1 && restrictedSyncIndex !== -1, 'Supabase session と制限食材同期の順序を検査できません。');
+assert.equal(
+  source.slice(sessionUserIndex, restrictedSyncIndex).includes("setAuthStatus('authenticated')"),
+  false,
+  'Supabase セッションありでも、制限食材同期前に authenticated render を許可しないでください。',
+);
+assert.match(
+  source.slice(restrictedSyncIndex),
+  /setAuthStatus\('authenticated'\)/,
+  'Supabase セッションあり分岐では、制限食材同期の成功/失敗処理後にauthenticatedを確定してください。',
+);
+
+assert.match(
+  source,
+  /try \{[\s\S]*?fetchRestrictedIngredientLocalIds[\s\S]*?\} catch \(profileSyncError\) \{[\s\S]*?Authenticated session kept, but profile preference sync failed/,
+  'Supabase 認証後のプロフィール/制限食材同期失敗はログイン状態を維持してwarnに留めてください。',
+);
+
+assert.match(
+  source,
+  /catch \(error\) \{[\s\S]*?Auth session sync failed[\s\S]*?setIsLoggedIn\(false\);[\s\S]*?setCurrentView\('landing'\);[\s\S]*?setAuthStatus\('unauthenticated'\);[\s\S]*?\}/,
+  '認証同期中の例外でchecking表示に永久停止しないよう、未ログイン状態へフォールバックしてください。',
+);
+
+const styles = readFileSync('src/app/globals.css', 'utf8');
+assert.match(
+  styles,
+  /\.auth-loading-content\s*\{[\s\S]*?padding:\s*0 24px;/,
+  '認証確認ローディングは main-content の上下paddingをリセットし、カードを中央配置してください。',
+);
 
 console.log('auth initial view regression checks passed');

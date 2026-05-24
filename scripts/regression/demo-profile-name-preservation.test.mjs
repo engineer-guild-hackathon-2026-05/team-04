@@ -23,7 +23,7 @@ assert.equal(
 
 assert.match(
   source,
-  /setUserName\(parsed\?\.userName \|\| demoProfile\?\.userName \|\| demoProfile\?\.email\?\.split\('@'\)\[0\] \|\| 'デモユーザー'\)/,
+  /setUserName\(\s*parsed\?\.userName\s*\|\|\s*demoProfile\?\.userName\s*\|\|\s*demoProfile\?\.email\?\.split\('@'\)\[0\]\s*\|\|\s*'デモユーザー',?\s*\)/,
   'demo authenticated branch では parsed?.userName を demo profile/email fallback より優先してください。',
 );
 assert.match(
