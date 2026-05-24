@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Globe, LogIn, LogOut, Settings, User } from 'lucide-react';
 
 interface NavbarProps {
@@ -15,7 +15,7 @@ interface NavbarProps {
 function getAvatarLabel(userName: string) {
   const trimmedName = userName.trim();
   if (!trimmedName) return 'G';
-  return trimmedName.slice(0, 1).toUpperCase();
+  return (Array.from(trimmedName)[0] ?? 'G').toLocaleUpperCase('ja-JP');
 }
 
 export default function Navbar({
@@ -31,14 +31,37 @@ export default function Navbar({
   const profileMenuButtonRef = useRef<HTMLButtonElement>(null);
   const profileSettingsButtonRef = useRef<HTMLButtonElement>(null);
   const logoutButtonRef = useRef<HTMLButtonElement>(null);
-  const shouldFocusFirstMenuItemRef = useRef(false);
+  const pendingMenuFocusRef = useRef<'first' | 'last' | null>(null);
+
+  const focusProfileMenuItem = useCallback((focusTarget: 'first' | 'last' | 'next' | 'previous') => {
+    const menuItems = [profileSettingsButtonRef.current, logoutButtonRef.current].filter(
+      (item): item is HTMLButtonElement => Boolean(item),
+    );
+    if (menuItems.length === 0) return;
+
+    if (focusTarget === 'first') {
+      menuItems[0]?.focus();
+      return;
+    }
+
+    if (focusTarget === 'last') {
+      menuItems[menuItems.length - 1]?.focus();
+      return;
+    }
+
+    const activeIndex = menuItems.findIndex((item) => item === document.activeElement);
+    const nextIndex = focusTarget === 'next'
+      ? (activeIndex + 1) % menuItems.length
+      : (activeIndex - 1 + menuItems.length) % menuItems.length;
+    menuItems[nextIndex]?.focus();
+  }, []);
 
   useEffect(() => {
     if (!isProfileMenuOpen) return;
 
-    if (shouldFocusFirstMenuItemRef.current) {
-      profileSettingsButtonRef.current?.focus();
-      shouldFocusFirstMenuItemRef.current = false;
+    if (pendingMenuFocusRef.current) {
+      focusProfileMenuItem(pendingMenuFocusRef.current);
+      pendingMenuFocusRef.current = null;
     }
 
     const handlePointerDown = (event: PointerEvent) => {
@@ -61,42 +84,37 @@ export default function Navbar({
       document.removeEventListener('pointerdown', handlePointerDown);
       document.removeEventListener('keydown', handleEscape);
     };
-  }, [isProfileMenuOpen]);
+  }, [focusProfileMenuItem, isProfileMenuOpen]);
 
   const handleLogoClick = () => {
     onNavigateHome();
     setIsProfileMenuOpen(false);
   };
 
-  const openProfileMenu = (focusFirstItem = false) => {
-    shouldFocusFirstMenuItemRef.current = focusFirstItem;
+  const openProfileMenu = (focusTarget: 'first' | 'last' | null = null) => {
+    pendingMenuFocusRef.current = focusTarget;
+
+    if (isProfileMenuOpen) {
+      if (focusTarget) {
+        window.setTimeout(() => focusProfileMenuItem(focusTarget), 0);
+      }
+      return;
+    }
+
     setIsProfileMenuOpen(true);
   };
 
   const handleProfileButtonKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
     if (event.key === 'ArrowDown' || event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
-      openProfileMenu(true);
+      openProfileMenu('first');
       return;
     }
 
     if (event.key === 'ArrowUp') {
       event.preventDefault();
-      shouldFocusFirstMenuItemRef.current = false;
-      setIsProfileMenuOpen(true);
-      window.setTimeout(() => logoutButtonRef.current?.focus(), 0);
+      openProfileMenu('last');
     }
-  };
-
-  const focusMenuItem = (direction: 'next' | 'previous') => {
-    const menuItems = [profileSettingsButtonRef.current, logoutButtonRef.current].filter(
-      (item): item is HTMLButtonElement => Boolean(item),
-    );
-    const activeIndex = menuItems.findIndex((item) => item === document.activeElement);
-    const nextIndex = direction === 'next'
-      ? (activeIndex + 1) % menuItems.length
-      : (activeIndex - 1 + menuItems.length) % menuItems.length;
-    menuItems[nextIndex]?.focus();
   };
 
   const handleMenuKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
@@ -109,25 +127,25 @@ export default function Navbar({
 
     if (event.key === 'ArrowDown') {
       event.preventDefault();
-      focusMenuItem('next');
+      focusProfileMenuItem('next');
       return;
     }
 
     if (event.key === 'ArrowUp') {
       event.preventDefault();
-      focusMenuItem('previous');
+      focusProfileMenuItem('previous');
       return;
     }
 
     if (event.key === 'Home') {
       event.preventDefault();
-      profileSettingsButtonRef.current?.focus();
+      focusProfileMenuItem('first');
       return;
     }
 
     if (event.key === 'End') {
       event.preventDefault();
-      logoutButtonRef.current?.focus();
+      focusProfileMenuItem('last');
     }
   };
 
@@ -164,12 +182,12 @@ export default function Navbar({
                 className={`profile-avatar-btn ${isProfileMenuOpen ? 'active' : ''}`}
                 ref={profileMenuButtonRef}
                 onClick={() => {
-                  shouldFocusFirstMenuItemRef.current = false;
+                  pendingMenuFocusRef.current = null;
                   setIsProfileMenuOpen((open) => !open);
                 }}
                 onKeyDown={handleProfileButtonKeyDown}
                 title="プロフィールメニュー"
-                aria-label="プロフィールメニューを開く"
+                aria-label={isProfileMenuOpen ? 'プロフィールメニューを閉じる' : 'プロフィールメニューを開く'}
                 aria-haspopup="menu"
                 aria-expanded={isProfileMenuOpen}
                 id="profile-nav-btn"
