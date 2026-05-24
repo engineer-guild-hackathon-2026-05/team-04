@@ -185,9 +185,7 @@ export default function Home() {
         supabase,
         session.user.id,
       );
-      if (databaseRestrictedIngredients.length > 0) {
-        setRestrictedIngredients(databaseRestrictedIngredients);
-      }
+      setRestrictedIngredients(databaseRestrictedIngredients);
     };
 
     void syncSupabaseSession();
