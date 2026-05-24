@@ -1201,6 +1201,55 @@ button, input {
   line-height: 1.7;
 }
 
+.modal-restriction-tags {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 1px solid var(--border-light);
+  border-radius: 16px;
+  background-color: #fffaf4;
+}
+
+.restriction-tags-title {
+  color: var(--text-primary);
+  font-size: 0.86rem;
+  font-weight: 900;
+}
+
+.restriction-tags-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.modal-restriction-tag {
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.modal-restriction-tag.safe {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+.modal-restriction-tag.caution {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.modal-restriction-tag.danger {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.modal-restriction-tag.neutral {
+  background-color: #e0f2fe;
+  color: #075985;
+}
+
 /* セクションデザイン */
 .modal-section {
   display: flex;

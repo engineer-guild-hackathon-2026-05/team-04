@@ -10,6 +10,21 @@ interface RecipeModalProps {
   restrictedIngredients: string[];
 }
 
+const DIET_RESTRICTION_LABELS: Record<string, string> = {
+  'diet-vegan': '完全ヴィーガン希望',
+  'diet-lacto-vegetarian': 'ラクト・ベジタリアン希望',
+  'diet-ovo-vegetarian': 'オボ・ベジタリアン希望',
+  'diet-pescatarian': 'ペスカタリアン希望',
+};
+
+const RELIGIOUS_RESTRICTION_LABELS: Record<string, string> = {
+  'ing-pork': '宗教上注意: 豚肉',
+  'ing-beef': '宗教上注意: 牛肉',
+  'ing-shrimp': '宗教上注意: えび',
+  'ing-crab': '宗教上注意: かに',
+  'ing-gelatin': '宗教上注意: ゼラチン',
+};
+
 export default function RecipeModal({
   recipe,
   onClose,
@@ -33,6 +48,19 @@ export default function RecipeModal({
   const matchedAllergens = recipe.ingredients.filter(ing => 
     restrictedIngredients.includes(ing.id)
   );
+  const selectedDietLabels = restrictedIngredients
+    .filter(id => DIET_RESTRICTION_LABELS[id])
+    .map(id => DIET_RESTRICTION_LABELS[id]);
+  const matchedReligiousLabels = recipe.ingredients
+    .filter(ing => restrictedIngredients.includes(ing.id) && RELIGIOUS_RESTRICTION_LABELS[ing.id])
+    .map(ing => RELIGIOUS_RESTRICTION_LABELS[ing.id]);
+  const recipeRestrictionTags = [
+    recipe.is_vegan ? { label: 'ヴィーガン対応', tone: 'safe' } : { label: 'ヴィーガン要確認', tone: 'caution' },
+    recipe.is_gluten_free ? { label: 'グルテンフリー対応', tone: 'safe' } : { label: 'グルテン要確認', tone: 'caution' },
+    ...matchedAllergens.map(ing => ({ label: `含有: ${ing.name_ja.split('（')[0].trim()}`, tone: 'danger' })),
+    ...matchedReligiousLabels.map(label => ({ label, tone: 'caution' })),
+    ...selectedDietLabels.map(label => ({ label, tone: 'neutral' })),
+  ];
 
   return (
     <div 
@@ -104,6 +132,17 @@ export default function RecipeModal({
             <div className="meta-item">
               <ChefHat size={16} />
               <span>カテゴリ: <strong>{recipe.tags[0]}</strong></span>
+            </div>
+          </div>
+
+          <div className="modal-restriction-tags" aria-label="この料理の制限・アレルギー情報">
+            <span className="restriction-tags-title">制限・アレルギー情報</span>
+            <div className="restriction-tags-list">
+              {recipeRestrictionTags.map((tag, index) => (
+                <span key={`${tag.label}-${index}`} className={`modal-restriction-tag ${tag.tone}`}>
+                  {tag.label}
+                </span>
+              ))}
             </div>
           </div>
 
