@@ -535,6 +535,10 @@ button, input {
   gap: 10px;
 }
 
+.toggle-grid.compact {
+  gap: 8px;
+}
+
 .toggle-chip {
   display: inline-flex;
   align-items: center;
@@ -549,6 +553,11 @@ button, input {
   font-weight: 600;
   color: var(--text-muted);
   transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.toggle-grid.compact .toggle-chip {
+  padding: 8px 14px;
+  font-size: 0.82rem;
 }
 
 .toggle-chip:hover {
@@ -1478,6 +1487,101 @@ button, input {
   font-size: 0.82rem;
   color: var(--text-light);
   margin-bottom: 8px;
+}
+
+.restriction-field-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.restriction-field-card {
+  padding: 16px;
+  border: 1px solid var(--border-light);
+  border-radius: 18px;
+  background-color: #fffaf4;
+}
+
+.restriction-field-title {
+  display: inline-flex;
+  margin-bottom: 10px;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.searchable-select-block {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.profile-search-wrapper {
+  position: relative;
+}
+
+.profile-search-icon {
+  position: absolute;
+  top: 50%;
+  left: 14px;
+  transform: translateY(-50%);
+  color: var(--text-light);
+}
+
+.profile-search-input {
+  width: 100%;
+  padding: 10px 14px 10px 40px;
+  border: 1.5px solid #e7e5e4;
+  border-radius: 12px;
+  background-color: white;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.profile-search-input:focus {
+  border-color: var(--forest-green);
+  box-shadow: 0 0 0 4px rgba(27, 67, 50, 0.05);
+}
+
+.select-empty-text {
+  color: var(--text-light);
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
+.selected-tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 2px;
+}
+
+.selected-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border: none;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.selected-tag.danger {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.selected-tag.green {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+.selected-tag.amber {
+  background-color: #fef3c7;
+  color: #92400e;
 }
 
 .profile-text-input {

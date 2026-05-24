@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { User, ShieldAlert, Sparkles, Save, ArrowLeft, Check } from 'lucide-react';
+import { User, ShieldAlert, Sparkles, Save, ArrowLeft, Check, Search, X } from 'lucide-react';
 import { INGREDIENT_MASTER } from '@/lib/mockData';
 
 interface ProfileViewProps {
@@ -37,6 +37,41 @@ const PREFERRED_CUISINES = [
   { id: 'china', label: '🇨🇳 中国' }
 ];
 
+type SelectableOption = {
+  id: string;
+  label: string;
+  description?: string;
+  keywords?: string[];
+};
+
+const VEGAN_LEVEL_OPTIONS: SelectableOption[] = [
+  { id: 'diet-vegan', label: '完全ヴィーガン', description: '肉・魚・卵・乳・はちみつを避ける', keywords: ['vegan', 'ビーガン', '動物性'] },
+  { id: 'diet-lacto-vegetarian', label: 'ラクト・ベジタリアン', description: '肉・魚・卵を避け、乳製品は可', keywords: ['vegetarian', '乳製品'] },
+  { id: 'diet-ovo-vegetarian', label: 'オボ・ベジタリアン', description: '肉・魚・乳を避け、卵は可', keywords: ['vegetarian', '卵'] },
+  { id: 'diet-pescatarian', label: 'ペスカタリアン', description: '肉を避け、魚介類は可', keywords: ['魚', 'pescatarian'] },
+];
+
+const RELIGIOUS_RESTRICTION_OPTIONS: SelectableOption[] = [
+  { id: 'ing-pork', label: '豚肉・豚由来食品', description: 'ハラール / コーシャ等で避けたい食材', keywords: ['イスラム', 'ユダヤ', 'halal', 'kosher'] },
+  { id: 'ing-beef', label: '牛肉・牛由来食品', description: 'ヒンドゥー等で避けたい食材', keywords: ['ヒンドゥー', 'hindu'] },
+  { id: 'ing-shrimp', label: 'えび', description: '宗教・戒律上の魚介制限にも利用', keywords: ['甲殻類', 'kosher'] },
+  { id: 'ing-crab', label: 'かに', description: '宗教・戒律上の魚介制限にも利用', keywords: ['甲殻類', 'kosher'] },
+  { id: 'ing-gelatin', label: 'ゼラチン', description: '動物由来原料を避けたい場合に利用', keywords: ['動物性', 'halal', 'kosher'] },
+];
+
+const normalizeSearchText = (text: string) => text.toLowerCase().trim();
+
+const matchesOption = (option: SelectableOption, query: string) => {
+  const normalizedQuery = normalizeSearchText(query);
+  if (!normalizedQuery) return true;
+  const target = [
+    option.label,
+    option.description,
+    ...(option.keywords ?? []),
+  ].filter(Boolean).join(' ').toLowerCase();
+  return target.includes(normalizedQuery);
+};
+
 export default function ProfileView({
   initialUserName,
   initialRestrictedIngredients,
@@ -49,18 +84,104 @@ export default function ProfileView({
   const [selectedRestricted, setSelectedRestricted] = useState<string[]>(initialRestrictedIngredients);
   const [selectedDishes, setSelectedDishes] = useState<string[]>(initialPreferredDishes);
   const [selectedCuisines, setSelectedCuisines] = useState<string[]>(initialPreferredCuisines);
+  const [allergyQuery, setAllergyQuery] = useState('');
+  const [veganQuery, setVeganQuery] = useState('');
+  const [religiousQuery, setReligiousQuery] = useState('');
   const [saveSuccess, setSaveSuccess] = useState(false);
 
-  // 食べられない食材はマスタデータからテスト用に主要なものを抜粋
-  const demoIngredients = INGREDIENT_MASTER.filter(ing => 
-    ['ing-wheat', 'ing-egg', 'ing-milk', 'ing-peanut', 'ing-shrimp', 'ing-pork', 'ing-beef'].includes(ing.id)
+  const allergyOptions: SelectableOption[] = INGREDIENT_MASTER.map(ingredient => ({
+    id: ingredient.id,
+    label: ingredient.name_ja,
+    description: ingredient.category,
+    keywords: [ingredient.name_en, ingredient.category],
+  }));
+  const visibleAllergyOptions = (allergyQuery
+    ? allergyOptions.filter(option => matchesOption(option, allergyQuery))
+    : allergyOptions.slice(0, 12)
   );
+  const visibleVeganOptions = VEGAN_LEVEL_OPTIONS.filter(option => matchesOption(option, veganQuery));
+  const visibleReligiousOptions = RELIGIOUS_RESTRICTION_OPTIONS.filter(option => matchesOption(option, religiousQuery));
 
   const toggleRestricted = (id: string) => {
     setSelectedRestricted(prev => 
       prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
     );
   };
+
+  const getSelectedOptions = (options: SelectableOption[]) => (
+    options.filter(option => selectedRestricted.includes(option.id))
+  );
+
+  const renderSearchableRestrictionField = ({
+    inputId,
+    query,
+    setQuery,
+    options,
+    selectedOptions,
+    placeholder,
+    emptyText,
+    chipClassName,
+  }: {
+    inputId: string;
+    query: string;
+    setQuery: (value: string) => void;
+    options: SelectableOption[];
+    selectedOptions: SelectableOption[];
+    placeholder: string;
+    emptyText: string;
+    chipClassName: string;
+  }) => (
+    <div className="searchable-select-block">
+      <div className="profile-search-wrapper">
+        <Search size={16} className="profile-search-icon" />
+        <input
+          id={inputId}
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder={placeholder}
+          className="profile-search-input"
+        />
+      </div>
+
+      <div className="toggle-grid compact">
+        {options.length > 0 ? options.map(option => {
+          const active = selectedRestricted.includes(option.id);
+          return (
+            <button
+              key={`${inputId}-${option.id}`}
+              type="button"
+              className={`toggle-chip restrict ${active ? 'active' : ''}`}
+              onClick={() => toggleRestricted(option.id)}
+              aria-pressed={active}
+            >
+              <span className="chip-indicator"></span>
+              <span className="chip-label">{option.label}</span>
+            </button>
+          );
+        }) : (
+          <p className="select-empty-text">{emptyText}</p>
+        )}
+      </div>
+
+      {selectedOptions.length > 0 && (
+        <div className="selected-tag-row" aria-label="現在選択中の項目">
+          {selectedOptions.map(option => (
+            <button
+              key={`selected-${inputId}-${option.id}`}
+              type="button"
+              className={`selected-tag ${chipClassName}`}
+              onClick={() => toggleRestricted(option.id)}
+              aria-label={`${option.label}を解除`}
+            >
+              <span>{option.label}</span>
+              <X size={12} />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 
   const toggleDish = (id: string) => {
     setSelectedDishes(prev => 
@@ -142,23 +263,50 @@ export default function ProfileView({
               <ShieldAlert size={16} className="inline-icon text-red" />
               <span>食べられない・アレルギーのある食材</span>
             </label>
-            <p className="group-subdesc">トグルがONの食材を含むレシピには、警告が表示されます。</p>
-            <div className="toggle-grid">
-              {demoIngredients.map(ing => {
-                const active = selectedRestricted.includes(ing.id);
-                return (
-                  <button
-                    key={ing.id}
-                    type="button"
-                    className={`toggle-chip restrict ${active ? 'active' : ''}`}
-                    onClick={() => toggleRestricted(ing.id)}
-                    aria-pressed={active}
-                  >
-                    <span className="chip-indicator"></span>
-                    <span className="chip-label">{ing.name_ja}</span>
-                  </button>
-                );
-              })}
+            <p className="group-subdesc">3つの観点から検索して複数選択できます。選択済みの項目はタグとしてすぐ下に表示されます。</p>
+
+            <div className="restriction-field-stack">
+              <div className="restriction-field-card">
+                <span className="restriction-field-title">アレルギー要素</span>
+                {renderSearchableRestrictionField({
+                  inputId: 'allergy-search-input',
+                  query: allergyQuery,
+                  setQuery: setAllergyQuery,
+                  options: visibleAllergyOptions,
+                  selectedOptions: getSelectedOptions(allergyOptions),
+                  placeholder: '小麦、卵、えびなどを検索...',
+                  emptyText: '該当するアレルギー要素が見つかりません。',
+                  chipClassName: 'danger',
+                })}
+              </div>
+
+              <div className="restriction-field-card">
+                <span className="restriction-field-title">ヴィーガンレベル</span>
+                {renderSearchableRestrictionField({
+                  inputId: 'vegan-level-search-input',
+                  query: veganQuery,
+                  setQuery: setVeganQuery,
+                  options: visibleVeganOptions,
+                  selectedOptions: getSelectedOptions(VEGAN_LEVEL_OPTIONS),
+                  placeholder: '完全ヴィーガン、ベジタリアンなどを検索...',
+                  emptyText: '該当するヴィーガンレベルが見つかりません。',
+                  chipClassName: 'green',
+                })}
+              </div>
+
+              <div className="restriction-field-card">
+                <span className="restriction-field-title">宗教上食べられない食品・食材</span>
+                {renderSearchableRestrictionField({
+                  inputId: 'religious-restriction-search-input',
+                  query: religiousQuery,
+                  setQuery: setReligiousQuery,
+                  options: visibleReligiousOptions,
+                  selectedOptions: getSelectedOptions(RELIGIOUS_RESTRICTION_OPTIONS),
+                  placeholder: '豚肉、牛肉、甲殻類などを検索...',
+                  emptyText: '該当する宗教上の制限項目が見つかりません。',
+                  chipClassName: 'amber',
+                })}
+              </div>
             </div>
           </div>
 
