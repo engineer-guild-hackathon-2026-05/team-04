@@ -40,18 +40,26 @@ export default function ListView({
 }: ListViewProps) {
   const [searchQuery, setSearchQuery] = useState('');
 
-  // リアルタイム検索ロジック
+  // リアルタイム検索ロジック（ユーザーが食べられない食材を含むレシピは推薦前に除外）
   const filteredRecipes = useMemo(() => {
-    return MOCK_RECIPES.filter(recipe => {
-      const matchesQuery = 
-        recipe.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        recipe.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        recipe.cuisine.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        recipe.ingredients.some(ing => ing.name_ja.toLowerCase().includes(searchQuery.toLowerCase()));
+    const normalizedQuery = searchQuery.toLowerCase();
 
-      return matchesQuery;
+    return MOCK_RECIPES.filter((recipe) => {
+      const matchesQuery =
+        recipe.title.toLowerCase().includes(normalizedQuery) ||
+        recipe.description.toLowerCase().includes(normalizedQuery) ||
+        recipe.cuisine.toLowerCase().includes(normalizedQuery) ||
+        recipe.ingredients.some((ingredient) =>
+          ingredient.name_ja.toLowerCase().includes(normalizedQuery),
+        );
+
+      const containsRestrictedIngredient = recipe.ingredients.some((ingredient) =>
+        restrictedIngredients.includes(ingredient.id),
+      );
+
+      return matchesQuery && !containsRestrictedIngredient;
     });
-  }, [searchQuery]);
+  }, [searchQuery, restrictedIngredients]);
 
   // レシピにアレルギー食材（ユーザーのNG材料）が含まれているかチェックするヘルパー
   const getAllergenWarnings = (recipe: Recipe) => {
