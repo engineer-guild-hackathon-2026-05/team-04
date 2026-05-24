@@ -79,6 +79,19 @@
 
 ## セットアップ手順
 
+ローカル開発環境（Supabase + Docker）の立ち上げ手順は [`docs/SETUP.md`](./docs/SETUP.md) を参照。
+
+```bash
+# ざっくり
+git clone https://github.com/engineer-guild-hackathon-2026-05/team-04.git
+cd team-04
+supabase login
+supabase link --project-ref kiicjqiylsmlxupvhrti
+supabase start
+```
+
+アプリ側の起動コマンド：
+
 ```bash
 # ローカル起動例（適宜書き換え）
 npm install
