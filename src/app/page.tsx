@@ -59,6 +59,11 @@ function readDemoProfile() {
   return readStoredProfile(DEMO_PROFILE_STORAGE_KEY, 'demo profile');
 }
 
+function writeDemoProfile(updates: StoredProfile) {
+  const current = readDemoProfile() ?? {};
+  localStorage.setItem(DEMO_PROFILE_STORAGE_KEY, JSON.stringify({ ...current, ...updates }));
+}
+
 function mergeSyncedRestrictedIngredients(localIds: string[], databaseIngredientIds: string[]) {
   const localOnlyRestrictionIds = localIds.filter((id) => !ingredientMasterIds.has(id));
   return Array.from(new Set([...databaseIngredientIds, ...localOnlyRestrictionIds]));
@@ -210,7 +215,7 @@ export default function Home() {
         const demoProfile = readDemoProfile();
         setIsLoggedIn(true);
         setCurrentView('list');
-        setUserName(demoProfile?.userName || demoProfile?.email?.split('@')[0] || 'デモユーザー');
+        setUserName(parsed?.userName || demoProfile?.userName || demoProfile?.email?.split('@')[0] || 'デモユーザー');
         setAuthStatus('authenticated');
         return;
       }
@@ -233,7 +238,6 @@ export default function Home() {
 
       setIsLoggedIn(true);
       setCurrentView('list');
-      setAuthStatus('authenticated');
 
       const fallbackName =
         session.user.user_metadata?.name ||
@@ -267,6 +271,8 @@ export default function Home() {
       } else {
         console.warn('Supabase restricted ingredient sync failed. Keeping local restrictions.', restrictedIngredientSync.error);
       }
+
+      setAuthStatus('authenticated');
     };
 
     void syncSupabaseSession();
@@ -343,7 +349,15 @@ export default function Home() {
     setCurrentView('list');
 
     const demoSession = await fetchDemoSession();
-    if (demoSession === 'authenticated') return;
+    if (demoSession === 'authenticated') {
+      writeDemoProfile({
+        userName: profile.userName,
+        restrictedIngredients: profile.restrictedIngredients,
+        preferredDishes: profile.preferredDishes,
+        preferredCuisines: profile.preferredCuisines,
+      });
+      return;
+    }
     if (demoSession === 'failed') {
       console.error('Demo session check failed while saving profile. Continuing with Supabase auth fallback.');
     }
