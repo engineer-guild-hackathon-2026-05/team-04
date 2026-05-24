@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { User, ShieldAlert, Sparkles, Save, ArrowLeft, Check, Search, X } from 'lucide-react';
-import { INGREDIENT_MASTER } from '@/lib/mockData';
+import { INGREDIENT_MASTER, MOCK_RECIPES } from '@/lib/mockData';
 
 interface ProfileViewProps {
   initialUserName: string;
@@ -87,6 +87,7 @@ export default function ProfileView({
   const [allergyQuery, setAllergyQuery] = useState('');
   const [veganQuery, setVeganQuery] = useState('');
   const [religiousQuery, setReligiousQuery] = useState('');
+  const [dishQuery, setDishQuery] = useState('');
   const [saveSuccess, setSaveSuccess] = useState(false);
 
   const allergyOptions: SelectableOption[] = INGREDIENT_MASTER.map(ingredient => ({
@@ -101,6 +102,16 @@ export default function ProfileView({
   );
   const visibleVeganOptions = VEGAN_LEVEL_OPTIONS.filter(option => matchesOption(option, veganQuery));
   const visibleReligiousOptions = RELIGIOUS_RESTRICTION_OPTIONS.filter(option => matchesOption(option, religiousQuery));
+  const recipeDishOptions: SelectableOption[] = MOCK_RECIPES.map(recipe => ({
+    id: recipe.id,
+    label: recipe.title.split('(')[0].trim(),
+    description: `${recipe.cuisine}料理 / ${recipe.tags.join('、')}`,
+    keywords: [recipe.title, recipe.cuisine, ...recipe.tags],
+  }));
+  const visibleRecipeDishOptions = (dishQuery
+    ? recipeDishOptions.filter(option => matchesOption(option, dishQuery))
+    : recipeDishOptions
+  );
 
   const toggleRestricted = (id: string) => {
     setSelectedRestricted(prev => 
@@ -188,6 +199,8 @@ export default function ProfileView({
       prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
     );
   };
+
+  const selectedRecipeDishOptions = recipeDishOptions.filter(option => selectedDishes.includes(option.id));
 
   const toggleCuisine = (id: string) => {
     setSelectedCuisines(prev => 
@@ -316,9 +329,10 @@ export default function ProfileView({
           <div className="profile-form-group">
             <label className="profile-group-label">
               <Sparkles size={16} className="inline-icon text-gold" />
-              <span>好みの料理タイプ</span>
+              <span>好みの料理タイプ・好みの料理</span>
             </label>
-            <p className="group-subdesc">好きな料理カテゴリにマッチしたレシピが「あなたにおすすめ」として優先表示されます。</p>
+            <p className="group-subdesc">料理タイプは残しつつ、データ内にある具体的な料理も検索して追加できます。</p>
+            <span className="restriction-field-title">好みの料理タイプ</span>
             <div className="toggle-grid">
               {PREFERRED_DISHES.map(dish => {
                 const active = selectedDishes.includes(dish.id);
@@ -335,6 +349,60 @@ export default function ProfileView({
                   </button>
                 );
               })}
+            </div>
+
+            <div className="restriction-field-card dish-search-card">
+              <span className="restriction-field-title">好みの料理</span>
+              <div className="searchable-select-block">
+                <div className="profile-search-wrapper">
+                  <Search size={16} className="profile-search-icon" />
+                  <input
+                    id="preferred-dish-search-input"
+                    type="search"
+                    value={dishQuery}
+                    onChange={(e) => setDishQuery(e.target.value)}
+                    placeholder="ロビオ、タコス、国名、タグから検索..."
+                    className="profile-search-input"
+                  />
+                </div>
+
+                <div className="toggle-grid compact">
+                  {visibleRecipeDishOptions.length > 0 ? visibleRecipeDishOptions.map(option => {
+                    const active = selectedDishes.includes(option.id);
+                    return (
+                      <button
+                        key={option.id}
+                        type="button"
+                        className={`toggle-chip dish ${active ? 'active' : ''}`}
+                        onClick={() => toggleDish(option.id)}
+                        aria-pressed={active}
+                      >
+                        <span className="chip-indicator"></span>
+                        <span className="chip-label">{option.label}</span>
+                      </button>
+                    );
+                  }) : (
+                    <p className="select-empty-text">該当する料理が見つかりません。</p>
+                  )}
+                </div>
+
+                {selectedRecipeDishOptions.length > 0 && (
+                  <div className="selected-tag-row" aria-label="現在選択中の好みの料理">
+                    {selectedRecipeDishOptions.map(option => (
+                      <button
+                        key={`selected-dish-${option.id}`}
+                        type="button"
+                        className="selected-tag gold"
+                        onClick={() => toggleDish(option.id)}
+                        aria-label={`${option.label}を解除`}
+                      >
+                        <span>{option.label}</span>
+                        <X size={12} />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 

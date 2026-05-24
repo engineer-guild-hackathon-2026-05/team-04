@@ -65,6 +65,11 @@ export default function ListView({
   // おすすめ優先度の判定（ユーザーの好みの国や料理タイプにマッチするか）
   const getRecommendationScore = React.useCallback((recipe: Recipe) => {
     let score = 0;
+
+    // 好みの料理として直接選ばれたレシピは最優先
+    if (preferredDishes.includes(recipe.id)) {
+      score += 4;
+    }
     
     // 好みの国にマッチ
     const cuisineKey = recipe.cuisine.toLowerCase();

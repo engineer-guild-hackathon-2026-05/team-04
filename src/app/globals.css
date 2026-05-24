@@ -1584,6 +1584,16 @@ button, input {
   color: #92400e;
 }
 
+.selected-tag.gold {
+  background-color: var(--gold-light);
+  color: #92400e;
+}
+
+.dish-search-card {
+  margin-top: 10px;
+  background-color: #fffbeb;
+}
+
 .profile-text-input {
   width: 100%;
   padding: 12px 18px;
