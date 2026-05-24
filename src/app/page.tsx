@@ -11,6 +11,7 @@ import { INGREDIENT_MASTER, Recipe } from '@/lib/mockData';
 import { createClient } from '@/lib/supabase/client';
 
 type CurrentView = 'landing' | 'list' | 'profile';
+type AuthStatus = 'checking' | 'authenticated' | 'unauthenticated';
 
 type StoredProfile = {
   email?: string;
@@ -112,7 +113,8 @@ async function replaceRestrictedIngredients(
 
 export default function Home() {
   const router = useRouter();
-  const [currentView, setCurrentView] = useState<CurrentView>('landing');
+  const [currentView, setCurrentView] = useState<CurrentView>('list');
+  const [authStatus, setAuthStatus] = useState<AuthStatus>('checking');
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
   const [userName, setUserName] = useState<string>('ゲスト愛好家');
   const [restrictedIngredients, setRestrictedIngredients] = useState<string[]>([]);
@@ -141,14 +143,16 @@ export default function Home() {
         setIsLoggedIn(true);
         setCurrentView('list');
         setUserName(demoProfile?.userName || demoProfile?.email?.split('@')[0] || 'デモユーザー');
+        setAuthStatus('authenticated');
         return;
       }
 
       if (demoSession === 'unauthenticated' || demoSession === 'failed') {
         setIsLoggedIn(false);
         setCurrentView('landing');
+        setAuthStatus('unauthenticated');
         if (demoSession === 'failed') {
-          console.error('Demo session check failed. Supabase auth fallback was skipped.');
+          console.error('Demo session check failed. Treating the user as signed out.');
         }
         return;
       }
@@ -161,11 +165,13 @@ export default function Home() {
       if (!session?.user) {
         setIsLoggedIn(false);
         setCurrentView('landing');
+        setAuthStatus('unauthenticated');
         return;
       }
 
       setIsLoggedIn(true);
       setCurrentView('list');
+      setAuthStatus('authenticated');
 
       const fallbackName =
         session.user.user_metadata?.name ||
@@ -226,6 +232,7 @@ export default function Home() {
     localStorage.removeItem(PROFILE_STORAGE_KEY);
     localStorage.removeItem(DEMO_PROFILE_STORAGE_KEY);
     setCurrentView('landing');
+    setAuthStatus('unauthenticated');
     router.push('/');
   };
 
@@ -267,6 +274,20 @@ export default function Home() {
     }
   };
 
+  if (authStatus === 'checking') {
+    return (
+      <div className="app-container">
+        <main className="main-content auth-loading-content">
+          <section className="auth-loading-card" role="status" aria-live="polite">
+            <div className="auth-loading-spinner" aria-hidden="true" />
+            <p className="auth-loading-title">ログイン状態を確認しています...</p>
+            <p className="auth-loading-copy">保存されたセッションを確認し、レシピ一覧へ移動します。</p>
+          </section>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="app-container">
       <Navbar
@@ -279,7 +300,9 @@ export default function Home() {
       />
 
       <main className="main-content">
-        {currentView === 'landing' && <LandingView onSignIn={handleSignIn} />}
+        {authStatus === 'unauthenticated' && currentView === 'landing' && (
+          <LandingView onSignIn={handleSignIn} />
+        )}
 
         {currentView === 'list' && (
           <ListView

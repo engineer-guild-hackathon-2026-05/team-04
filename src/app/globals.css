@@ -145,6 +145,48 @@ button, input {
   z-index: 1;
 }
 
+.auth-loading-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding-top: 60px;
+}
+
+.auth-loading-card {
+  width: min(420px, 100%);
+  padding: 40px 32px;
+  border: 1px solid var(--border-light);
+  border-radius: 28px;
+  background: var(--glass-white);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--shadow-premium);
+  text-align: center;
+  animation: fadeIn 0.25s ease-out forwards;
+}
+
+.auth-loading-spinner {
+  width: 44px;
+  height: 44px;
+  margin: 0 auto 20px;
+  border: 4px solid var(--forest-light);
+  border-top-color: var(--forest-green);
+  border-radius: 999px;
+  animation: spin 0.9s linear infinite;
+}
+
+.auth-loading-title {
+  color: var(--forest-green);
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
+.auth-loading-copy {
+  margin-top: 8px;
+  color: var(--text-muted);
+  font-size: 0.92rem;
+}
+
 /* =============================================
    Navbar
    ============================================= */
@@ -1829,10 +1871,6 @@ button, input {
 
 .auth-spin {
   animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
 }
 
 .auth-confirm-card {
