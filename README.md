@@ -63,7 +63,7 @@
 
 ## 技術スタック
 
-- **フロント**：
+- **フロント**：Next.js 15 / React 19 / TypeScript
 - **バックエンド**：
 - **インフラ**：
 - **利用 AI ツール**：
@@ -79,23 +79,37 @@
 
 ## セットアップ手順
 
-ローカル開発環境（Supabase + Docker）の立ち上げ手順は [`docs/SETUP.md`](./docs/SETUP.md) を参照。
+フロントエンドは Next.js 15 系に固定しています。Supabase は Web 上のクラウドプロジェクトを Supabase CLI でリンクして利用します。
 
 ```bash
-# ざっくり
+# 1. クローン
 git clone https://github.com/engineer-guild-hackathon-2026-05/team-04.git
 cd team-04
+
+# 2. 依存関係をインストール
+npm install
+
+# 3. Supabase Web プロジェクトに接続
 supabase login
 supabase link --project-ref kiicjqiylsmlxupvhrti
-supabase start
+
+# 4. 開発サーバーを起動
+npm run dev
 ```
 
-アプリ側の起動コマンド：
+環境変数は `.env.local` に保存し、リポジトリへコミットしないでください。
 
 ```bash
-# ローカル起動例（適宜書き換え）
-npm install
-npm run dev
+NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon-key>
+```
+
+品質確認には以下を使用します。
+
+```bash
+npm run lint
+npm run typecheck
+npm run build
 ```
 
 ## 既知の問題 / 未実装機能（Day3 審査員向け）
