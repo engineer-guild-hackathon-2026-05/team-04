@@ -3,10 +3,10 @@ import { readFileSync } from 'node:fs';
 
 const source = readFileSync('src/lib/mockData.ts', 'utf8');
 
-const masterIds = new Set(
-  [...source.matchAll(/\{ id: "(ing-[^"]+)", name_ja: "[^"]+", name_en: "[^"]+", category: "[^"]+" \}/g)]
-    .map(([, id]) => id),
-);
+const masterEntries = [...source.matchAll(/\{ id: "(ing-[^"]+)", name_ja: "([^"]+)", name_en: "[^"]+", category: "([^"]+)" \}/g)]
+  .map(([, id, nameJa, category]) => ({ id, nameJa, category }));
+
+const masterIds = new Set(masterEntries.map(({ id }) => id));
 
 const recipePattern = /\{\n    id: "(rec-[^"]+)",[\s\S]*?title: "([^"]+)",[\s\S]*?description: "([^"]+)",[\s\S]*?is_vegan: (true|false),\n    is_gluten_free: (true|false),\n    tags: \[([^\]]*)\],\n    ingredients: \[([\s\S]*?)\n    \],\n    steps: \[([\s\S]*?)\n    \]\n  \}/g;
 
@@ -16,7 +16,7 @@ const recipes = [...source.matchAll(recipePattern)].map((match) => ({
   description: match[3],
   isVegan: match[4] === 'true',
   isGlutenFree: match[5] === 'true',
-  tags: match[6],
+  tags: [...match[6].matchAll(/"([^"]+)"/g)].map(([, tag]) => tag),
   ingredients: [...match[7].matchAll(/\{ id: "([^"]+)", name_ja: "([^"]+)", quantity: "([^"]+)", is_optional: (true|false)/g)]
     .map(([, id, nameJa, quantity, isOptional]) => ({
       id,
@@ -28,6 +28,14 @@ const recipes = [...source.matchAll(recipePattern)].map((match) => ({
 }));
 
 assert.ok(recipes.length > 0, 'MOCK_RECIPES を検査できる形式で定義してください。');
+
+const declaredRecipeIds = [...source.matchAll(/id: "(rec-[^"]+)"/g)].map(([, id]) => id).sort();
+const parsedRecipeIds = recipes.map((recipe) => recipe.id).sort();
+assert.deepEqual(
+  parsedRecipeIds,
+  declaredRecipeIds,
+  'MOCK_RECIPES 内の全レシピを regression test が検査できる形式で定義してください。',
+);
 
 const allergenNamePatterns = {
   'ing-shrimp': /えび|海老|shrimp/i,
@@ -60,14 +68,41 @@ const allergenNamePatterns = {
   'ing-gelatin': /ゼラチン|gelatin/i,
 };
 
-const animalAllergenIds = new Set([
-  'ing-egg',
-  'ing-milk',
-  'ing-beef',
-  'ing-chicken',
-  'ing-pork',
-  'ing-gelatin',
-]);
+const isKnownNonDairyButter = (ingredientName) => /ピーナッツバター|peanut butter/i.test(ingredientName);
+const detectAllergenIds = (ingredientName) => Object.entries(allergenNamePatterns)
+  .filter(([id, pattern]) => pattern.test(ingredientName) && !(id === 'ing-milk' && isKnownNonDairyButter(ingredientName)))
+  .map(([id]) => id);
+
+const glutenRiskPattern = /小麦粉|薄力粉|強力粉|中力粉|全粒粉|パン粉|麩|セイタン|大麦|ライ麦|麦芽|ルウ|通常の醤油|醤油/;
+const glutenSafeContextPattern = /グルテンフリー|たまり|小麦不使用|小麦粉[^。、]*使わず|小麦[^。、]*含まない|小麦[^。、]*不使用/;
+
+const animalDerivedCategories = new Set(['甲殻類', '魚介類', '肉類', '卵・乳']);
+const animalDerivedIngredientIds = new Set(
+  masterEntries
+    .filter(({ category }) => animalDerivedCategories.has(category))
+    .map(({ id }) => id),
+);
+
+// ゼラチンはカテゴリ上は「その他」だが動物由来のため、vegan 検証では明示的に含める。
+if (masterIds.has('ing-gelatin')) animalDerivedIngredientIds.add('ing-gelatin');
+
+assert.ok(
+  animalDerivedIngredientIds.has('ing-shrimp') &&
+    animalDerivedIngredientIds.has('ing-crab') &&
+    animalDerivedIngredientIds.has('ing-salmon'),
+  'vegan 検証では甲殻類・魚介類も動物性食材として扱ってください。',
+);
+assert.ok(
+  animalDerivedIngredientIds.has('ing-egg') &&
+    animalDerivedIngredientIds.has('ing-milk') &&
+    animalDerivedIngredientIds.has('ing-beef') &&
+    animalDerivedIngredientIds.has('ing-gelatin'),
+  'vegan 検証では卵・乳・肉類・ゼラチンも動物性食材として扱ってください。',
+);
+assert.ok(
+  !animalDerivedIngredientIds.has('ing-soybean'),
+  'vegan 検証では植物性の大豆を動物性食材として扱わないでください。',
+);
 
 for (const recipe of recipes) {
   assert.ok(recipe.ingredients.length > 0, `${recipe.id}: ingredients must not be empty.`);
@@ -87,16 +122,37 @@ for (const recipe of recipes) {
     );
   }
 
+  for (const ingredient of recipe.ingredients) {
+    const detectedAllergenIds = detectAllergenIds(ingredient.nameJa);
+    if (detectedAllergenIds.length === 0) continue;
+
+    assert.ok(
+      detectedAllergenIds.includes(ingredient.id),
+      `${recipe.id}: ${ingredient.nameJa} looks like ${detectedAllergenIds.join('/')} but is tagged as ${ingredient.id}. Use the matching ing-* id instead of hiding a selectable allergen behind none-*.`,
+    );
+  }
+
+  const hasVeganTag = recipe.tags.some((tag) => /ヴィーガン|ビーガン/.test(tag));
+  const hasGlutenFreeTag = recipe.tags.some((tag) => /グルテンフリー/.test(tag));
+
   if (recipe.isVegan) {
-    const animalIngredients = recipe.ingredients.filter((ingredient) => animalAllergenIds.has(ingredient.id));
+    assert.ok(hasVeganTag, `${recipe.id}: vegan recipes must include a vegan tag so list chips match modal badges.`);
+    const animalIngredients = recipe.ingredients.filter((ingredient) => {
+      const detectedAllergenIds = detectAllergenIds(ingredient.nameJa);
+      return animalDerivedIngredientIds.has(ingredient.id) ||
+        detectedAllergenIds.some((id) => animalDerivedIngredientIds.has(id));
+    });
     assert.deepEqual(
       animalIngredients,
       [],
       `${recipe.id}: vegan recipes must not include animal allergen ingredients, even as optional items, because the UI marks the recipe as vegan-compatible.`,
     );
+  } else {
+    assert.ok(!hasVeganTag, `${recipe.id}: non-vegan recipes must not include a vegan tag.`);
   }
 
   if (recipe.isGlutenFree) {
+    assert.ok(hasGlutenFreeTag, `${recipe.id}: gluten-free recipes must include a gluten-free tag so list chips match modal badges.`);
     const wheatIngredients = recipe.ingredients.filter((ingredient) => ingredient.id === 'ing-wheat');
     assert.deepEqual(
       wheatIngredients,
@@ -105,6 +161,14 @@ for (const recipe of recipes) {
     );
 
     for (const ingredient of recipe.ingredients) {
+      if (glutenRiskPattern.test(ingredient.nameJa)) {
+        assert.match(
+          ingredient.nameJa,
+          glutenSafeContextPattern,
+          `${recipe.id}: gluten-free ingredient wording must avoid gluten-bearing terms unless explicitly marked as gluten-free/safe.`,
+        );
+      }
+
       if (ingredient.nameJa.includes('醤油')) {
         assert.match(
           ingredient.nameJa,
@@ -115,6 +179,13 @@ for (const recipe of recipes) {
     }
 
     for (const text of [recipe.description, ...recipe.steps]) {
+      if (glutenRiskPattern.test(text)) {
+        assert.match(
+          text,
+          glutenSafeContextPattern,
+          `${recipe.id}: gluten-free text must avoid gluten-bearing terms unless explicitly marked as gluten-free/safe.`,
+        );
+      }
       if (/(ブレッド|トースト|食パン|パン粉)/.test(text)) {
         assert.match(
           text,
@@ -130,6 +201,30 @@ for (const recipe of recipes) {
         );
       }
     }
+  } else {
+    assert.ok(!hasGlutenFreeTag, `${recipe.id}: gluten-containing recipes must not include a gluten-free tag.`);
+  }
+
+  if (recipe.tags.some((tag) => tag.includes('8大アレルギーフリー'))) {
+    const majorAllergenIds = new Set([
+      'ing-shrimp',
+      'ing-crab',
+      'ing-wheat',
+      'ing-buckwheat',
+      'ing-egg',
+      'ing-milk',
+      'ing-peanut',
+      'ing-walnut',
+    ]);
+    const majorAllergenIngredients = recipe.ingredients.filter((ingredient) =>
+      majorAllergenIds.has(ingredient.id) ||
+      detectAllergenIds(ingredient.nameJa).some((id) => majorAllergenIds.has(id)),
+    );
+    assert.deepEqual(
+      majorAllergenIngredients,
+      [],
+      `${recipe.id}: recipes tagged 8大アレルギーフリー must not include any of the 8 major allergens.`,
+    );
   }
 }
 

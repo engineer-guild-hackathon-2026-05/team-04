@@ -123,10 +123,12 @@ export default function Home() {
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
 
   useEffect(() => {
+    let localProfile: StoredProfile | null = null;
     const savedProfile = localStorage.getItem(PROFILE_STORAGE_KEY);
     if (savedProfile) {
       try {
         const parsed = JSON.parse(savedProfile) as StoredProfile;
+        localProfile = parsed;
         if (parsed.userName) setUserName(parsed.userName);
         if (parsed.restrictedIngredients) setRestrictedIngredients(parsed.restrictedIngredients);
         if (parsed.preferredDishes) setPreferredDishes(parsed.preferredDishes);
@@ -137,61 +139,75 @@ export default function Home() {
     }
 
     const syncSupabaseSession = async () => {
-      const demoSession = await fetchDemoSession();
-      if (demoSession === 'authenticated') {
-        const demoProfile = readDemoProfile();
+      try {
+        const demoSession = await fetchDemoSession();
+        if (demoSession === 'authenticated') {
+          const demoProfile = readDemoProfile();
+          setIsLoggedIn(true);
+          setCurrentView('list');
+          setUserName(demoProfile?.userName || demoProfile?.email?.split('@')[0] || 'デモユーザー');
+          setAuthStatus('authenticated');
+          return;
+        }
+
+        if (demoSession === 'unauthenticated') {
+          setIsLoggedIn(false);
+          setCurrentView('landing');
+          setAuthStatus('unauthenticated');
+          return;
+        }
+
+        if (demoSession === 'failed') {
+          console.error('Demo session check failed. Falling back to Supabase auth.');
+        }
+
+        const supabase = createClient();
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
+        if (!session?.user) {
+          setIsLoggedIn(false);
+          setCurrentView('landing');
+          setAuthStatus('unauthenticated');
+          return;
+        }
+
         setIsLoggedIn(true);
         setCurrentView('list');
-        setUserName(demoProfile?.userName || demoProfile?.email?.split('@')[0] || 'デモユーザー');
         setAuthStatus('authenticated');
-        return;
-      }
 
-      if (demoSession === 'unauthenticated' || demoSession === 'failed') {
+        const fallbackName =
+          session.user.user_metadata?.name ||
+          session.user.user_metadata?.display_name ||
+          session.user.email?.split('@')[0] ||
+          '旅するグルメ';
+        setUserName(fallbackName);
+
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('name')
+          .eq('id', session.user.id)
+          .maybeSingle();
+        if (profile?.name) setUserName(profile.name);
+
+        const databaseRestrictedIngredients = await fetchRestrictedIngredientLocalIds(
+          supabase,
+          session.user.id,
+        );
+        const localPreferenceRestrictionIds = localProfile?.restrictedIngredients
+          ?.filter((id) => !id.startsWith('ing-')) ?? [];
+        const syncedRestrictedIngredients = [
+          ...databaseRestrictedIngredients,
+          ...localPreferenceRestrictionIds.filter((id) => !databaseRestrictedIngredients.includes(id)),
+        ];
+        setRestrictedIngredients(syncedRestrictedIngredients);
+      } catch (error) {
+        console.error('Auth session sync failed. Treating the user as signed out.', error);
         setIsLoggedIn(false);
         setCurrentView('landing');
         setAuthStatus('unauthenticated');
-        if (demoSession === 'failed') {
-          console.error('Demo session check failed. Treating the user as signed out.');
-        }
-        return;
       }
-
-      const supabase = createClient();
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
-      if (!session?.user) {
-        setIsLoggedIn(false);
-        setCurrentView('landing');
-        setAuthStatus('unauthenticated');
-        return;
-      }
-
-      setIsLoggedIn(true);
-      setCurrentView('list');
-      setAuthStatus('authenticated');
-
-      const fallbackName =
-        session.user.user_metadata?.name ||
-        session.user.user_metadata?.display_name ||
-        session.user.email?.split('@')[0] ||
-        '旅するグルメ';
-      setUserName(fallbackName);
-
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('name')
-        .eq('id', session.user.id)
-        .maybeSingle();
-      if (profile?.name) setUserName(profile.name);
-
-      const databaseRestrictedIngredients = await fetchRestrictedIngredientLocalIds(
-        supabase,
-        session.user.id,
-      );
-      setRestrictedIngredients(databaseRestrictedIngredients);
     };
 
     void syncSupabaseSession();
