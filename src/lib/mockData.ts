@@ -10,8 +10,6 @@ export interface RecipeIngredient {
   name_ja: string;      // 材料名(日本語)
   quantity: string;     // 分量
   is_optional: boolean; // オプション（省略可能）か
-  is_replacement?: boolean; // 日本の食材への代替か
-  original_name?: string;  // 代替前の本来の食材名
 }
 
 export interface Recipe {
@@ -79,11 +77,11 @@ export const MOCK_RECIPES: Recipe[] = [
     is_gluten_free: true,
     tags: ["ヴィーガン", "グルテンフリー", "温まるシチュー", "ナッツ使用"],
     ingredients: [
-      { id: "ing-soybean", name_ja: "赤インゲン豆（キドニービーンズ缶詰で代用）", quantity: "400g (1缶)", is_optional: false, is_replacement: true, original_name: "乾燥ロビオ豆" },
+      { id: "ing-soybean", name_ja: "赤インゲン豆（キドニービーンズ缶詰）", quantity: "400g (1缶)", is_optional: false },
       { id: "ing-walnut", name_ja: "くるみ (細かく刻む)", quantity: "50g", is_optional: false },
       { id: "none-onion", name_ja: "玉ねぎ (みじん切り)", quantity: "1個", is_optional: false },
       { id: "none-garlic", name_ja: "ニンニク (すりおろし)", quantity: "2片", is_optional: false },
-      { id: "none-coriander", name_ja: "パクチー（フレッシュ・刻む）", quantity: "1/2束", is_optional: false, is_replacement: true, original_name: "ケマツァリ (ジョージアの乾燥ハーブミックス)" },
+      { id: "none-coriander", name_ja: "パクチー（フレッシュ・刻む）", quantity: "1/2束", is_optional: false },
       { id: "none-coriander-pwd", name_ja: "コリアンダーパウダー", quantity: "小さじ1", is_optional: false },
       { id: "none-cumin", name_ja: "クミンパウダー", quantity: "小さじ1/2", is_optional: false },
       { id: "none-vinegar", name_ja: "ワインビネガー (または酢)", quantity: "大さじ1", is_optional: false },
@@ -108,16 +106,16 @@ export const MOCK_RECIPES: Recipe[] = [
     servings: 2,
     is_vegan: true, // 卵をオプションにすることでヴィーガン対応
     is_gluten_free: true,
-    tags: ["ヴィーガン(卵抜き)", "グルテンフリー(醤油代替)", "温野菜", "アジアン"],
+    tags: ["ヴィーガン(卵抜き)", "グルテンフリー対応", "温野菜", "アジアン"],
     ingredients: [
-      { id: "ing-peanut", name_ja: "無糖ピーナッツバター (ソース用)", quantity: "大さじ4", is_optional: false, is_replacement: true, original_name: "揚げピーナッツ（すり潰し）" },
+      { id: "ing-peanut", name_ja: "無糖ピーナッツバター (ソース用)", quantity: "大さじ4", is_optional: false },
       { id: "ing-soybean", name_ja: "厚揚げ (一口大に切ってカリッと焼く)", quantity: "1パック", is_optional: false },
       { id: "none-cabbage", name_ja: "キャベツ (ざく切りして茹でる)", quantity: "3〜4枚", is_optional: false },
       { id: "none-bean-sprouts", name_ja: "もやし (サッと茹でる)", quantity: "1/2袋", is_optional: false },
       { id: "none-cucumber", name_ja: "きゅうり (スライス)", quantity: "1/2本", is_optional: true },
       { id: "ing-egg", name_ja: "ゆで卵 (半分にカット)", quantity: "1個", is_optional: true }, // オプショナルのアレルギー食材
-      { id: "ing-soybean", name_ja: "たまり醤油 (またはグルテンフリー醤油・ソース用)", quantity: "大さじ1", is_optional: false, is_replacement: true, original_name: "ケチャップマニス (インドネシアの甘口黒醤油)" },
-      { id: "none-maple", name_ja: "メープルシロップ（または甜菜糖・ソース用）", quantity: "大さじ1", is_optional: false, is_replacement: true, original_name: "ヤシ糖 (グラメラ)" },
+      { id: "ing-soybean", name_ja: "たまり醤油 (またはグルテンフリー醤油・ソース用)", quantity: "大さじ1", is_optional: false },
+      { id: "none-maple", name_ja: "メープルシロップ（または甜菜糖・ソース用）", quantity: "大さじ1", is_optional: false },
       { id: "none-chili", name_ja: "一味唐辛子 (またはチリソース・ソース用)", quantity: "小さじ1/2", is_optional: true },
       { id: "none-lime", name_ja: "レモン汁 (またはライム汁・ソース用)", quantity: "大さじ1", is_optional: false }
     ],
@@ -132,7 +130,7 @@ export const MOCK_RECIPES: Recipe[] = [
   {
     id: "rec-dal",
     title: "レンズ豆のダル (南インドの本格まろやか豆カレー)",
-    description: "小麦粉（ルウ）や動物性食材（バター、チキンなど）を一切使わず、レンズ豆のデンプンとココナッツミルクのまろやかさだけで仕上げる南インドの日常食。日本のスーパーで手に入るスパイスとカレー粉で、本場の味を再現します。アレルギー特定原材料8品目を一切含まない、究極のフリーレシピです。",
+    description: "小麦粉（ルウ）や動物性食材（バター、チキンなど）を一切使わず、レンズ豆のデンプンとココナッツミルクのまろやかさだけで仕上げる南インドの日常食。スパイスの香りと豆のやさしい甘みを楽しめる、アレルギー特定原材料8品目を含まないレシピです。",
     cuisine: "インド",
     flag: "🇮🇳",
     image_url: "https://images.unsplash.com/photo-1546833999-b9f581a1996d?auto=format&fit=crop&q=80&w=800",
@@ -142,7 +140,7 @@ export const MOCK_RECIPES: Recipe[] = [
     is_gluten_free: true,
     tags: ["ヴィーガン", "グルテンフリー", "8大アレルギーフリー", "スパイス薬膳"],
     ingredients: [
-      { id: "none-lentils", name_ja: "赤レンズ豆（皮なし乾燥・水洗いする）", quantity: "150g", is_optional: false, is_replacement: true, original_name: "トゥール・ダール" },
+      { id: "none-lentils", name_ja: "赤レンズ豆（皮なし乾燥・水洗いする）", quantity: "150g", is_optional: false },
       { id: "none-coconut-milk", name_ja: "ココナッツミルク缶", quantity: "200ml", is_optional: false },
       { id: "none-tomato", name_ja: "トマト缶 (カットタイプ)", quantity: "200g (1/2缶)", is_optional: false },
       { id: "none-onion", name_ja: "玉ねぎ (細かくみじん切り)", quantity: "1個", is_optional: false },
@@ -163,7 +161,7 @@ export const MOCK_RECIPES: Recipe[] = [
   {
     id: "rec-tacos",
     title: "タコス・デ・ソヤ (メキシコ風大豆ミートのストリートタコス)",
-    description: "メキシコシティの屋台で大人気のエスニックストリートフード。伝統的なタコスは小麦粉ではなく「トウモロコシ粉（マサ）」のトルティーヤを使うため、もともと完全グルテンフリーです。お肉の代わりに日本のスーパーで手に入る大豆ミート（ソイミート）をスパイスで味付けし、ジューシーでヘルシーに再現します。",
+    description: "メキシコシティの屋台で大人気のエスニックストリートフード。伝統的なタコスは小麦粉ではなく「トウモロコシ粉（マサ）」のトルティーヤを使うため、もともと完全グルテンフリーです。大豆ミート（ソイミート）をスパイスで味付けし、ジューシーでヘルシーに仕上げます。",
     cuisine: "メキシコ",
     flag: "🇲🇽",
     image_url: "https://images.unsplash.com/photo-1565299585323-38d6b0865b47?auto=format&fit=crop&q=80&w=800",
@@ -179,7 +177,7 @@ export const MOCK_RECIPES: Recipe[] = [
       { id: "none-tomato", name_ja: "完熟トマト (サルサ用・角切り)", quantity: "1個", is_optional: false },
       { id: "none-cilantro", name_ja: "パクチー (細かく刻む)", quantity: "1/2束", is_optional: false },
       { id: "none-lime", name_ja: "ライム (またはレモン・くし形切り)", quantity: "1個", is_optional: false },
-      { id: "none-taco-seasoning", name_ja: "タコスパイス (チリパウダー、クミン、パプリカ、オレガノ各大さじ1/2)", quantity: "大さじ1.5", is_optional: false, is_replacement: true, original_name: "アチョーテペースト" },
+      { id: "none-taco-seasoning", name_ja: "タコスパイス (チリパウダー、クミン、パプリカ、オレガノ各大さじ1/2)", quantity: "大さじ1.5", is_optional: false },
       { id: "ing-soybean", name_ja: "醤油", quantity: "小さじ1", is_optional: false },
       { id: "none-salt", name_ja: "塩・コショウ", quantity: "適量", is_optional: false }
     ],

@@ -1227,18 +1227,6 @@ button, input {
 }
 
 /* 材料箇条書き */
-.replacement-tips-banner {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  background-color: #fff7ed;
-  border: 1px solid #ffedd5;
-  padding: 12px 16px;
-  border-radius: 12px;
-  font-size: 0.85rem;
-  color: #c2410c;
-}
-
 .modal-ingredient-list {
   list-style: none;
   display: flex;
@@ -1276,23 +1264,6 @@ button, input {
 .ingredient-name {
   color: var(--text-primary);
   font-weight: 500;
-}
-
-/* 日本のスーパー代替バッジ */
-.ingredient-item.replacement {
-  border-bottom-color: #fed7aa;
-}
-
-.replacement-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  background-color: var(--gold-light);
-  color: #b45309;
-  padding: 2px 6px;
-  border-radius: 6px;
-  font-size: 0.68rem;
-  font-weight: 700;
 }
 
 .ingredient-item.has-allergy {

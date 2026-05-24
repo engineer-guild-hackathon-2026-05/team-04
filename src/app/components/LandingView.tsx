@@ -19,13 +19,13 @@ export default function LandingView({
           <span>新しい食の出会いを、すべてのひとに</span>
         </div>
         <h1 id="hero-title" className="hero-title-main">
-          世界の美味しいを<br />
-          <span className="text-gradient">日本の食材で再現</span>
+          食べられる世界の料理を<br />
+          <span className="text-gradient">みんなで見つける</span>
         </h1>
         <p className="hero-subtitle">
-          「アレルギーやヴィーガンだから、海外料理は諦めている…」<br />
-          GlobalBitesは、<strong>世界中にもともと存在する食事制限対応レシピ</strong>を厳選。<br />
-          さらに、入手困難な現地のスパイスやハーブを、日本のスーパーで買える食材に置き換えて提案します。
+          「食べられないものがあるから、外食や新しい料理を諦めがち…」<br />
+          GlobalBitesは、<strong>食事制限や好みに合う海外料理レシピ</strong>を探せる場所です。<br />
+          食の選択肢を広げたい人と海外料理が好きな人が、レシピを見つけて共有できます。
         </p>
 
         <div className="hero-cta-box">
@@ -53,9 +53,9 @@ export default function LandingView({
           <div className="feature-icon-wrapper orange">
             <Compass size={24} />
           </div>
-          <h3>日本のスーパーで揃う食材</h3>
+          <h3>好みから広がる海外料理</h3>
           <p>
-            「ケマツァリ」「アチョーテ」など、手に入らない現地の特有スパイスを、日本の身近な食材に置き換えた「代替レシピ」を明記。
+            気になる国や料理の好みを登録すると、まだ知らなかった海外料理との出会いを広げられます。
           </p>
         </div>
 
@@ -63,9 +63,9 @@ export default function LandingView({
           <div className="feature-icon-wrapper red">
             <ShieldAlert size={24} />
           </div>
-          <h3>パーソナライズされた安全性</h3>
+          <h3>条件に合うレシピ推薦</h3>
           <p>
-            アレルギーや食べられない食材を登録すると、該当する材料が含まれるレシピを自動検知。安心安全な料理を探せます。
+            アレルギーや食べられない食材を登録すると、自分の条件に合うレシピを見つけやすくなります。
           </p>
         </div>
       </section>
