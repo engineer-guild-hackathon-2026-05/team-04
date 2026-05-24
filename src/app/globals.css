@@ -150,7 +150,7 @@ button, input {
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  padding-top: 60px;
+  padding: 0 24px;
 }
 
 .auth-loading-card {

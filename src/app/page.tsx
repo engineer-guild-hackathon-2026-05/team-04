@@ -184,24 +184,28 @@ export default function Home() {
           '旅するグルメ';
         setUserName(fallbackName);
 
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('name')
-          .eq('id', session.user.id)
-          .maybeSingle();
-        if (profile?.name) setUserName(profile.name);
+        try {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('name')
+            .eq('id', session.user.id)
+            .maybeSingle();
+          if (profile?.name) setUserName(profile.name);
 
-        const databaseRestrictedIngredients = await fetchRestrictedIngredientLocalIds(
-          supabase,
-          session.user.id,
-        );
-        const localPreferenceRestrictionIds = localProfile?.restrictedIngredients
-          ?.filter((id) => !id.startsWith('ing-')) ?? [];
-        const syncedRestrictedIngredients = [
-          ...databaseRestrictedIngredients,
-          ...localPreferenceRestrictionIds.filter((id) => !databaseRestrictedIngredients.includes(id)),
-        ];
-        setRestrictedIngredients(syncedRestrictedIngredients);
+          const databaseRestrictedIngredients = await fetchRestrictedIngredientLocalIds(
+            supabase,
+            session.user.id,
+          );
+          const localPreferenceRestrictionIds = localProfile?.restrictedIngredients
+            ?.filter((id) => !id.startsWith('ing-')) ?? [];
+          const syncedRestrictedIngredients = [
+            ...databaseRestrictedIngredients,
+            ...localPreferenceRestrictionIds.filter((id) => !databaseRestrictedIngredients.includes(id)),
+          ];
+          setRestrictedIngredients(syncedRestrictedIngredients);
+        } catch (profileSyncError) {
+          console.warn('Authenticated session kept, but profile preference sync failed.', profileSyncError);
+        }
       } catch (error) {
         console.error('Auth session sync failed. Treating the user as signed out.', error);
         setIsLoggedIn(false);

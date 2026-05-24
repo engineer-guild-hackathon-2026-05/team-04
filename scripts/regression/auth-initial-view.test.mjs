@@ -79,8 +79,21 @@ assert.match(
 
 assert.match(
   source,
+  /setAuthStatus\('authenticated'\);[\s\S]*?try \{[\s\S]*?fetchRestrictedIngredientLocalIds[\s\S]*?\} catch \(profileSyncError\) \{[\s\S]*?Authenticated session kept, but profile preference sync failed/,
+  'Supabase 認証後のプロフィール/制限食材同期失敗はログイン状態を維持してwarnに留めてください。',
+);
+
+assert.match(
+  source,
   /catch \(error\) \{[\s\S]*?Auth session sync failed[\s\S]*?setIsLoggedIn\(false\);[\s\S]*?setCurrentView\('landing'\);[\s\S]*?setAuthStatus\('unauthenticated'\);[\s\S]*?\}/,
   '認証同期中の例外でchecking表示に永久停止しないよう、未ログイン状態へフォールバックしてください。',
+);
+
+const styles = readFileSync('src/app/globals.css', 'utf8');
+assert.match(
+  styles,
+  /\.auth-loading-content\s*\{[\s\S]*?padding:\s*0 24px;/,
+  '認証確認ローディングは main-content の上下paddingをリセットし、カードを中央配置してください。',
 );
 
 console.log('auth initial view regression checks passed');
