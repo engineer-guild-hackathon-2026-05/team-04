@@ -77,7 +77,7 @@ export const MOCK_RECIPES: Recipe[] = [
     is_gluten_free: true,
     tags: ["ヴィーガン", "グルテンフリー", "温まるシチュー", "ナッツ使用"],
     ingredients: [
-      { id: "ing-soybean", name_ja: "赤インゲン豆（キドニービーンズ缶詰）", quantity: "400g (1缶)", is_optional: false },
+      { id: "none-kidney-beans", name_ja: "赤インゲン豆（キドニービーンズ缶詰）", quantity: "400g (1缶)", is_optional: false },
       { id: "ing-walnut", name_ja: "くるみ (細かく刻む)", quantity: "50g", is_optional: false },
       { id: "none-onion", name_ja: "玉ねぎ (みじん切り)", quantity: "1個", is_optional: false },
       { id: "none-garlic", name_ja: "ニンニク (すりおろし)", quantity: "2片", is_optional: false },
