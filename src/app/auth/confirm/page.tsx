@@ -4,16 +4,13 @@ import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { sanitizeAuthRedirect } from '@/lib/authRedirect';
 
-function sanitizeRedirect(value: string | null) {
-  if (!value || !value.startsWith('/') || value.startsWith('//')) return '/app';
-  return value;
-}
 
 function ConfirmContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const next = useMemo(() => sanitizeRedirect(searchParams.get('next')), [searchParams]);
+  const next = useMemo(() => sanitizeAuthRedirect(searchParams.get('next')), [searchParams]);
   const [message, setMessage] = useState('認証情報を確認しています...');
 
   useEffect(() => {

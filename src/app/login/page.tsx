@@ -5,13 +5,9 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Globe, Loader2, LogIn, UserPlus } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { sanitizeAuthRedirect } from '@/lib/authRedirect';
 
 type AuthMode = 'signin' | 'signup';
-
-function sanitizeRedirect(value: string | null) {
-  if (!value || !value.startsWith('/') || value.startsWith('//')) return '/app';
-  return value;
-}
 
 export default function LoginPage() {
   return (
@@ -52,7 +48,7 @@ async function tryDemoSignIn(email: string): Promise<DemoSignInResult> {
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectTo = useMemo(() => sanitizeRedirect(searchParams.get('redirect')), [searchParams]);
+  const redirectTo = useMemo(() => sanitizeAuthRedirect(searchParams.get('redirect')), [searchParams]);
   const initialError = searchParams.get('error') === 'auth_callback_failed'
     ? '認証リンクの有効期限が切れているか、認証に失敗しました。もう一度お試しください。'
     : '';
