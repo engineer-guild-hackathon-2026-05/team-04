@@ -705,57 +705,6 @@ button, input {
   cursor: pointer;
 }
 
-/* フィルター */
-.filter-tray {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-
-.filter-tray-title {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: var(--text-muted);
-}
-
-.filter-buttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.filter-toggle-btn {
-  padding: 8px 16px;
-  border-radius: 20px;
-  font-size: 0.82rem;
-  font-weight: 600;
-  cursor: pointer;
-  background: white;
-  border: 1.5px solid #e7e5e4;
-  color: var(--text-muted);
-  transition: all 0.25s ease;
-}
-
-.filter-toggle-btn:hover {
-  border-color: var(--text-light);
-}
-
-.filter-toggle-btn.active {
-  background-color: var(--forest-green);
-  color: white;
-  border-color: var(--forest-green);
-  box-shadow: 0 4px 10px rgba(27, 67, 50, 0.15);
-}
-
-.filter-toggle-btn.warning-toggle.active {
-  background-color: #ef4444;
-  border-color: #ef4444;
-}
-
 .preference-summary-banner {
   display: flex;
   align-items: center;

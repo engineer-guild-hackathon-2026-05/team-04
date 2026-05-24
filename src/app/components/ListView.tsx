@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { Search, Compass, AlertTriangle, ShieldCheck, Clock, Eye, SlidersHorizontal, Sparkles } from 'lucide-react';
+import { Search, Compass, AlertTriangle, ShieldCheck, Clock, Eye, Sparkles } from 'lucide-react';
 import { MOCK_RECIPES, Recipe } from '@/lib/mockData';
 
 interface ListViewProps {
@@ -39,39 +39,19 @@ export default function ListView({
   setCurrentView,
 }: ListViewProps) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterVegan, setFilterVegan] = useState(false);
-  const [filterGlutenFree, setFilterGlutenFree] = useState(false);
-  const [hideAllergens, setHideAllergens] = useState(false);
 
-  // リアルタイム検索 & フィルタリングロジック
+  // リアルタイム検索ロジック
   const filteredRecipes = useMemo(() => {
     return MOCK_RECIPES.filter(recipe => {
-      // 1. 検索クエリマッチング（タイトル、説明、国名、材料名）
       const matchesQuery = 
         recipe.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         recipe.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
         recipe.cuisine.toLowerCase().includes(searchQuery.toLowerCase()) ||
         recipe.ingredients.some(ing => ing.name_ja.toLowerCase().includes(searchQuery.toLowerCase()));
 
-      if (!matchesQuery) return false;
-
-      // 2. ヴィーガンフィルター
-      if (filterVegan && !recipe.is_vegan) return false;
-
-      // 3. グルテンフリーフィルター
-      if (filterGlutenFree && !recipe.is_gluten_free) return false;
-
-      // 4. アレルギー非表示フィルター
-      if (hideAllergens) {
-        const hasAllergen = recipe.ingredients.some(ing => 
-          restrictedIngredients.includes(ing.id)
-        );
-        if (hasAllergen) return false;
-      }
-
-      return true;
+      return matchesQuery;
     });
-  }, [searchQuery, filterVegan, filterGlutenFree, hideAllergens, restrictedIngredients]);
+  }, [searchQuery]);
 
   // レシピにアレルギー食材（ユーザーのNG材料）が含まれているかチェックするヘルパー
   const getAllergenWarnings = (recipe: Recipe) => {
@@ -129,8 +109,8 @@ export default function ListView({
 
   return (
     <div className="list-container">
-      {/* 検索・フィルターヘッダーセクション */}
-      <section className="search-filter-section" aria-label="検索とフィルター">
+      {/* 検索ヘッダーセクション */}
+      <section className="search-filter-section" aria-label="レシピ検索">
         <div className="search-bar-wrapper">
           <Search className="search-icon" size={20} />
           <input
@@ -144,38 +124,6 @@ export default function ListView({
           {searchQuery && (
             <button className="clear-search-btn" onClick={() => setSearchQuery('')}>×</button>
           )}
-        </div>
-
-        {/* トグル式フィルタートレイ */}
-        <div className="filter-tray">
-          <div className="filter-tray-title">
-            <SlidersHorizontal size={16} />
-            <span>絞り込み:</span>
-          </div>
-
-          <div className="filter-buttons">
-            <button
-              className={`filter-toggle-btn ${filterVegan ? 'active' : ''}`}
-              onClick={() => setFilterVegan(!filterVegan)}
-            >
-              🌱 ヴィーガンのみ
-            </button>
-            <button
-              className={`filter-toggle-btn ${filterGlutenFree ? 'active' : ''}`}
-              onClick={() => setFilterGlutenFree(!filterGlutenFree)}
-            >
-              🌾 グルテンフリーのみ
-            </button>
-            
-            {restrictedIngredients.length > 0 && (
-              <button
-                className={`filter-toggle-btn warning-toggle ${hideAllergens ? 'active' : ''}`}
-                onClick={() => setHideAllergens(!hideAllergens)}
-              >
-                🛡️ 登録済みのNG材料を非表示にする
-              </button>
-            )}
-          </div>
         </div>
 
         {/* ユーザープロフィールに基づくカスタマイズ状態の概要 */}
@@ -197,14 +145,11 @@ export default function ListView({
         <div className="no-results-card">
           <Compass className="no-results-icon animate-bounce-slow" size={48} />
           <h3>条件に合うレシピが見つかりませんでした</h3>
-          <p>検索ワードを変えるか、フィルターを緩めて再検索してください。</p>
+          <p>検索ワードを変えて再検索してください。</p>
           <button className="reset-filters-btn" onClick={() => {
             setSearchQuery('');
-            setFilterVegan(false);
-            setFilterGlutenFree(false);
-            setHideAllergens(false);
           }}>
-            フィルターをリセット
+            検索をリセット
           </button>
         </div>
       ) : (
