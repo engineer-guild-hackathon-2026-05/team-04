@@ -371,12 +371,6 @@ button, input {
   white-space: nowrap;
 }
 
-.profile-dropdown-caption {
-  color: var(--text-light);
-  font-size: 0.74rem;
-  font-weight: 600;
-}
-
 .profile-menu-item {
   display: flex;
   align-items: center;

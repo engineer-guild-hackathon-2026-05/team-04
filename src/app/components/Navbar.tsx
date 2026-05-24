@@ -210,7 +210,6 @@ export default function Navbar({
                     </span>
                     <div className="profile-dropdown-user-text">
                       <span className="profile-dropdown-name">{userName || 'ゲスト'}</span>
-                      <span className="profile-dropdown-caption">アカウントメニュー</span>
                     </div>
                   </div>
 
