@@ -960,10 +960,6 @@ button, input {
   background: linear-gradient(180deg, white 0%, #fffbeb 100%);
 }
 
-.recipe-card.has-allergen-warning {
-  border-color: rgba(239, 68, 68, 0.2);
-}
-
 /* カード上部情報 */
 .card-header {
   padding: 18px 20px;
@@ -1093,18 +1089,6 @@ button, input {
   display: flex;
   flex-direction: column;
   gap: 12px;
-}
-
-.allergen-warning-alert {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: #b91c1c;
-  background-color: #fef2f2;
-  padding: 6px 12px;
-  border-radius: 8px;
-  font-size: 0.78rem;
-  font-weight: 700;
 }
 
 .allergen-safe-badge {

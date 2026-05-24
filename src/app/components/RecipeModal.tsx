@@ -25,6 +25,11 @@ const RELIGIOUS_RESTRICTION_LABELS: Record<string, string> = {
   'ing-gelatin': '宗教上注意: ゼラチン',
 };
 
+const getIngredientListKey = (
+  recipeId: string,
+  ingredient: Recipe['ingredients'][number],
+) => `${recipeId}:${ingredient.id}:${ingredient.name_ja}:${ingredient.quantity}`;
+
 export default function RecipeModal({
   recipe,
   onClose,
@@ -156,11 +161,11 @@ export default function RecipeModal({
             </div>
 
             <ul className="modal-ingredient-list">
-              {recipe.ingredients.map((ing, index) => {
+              {recipe.ingredients.map((ing) => {
                 const isAllergen = restrictedIngredients.includes(ing.id);
                 return (
                   <li 
-                    key={index} 
+                    key={getIngredientListKey(recipe.id, ing)} 
                     className={`ingredient-item ${isAllergen ? 'has-allergy' : ''}`}
                   >
                     <div className="ingredient-left">
