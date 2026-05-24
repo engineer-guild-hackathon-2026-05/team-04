@@ -34,26 +34,20 @@ export async function updateSession(request: NextRequest) {
   // 保護対象ルートはここに集約する。
   const { pathname } = request.nextUrl;
   const isProtectedRoute = pathname.startsWith("/app");
-  const isAuthRoute =
-    pathname.startsWith("/login") ||
-    pathname.startsWith("/signup") ||
-    pathname.startsWith("/auth");
-
   if (!user && isProtectedRoute) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
-    url.searchParams.set("redirect", pathname);
+    url.search = "";
+    url.searchParams.set("redirect", `${pathname}${request.nextUrl.search}`);
     return NextResponse.redirect(url);
   }
 
-  if (user && (pathname === "/login" || pathname === "/signup")) {
+  if (user && pathname === "/login") {
     const url = request.nextUrl.clone();
     url.pathname = "/app";
+    url.search = "";
     return NextResponse.redirect(url);
   }
-
-  // isAuthRoute は将来の拡張用に変数として保持（現状はリダイレクト判定にのみ利用）。
-  void isAuthRoute;
 
   return supabaseResponse;
 }

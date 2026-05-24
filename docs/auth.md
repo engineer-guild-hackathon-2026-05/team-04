@@ -1,6 +1,6 @@
 # 認証（Supabase Auth）
 
-バックエンド側で用意した認証基盤の使い方。フロント担当はここに書いてある関数とエンドポイントを呼ぶだけで OK。
+Supabase Auth を使った認証基盤とログイン画面の使い方。`/login` でメールアドレス認証を行い、ログイン後は `/app` に遷移する。
 
 ## セットアップ（初回のみ）
 
@@ -32,13 +32,13 @@ const { error } = await supabase.auth.signUp({
   password,
   options: {
     // メール確認後にこの URL へ戻る。完全な URL である必要あり。
-    emailRedirectTo: `${location.origin}/auth/callback?next=/app`,
+    emailRedirectTo: `${location.origin}/auth/confirm?next=/app`,
     data: { display_name: displayName },
   },
 });
 ```
 
-確認メールのリンクをユーザーがクリック → `/auth/callback` でセッション確立 → `/app` へリダイレクト。
+確認メールのリンクをユーザーがクリック → `/auth/confirm`（fragment 形式）または `/auth/callback`（PKCE code 形式）でセッション確立 → `/app` へリダイレクト。
 
 ## メール + パスワードでログイン
 
@@ -50,7 +50,7 @@ if (error) {
 }
 ```
 
-成功するとセッション Cookie が立つ。middleware が次のリクエストで `/login` から `/app` にリダイレクトする。
+成功するとセッション Cookie が立ち、`/login` から `redirect` パラメータ（既定 `/app`）へ遷移する。
 
 ## Google ログイン
 
@@ -58,7 +58,7 @@ if (error) {
 const { error } = await supabase.auth.signInWithOAuth({
   provider: "google",
   options: {
-    redirectTo: `${location.origin}/auth/callback?next=/app`,
+    redirectTo: `${location.origin}/auth/confirm?next=/app`,
   },
 });
 ```
@@ -88,7 +88,7 @@ const { data: { user } } = await supabase.auth.getUser();
 
 ## 保護ルート
 
-`src/middleware.ts` で `/app` 以下を保護している。未ログインで `/app/*` にアクセスすると `/login?redirect=...` にリダイレクトされる。
+`src/middleware.ts` で `/app` 以下を保護している。未ログインで `/app/*` にアクセスすると `/login?redirect=...` にリダイレクトされる。`/app` は MVP0 のレシピ画面を表示し、ログイン済みセッションを検出すると一覧ビューに入る。
 
 保護対象を追加する場合は `src/lib/supabase/middleware.ts` の `isProtectedRoute` を編集。
 

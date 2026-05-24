@@ -4,7 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 // Supabase Auth が認可後にリダイレクトしてくるエンドポイント。
 // メール確認・パスワードリセット・OAuth（Google など）すべてここを経由する。
 export async function GET(request: Request) {
-  const { searchParams, origin } = new URL(request.url);
+  const requestUrl = new URL(request.url);
+  const { searchParams, origin } = requestUrl;
   const code = searchParams.get("code");
 
   // Open Redirect 防止: 同一オリジン内の相対パスのみ許可。
@@ -15,7 +16,12 @@ export async function GET(request: Request) {
     const supabase = await createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
-      return NextResponse.redirect(`${origin}${next}`);
+      const forwardedHost = request.headers.get("x-forwarded-host");
+      const isLocalEnv = process.env.NODE_ENV === "development";
+      const redirectOrigin = forwardedHost && !isLocalEnv
+        ? `${requestUrl.protocol}//${forwardedHost}`
+        : origin;
+      return NextResponse.redirect(`${redirectOrigin}${next}`);
     }
   }
 
