@@ -1594,6 +1594,10 @@ button, input {
   background-color: #fffbeb;
 }
 
+.cuisine-search-card {
+  background-color: #f0fdf4;
+}
+
 .profile-text-input {
   width: 100%;
   padding: 12px 18px;

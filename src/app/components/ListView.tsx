@@ -12,6 +12,25 @@ interface ListViewProps {
   setCurrentView: (view: 'landing' | 'list' | 'profile') => void;
 }
 
+const CUISINE_MATCH_TERMS: Record<string, string[]> = {
+  georgia: ['ジョージア', 'グルジア', 'georgia'],
+  indonesia: ['インドネシア', 'indonesia'],
+  india: ['インド', 'india'],
+  mexico: ['メキシコ', 'mexico'],
+  korea: ['韓国', 'korea'],
+  china: ['中国', 'china'],
+  thailand: ['タイ', 'thailand', 'thai'],
+  vietnam: ['ベトナム', 'vietnam'],
+  turkey: ['トルコ', 'turkey'],
+  morocco: ['モロッコ', 'morocco'],
+  lebanon: ['レバノン', 'lebanon'],
+  italy: ['イタリア', 'italy'],
+  france: ['フランス', 'france'],
+  spain: ['スペイン', 'spain'],
+  peru: ['ペルー', 'peru'],
+  ethiopia: ['エチオピア', 'ethiopia'],
+};
+
 export default function ListView({
   restrictedIngredients,
   preferredDishes,
@@ -73,7 +92,10 @@ export default function ListView({
     
     // 好みの国にマッチ
     const cuisineKey = recipe.cuisine.toLowerCase();
-    if (preferredCuisines.some(c => cuisineKey.includes(c.toLowerCase()))) {
+    if (preferredCuisines.some(c => {
+      const terms = CUISINE_MATCH_TERMS[c] ?? [c];
+      return terms.some(term => cuisineKey.includes(term.toLowerCase()));
+    })) {
       score += 2;
     }
 

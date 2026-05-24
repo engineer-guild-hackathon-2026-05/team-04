@@ -28,21 +28,31 @@ const PREFERRED_DISHES = [
 ];
 
 // 好みの国の定義
-const PREFERRED_CUISINES = [
-  { id: 'georgia', label: '🇬🇪 ジョージア' },
-  { id: 'indonesia', label: '🇮🇩 インドネシア' },
-  { id: 'india', label: '🇮🇳 インド' },
-  { id: 'mexico', label: '🇲🇽 メキシコ' },
-  { id: 'korea', label: '🇰🇷 韓国' },
-  { id: 'china', label: '🇨🇳 中国' }
-];
-
 type SelectableOption = {
   id: string;
   label: string;
   description?: string;
   keywords?: string[];
 };
+
+const PREFERRED_CUISINES: SelectableOption[] = [
+  { id: 'georgia', label: '🇬🇪 ジョージア', keywords: ['georgia', 'グルジア', 'コーカサス'] },
+  { id: 'indonesia', label: '🇮🇩 インドネシア', keywords: ['indonesia', '東南アジア'] },
+  { id: 'india', label: '🇮🇳 インド', keywords: ['india', '南アジア', 'カレー'] },
+  { id: 'mexico', label: '🇲🇽 メキシコ', keywords: ['mexico', 'ラテンアメリカ'] },
+  { id: 'korea', label: '🇰🇷 韓国', keywords: ['korea', '韓国料理'] },
+  { id: 'china', label: '🇨🇳 中国', keywords: ['china', '中華'] },
+  { id: 'thailand', label: '🇹🇭 タイ', keywords: ['thai', '東南アジア'] },
+  { id: 'vietnam', label: '🇻🇳 ベトナム', keywords: ['vietnam', '東南アジア'] },
+  { id: 'turkey', label: '🇹🇷 トルコ', keywords: ['turkey', '中東'] },
+  { id: 'morocco', label: '🇲🇦 モロッコ', keywords: ['morocco', '北アフリカ'] },
+  { id: 'lebanon', label: '🇱🇧 レバノン', keywords: ['lebanon', '中東'] },
+  { id: 'italy', label: '🇮🇹 イタリア', keywords: ['italy', '地中海'] },
+  { id: 'france', label: '🇫🇷 フランス', keywords: ['france', '欧州'] },
+  { id: 'spain', label: '🇪🇸 スペイン', keywords: ['spain', '地中海'] },
+  { id: 'peru', label: '🇵🇪 ペルー', keywords: ['peru', '南米'] },
+  { id: 'ethiopia', label: '🇪🇹 エチオピア', keywords: ['ethiopia', 'アフリカ'] },
+];
 
 const VEGAN_LEVEL_OPTIONS: SelectableOption[] = [
   { id: 'diet-vegan', label: '完全ヴィーガン', description: '肉・魚・卵・乳・はちみつを避ける', keywords: ['vegan', 'ビーガン', '動物性'] },
@@ -88,6 +98,7 @@ export default function ProfileView({
   const [veganQuery, setVeganQuery] = useState('');
   const [religiousQuery, setReligiousQuery] = useState('');
   const [dishQuery, setDishQuery] = useState('');
+  const [cuisineQuery, setCuisineQuery] = useState('');
   const [saveSuccess, setSaveSuccess] = useState(false);
 
   const allergyOptions: SelectableOption[] = INGREDIENT_MASTER.map(ingredient => ({
@@ -111,6 +122,10 @@ export default function ProfileView({
   const visibleRecipeDishOptions = (dishQuery
     ? recipeDishOptions.filter(option => matchesOption(option, dishQuery))
     : recipeDishOptions
+  );
+  const visibleCuisineOptions = (cuisineQuery
+    ? PREFERRED_CUISINES.filter(option => matchesOption(option, cuisineQuery))
+    : PREFERRED_CUISINES
   );
 
   const toggleRestricted = (id: string) => {
@@ -201,6 +216,7 @@ export default function ProfileView({
   };
 
   const selectedRecipeDishOptions = recipeDishOptions.filter(option => selectedDishes.includes(option.id));
+  const selectedCuisineOptions = PREFERRED_CUISINES.filter(option => selectedCuisines.includes(option.id));
 
   const toggleCuisine = (id: string) => {
     setSelectedCuisines(prev => 
@@ -414,23 +430,58 @@ export default function ProfileView({
               <Sparkles size={16} className="inline-icon text-green" />
               <span>好みの国・食文化</span>
             </label>
-            <p className="group-subdesc">登録した国々のレシピが「あなたにおすすめ」の最上位に優先して並びます。</p>
-            <div className="toggle-grid">
-              {PREFERRED_CUISINES.map(cuisine => {
-                const active = selectedCuisines.includes(cuisine.id);
-                return (
-                  <button
-                    key={cuisine.id}
-                    type="button"
-                    className={`toggle-chip cuisine ${active ? 'active' : ''}`}
-                    onClick={() => toggleCuisine(cuisine.id)}
-                    aria-pressed={active}
-                  >
-                    <span className="chip-indicator"></span>
-                    <span className="chip-label">{cuisine.label}</span>
-                  </button>
-                );
-              })}
+            <p className="group-subdesc">国や食文化を検索して選択できます。登録した地域のレシピが「あなたにおすすめ」で優先表示されます。</p>
+            <div className="restriction-field-card cuisine-search-card">
+              <div className="searchable-select-block">
+                <div className="profile-search-wrapper">
+                  <Search size={16} className="profile-search-icon" />
+                  <input
+                    id="preferred-cuisine-search-input"
+                    type="search"
+                    value={cuisineQuery}
+                    onChange={(e) => setCuisineQuery(e.target.value)}
+                    placeholder="国名、地域、食文化から検索..."
+                    className="profile-search-input"
+                  />
+                </div>
+
+                <div className="toggle-grid compact">
+                  {visibleCuisineOptions.length > 0 ? visibleCuisineOptions.map(cuisine => {
+                    const active = selectedCuisines.includes(cuisine.id);
+                    return (
+                      <button
+                        key={cuisine.id}
+                        type="button"
+                        className={`toggle-chip cuisine ${active ? 'active' : ''}`}
+                        onClick={() => toggleCuisine(cuisine.id)}
+                        aria-pressed={active}
+                      >
+                        <span className="chip-indicator"></span>
+                        <span className="chip-label">{cuisine.label}</span>
+                      </button>
+                    );
+                  }) : (
+                    <p className="select-empty-text">該当する国・食文化が見つかりません。</p>
+                  )}
+                </div>
+
+                {selectedCuisineOptions.length > 0 && (
+                  <div className="selected-tag-row" aria-label="現在選択中の好みの国・食文化">
+                    {selectedCuisineOptions.map(cuisine => (
+                      <button
+                        key={`selected-cuisine-${cuisine.id}`}
+                        type="button"
+                        className="selected-tag green"
+                        onClick={() => toggleCuisine(cuisine.id)}
+                        aria-label={`${cuisine.label}を解除`}
+                      >
+                        <span>{cuisine.label}</span>
+                        <X size={12} />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
