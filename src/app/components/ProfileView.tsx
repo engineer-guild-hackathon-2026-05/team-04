@@ -272,6 +272,8 @@ export default function ProfileView({
             <label className="profile-group-label" htmlFor="username-input">
               <User size={16} className="inline-icon" />
               <span>ユーザー名</span>
+              <span className="required-marker" aria-label="必須">*</span>
+              <span className="required-label">必須</span>
             </label>
             <input
               type="text"

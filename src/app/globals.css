@@ -1476,6 +1476,20 @@ button, input {
   color: var(--text-primary);
 }
 
+.required-marker {
+  color: #dc2626;
+  font-weight: 900;
+}
+
+.required-label {
+  padding: 2px 7px;
+  border-radius: 999px;
+  background-color: #fee2e2;
+  color: #991b1b;
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+
 .inline-icon {
   margin-bottom: -2px;
 }
