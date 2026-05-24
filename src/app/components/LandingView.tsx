@@ -25,7 +25,7 @@ export default function LandingView({
         <p className="hero-subtitle">
           「食べられないものがあるから、外食や新しい料理を諦めがち…」<br />
           GlobalBitesは、<strong>食事制限や好みに合う海外料理レシピ</strong>を探せる場所です。<br />
-          食の選択肢を広げたい人と海外料理が好きな人が、レシピを見つけて共有できます。
+          食の選択肢を広げたい人と海外料理が好きな人が、条件に合うレシピを見つけられます。
         </p>
 
         <div className="hero-cta-box">
