@@ -1,19 +1,118 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Navbar from './components/Navbar';
 import LandingView from './components/LandingView';
 import ListView from './components/ListView';
 import ProfileView from './components/ProfileView';
 import RecipeModal from './components/RecipeModal';
-import { Recipe } from '@/lib/mockData';
-import { supabase, isSupabaseEnabled } from '@/lib/supabase';
+import { INGREDIENT_MASTER, Recipe } from '@/lib/mockData';
+import { createClient } from '@/lib/supabase/client';
+
+type CurrentView = 'landing' | 'list' | 'profile';
+
+type StoredProfile = {
+  email?: string;
+  userName?: string;
+  restrictedIngredients?: string[];
+  preferredDishes?: string[];
+  preferredCuisines?: string[];
+};
+
+const PROFILE_STORAGE_KEY = 'globalbites_profile';
+const DEMO_PROFILE_STORAGE_KEY = 'globalbites_demo_profile';
+
+const ingredientNameToLocalId = new Map(
+  INGREDIENT_MASTER.map((ingredient) => [ingredient.name_ja, ingredient.id]),
+);
+
+function readDemoProfile() {
+  const storedProfile = localStorage.getItem(DEMO_PROFILE_STORAGE_KEY);
+  if (!storedProfile) return null;
+
+  try {
+    return JSON.parse(storedProfile) as StoredProfile;
+  } catch (e) {
+    console.error('Failed to parse demo profile', e);
+    return null;
+  }
+}
+
+type DemoSessionStatus = 'authenticated' | 'unauthenticated' | 'disabled' | 'failed';
+
+async function fetchDemoSession(): Promise<DemoSessionStatus> {
+  const response = await fetch('/auth/demo', { cache: 'no-store' }).catch(() => null);
+  if (!response) return 'failed';
+  if (response.ok) return 'authenticated';
+  if (response.status === 401) return 'unauthenticated';
+  if (response.status === 404) return 'disabled';
+  return 'failed';
+}
+
+function localIngredientNames(localIds: string[]) {
+  const selected = new Set(localIds);
+  return INGREDIENT_MASTER.filter((ingredient) => selected.has(ingredient.id)).map(
+    (ingredient) => ingredient.name_ja,
+  );
+}
+
+async function fetchRestrictedIngredientLocalIds(
+  supabase: ReturnType<typeof createClient>,
+  userId: string,
+) {
+  const { data: restrictedRows } = await supabase
+    .from('user_restricted_ingredients')
+    .select('ingredient_id')
+    .eq('user_id', userId);
+
+  const ingredientIds = restrictedRows?.map((row) => row.ingredient_id).filter(Boolean) ?? [];
+  if (ingredientIds.length === 0) return [];
+
+  const { data: ingredients } = await supabase
+    .from('ingredients')
+    .select('id, name_ja')
+    .in('id', ingredientIds);
+
+  return ingredients
+    ?.map((ingredient) => ingredientNameToLocalId.get(ingredient.name_ja))
+    .filter((id): id is string => Boolean(id)) ?? [];
+}
+
+async function replaceRestrictedIngredients(
+  supabase: ReturnType<typeof createClient>,
+  userId: string,
+  localIds: string[],
+) {
+  await supabase.from('user_restricted_ingredients').delete().eq('user_id', userId);
+
+  const names = localIngredientNames(localIds);
+  if (names.length === 0) return;
+
+  const { data: ingredients, error } = await supabase
+    .from('ingredients')
+    .select('id, name_ja')
+    .in('name_ja', names);
+
+  if (error) throw error;
+
+  const inserts = ingredients?.map((ingredient) => ({
+    user_id: userId,
+    ingredient_id: ingredient.id,
+    reason: 'allergy',
+  })) ?? [];
+
+  if (inserts.length > 0) {
+    const { error: insertError } = await supabase
+      .from('user_restricted_ingredients')
+      .insert(inserts);
+    if (insertError) throw insertError;
+  }
+}
 
 export default function Home() {
-  // -------------------------------------------------------------
-  // グローバルステート管理
-  // -------------------------------------------------------------
-  const [currentView, setCurrentView] = useState<'landing' | 'list' | 'profile'>('landing');
+  const router = useRouter();
+  const [currentView, setCurrentView] = useState<CurrentView>('landing');
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
   const [userName, setUserName] = useState<string>('ゲスト愛好家');
   const [restrictedIngredients, setRestrictedIngredients] = useState<string[]>([]);
@@ -21,127 +120,115 @@ export default function Home() {
   const [preferredCuisines, setPreferredCuisines] = useState<string[]>([]);
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
 
-  // -------------------------------------------------------------
-  // マウント時のデータ読み込み（LocalStorage / Supabase）
-  // -------------------------------------------------------------
   useEffect(() => {
-    // 1. ローカルストレージから既存の設定を復元
-    const savedProfile = localStorage.getItem('globalbites_profile');
+    const savedProfile = localStorage.getItem(PROFILE_STORAGE_KEY);
     if (savedProfile) {
       try {
-        const parsed = JSON.parse(savedProfile);
+        const parsed = JSON.parse(savedProfile) as StoredProfile;
         if (parsed.userName) setUserName(parsed.userName);
         if (parsed.restrictedIngredients) setRestrictedIngredients(parsed.restrictedIngredients);
         if (parsed.preferredDishes) setPreferredDishes(parsed.preferredDishes);
         if (parsed.preferredCuisines) setPreferredCuisines(parsed.preferredCuisines);
-        if (parsed.isLoggedIn) {
-          setIsLoggedIn(parsed.isLoggedIn);
-          // ログイン済みなら直接リストビューへ
-          setCurrentView('list');
-        }
       } catch (e) {
         console.error('Failed to parse local storage profile', e);
       }
     }
 
-    // 2. もし実際に Supabase のセッションが存在すれば同期
     const syncSupabaseSession = async () => {
-      if (!isSupabaseEnabled() || !supabase) return;
-      
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
+      const demoSession = await fetchDemoSession();
+      if (demoSession === 'authenticated') {
+        const demoProfile = readDemoProfile();
         setIsLoggedIn(true);
-        setUserName(session.user.user_metadata?.name || '旅するグルメ');
-        
-        // Supabase の profiles から情報取得を試みる
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('name')
-          .eq('id', session.user.id)
-          .single();
-        if (profile?.name) setUserName(profile.name);
-
-        // Supabase の NG材料から情報取得を試みる
-        const { data: userRestricted } = await supabase
-          .from('user_restricted_ingredients')
-          .select('ingredient_id')
-          .eq('user_id', session.user.id);
-        if (userRestricted) {
-          setRestrictedIngredients(userRestricted.map(r => r.ingredient_id));
-        }
-        
         setCurrentView('list');
+        setUserName(demoProfile?.userName || demoProfile?.email?.split('@')[0] || 'デモユーザー');
+        return;
       }
+
+      if (demoSession === 'unauthenticated' || demoSession === 'failed') {
+        setIsLoggedIn(false);
+        setCurrentView('landing');
+        if (demoSession === 'failed') {
+          console.error('Demo session check failed. Supabase auth fallback was skipped.');
+        }
+        return;
+      }
+
+      const supabase = createClient();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session?.user) {
+        setIsLoggedIn(false);
+        setCurrentView('landing');
+        return;
+      }
+
+      setIsLoggedIn(true);
+      setCurrentView('list');
+
+      const fallbackName =
+        session.user.user_metadata?.name ||
+        session.user.user_metadata?.display_name ||
+        session.user.email?.split('@')[0] ||
+        '旅するグルメ';
+      setUserName(fallbackName);
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('name')
+        .eq('id', session.user.id)
+        .maybeSingle();
+      if (profile?.name) setUserName(profile.name);
+
+      const databaseRestrictedIngredients = await fetchRestrictedIngredientLocalIds(
+        supabase,
+        session.user.id,
+      );
+      setRestrictedIngredients(databaseRestrictedIngredients);
     };
 
-    syncSupabaseSession();
+    void syncSupabaseSession();
   }, []);
 
-  // -------------------------------------------------------------
-  // ローカルストレージへの永続化ユーティリティ
-  // -------------------------------------------------------------
-  const saveToLocalStorage = (updates: {
-    userName?: string;
-    restrictedIngredients?: string[];
-    preferredDishes?: string[];
-    preferredCuisines?: string[];
-    isLoggedIn?: boolean;
-  }) => {
-    const current = {
+  const saveToLocalStorage = (updates: StoredProfile) => {
+    const current: StoredProfile = {
       userName: updates.userName !== undefined ? updates.userName : userName,
-      restrictedIngredients: updates.restrictedIngredients !== undefined ? updates.restrictedIngredients : restrictedIngredients,
+      restrictedIngredients:
+        updates.restrictedIngredients !== undefined
+          ? updates.restrictedIngredients
+          : restrictedIngredients,
       preferredDishes: updates.preferredDishes !== undefined ? updates.preferredDishes : preferredDishes,
-      preferredCuisines: updates.preferredCuisines !== undefined ? updates.preferredCuisines : preferredCuisines,
-      isLoggedIn: updates.isLoggedIn !== undefined ? updates.isLoggedIn : isLoggedIn,
+      preferredCuisines:
+        updates.preferredCuisines !== undefined ? updates.preferredCuisines : preferredCuisines,
     };
-    localStorage.setItem('globalbites_profile', JSON.stringify(current));
+    localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(current));
   };
 
-  // -------------------------------------------------------------
-  // サインイン / サインアウト ハンドラ
-  // -------------------------------------------------------------
-  const handleSignIn = async () => {
-    // もし Supabase が有効なら、本当の認証フローを試みることも可能ですが、
-    // ハックの検証スピードを高めるため、ワンクリックのスマートログイン（モック/ダミー）を即座に動かします。
-    // まずプロフィール画面で自分の名前を入力してもらうために初期値は空文字にします。
-    const demoUserName = '';
-    setIsLoggedIn(true);
-    setUserName(demoUserName);
-    
-    saveToLocalStorage({
-      isLoggedIn: true,
-      userName: demoUserName
-    });
-
-    // まずプロフィール & 食の制限設定画面へ遷移します！
-    setCurrentView('profile');
-
-    // バックグラウンドで Supabase 連携時のテーブルへのモック接続
-    if (isSupabaseEnabled() && supabase) {
-      console.log('Supabase is enabled. Attempting demo login trigger...');
-      // 実際の認証が存在しないデモ中であれば、匿名サインインやパスワード無しのモック操作として機能
-    }
+  const handleSignIn = () => {
+    router.push('/login?redirect=/app');
   };
 
   const handleSignOut = async () => {
+    const demoSession = await fetchDemoSession();
+    await fetch('/auth/demo', { method: 'DELETE' }).catch(() => null);
+
+    if (demoSession === 'disabled') {
+      const supabase = createClient();
+      await supabase.auth.signOut();
+    }
+
     setIsLoggedIn(false);
     setUserName('ゲスト愛好家');
     setRestrictedIngredients([]);
     setPreferredDishes([]);
     setPreferredCuisines([]);
-    
-    localStorage.removeItem('globalbites_profile');
+    localStorage.removeItem(PROFILE_STORAGE_KEY);
+    localStorage.removeItem(DEMO_PROFILE_STORAGE_KEY);
     setCurrentView('landing');
-
-    if (isSupabaseEnabled() && supabase) {
-      await supabase.auth.signOut();
-    }
+    router.push('/');
   };
 
-
-  // -------------------------------------------------------------
-  // プロフィール画面での保存ハンドラ
-  // -------------------------------------------------------------
   const handleSaveProfile = async (profile: {
     userName: string;
     restrictedIngredients: string[];
@@ -160,40 +247,28 @@ export default function Home() {
       preferredCuisines: profile.preferredCuisines,
     });
 
-    // 保存完了後、設定内容に適合したレシピ一覧ビュー（list）へ自動遷移！
     setCurrentView('list');
 
-    // データベースへのリアルタイム同期
-    if (isSupabaseEnabled() && supabase) {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        try {
-          // プロフィール名の更新
-          await supabase.from('profiles').update({ name: profile.userName }).eq('id', user.id);
-          
-          // NG食材の同期
-          await supabase.from('user_restricted_ingredients').delete().eq('user_id', user.id);
-          if (profile.restrictedIngredients.length > 0) {
-            const inserts = profile.restrictedIngredients.map(ingId => ({
-              user_id: user.id,
-              ingredient_id: ingId,
-              reason: 'allergy'
-            }));
-            await supabase.from('user_restricted_ingredients').insert(inserts);
-          }
-        } catch (dbErr) {
-          console.warn('Supabase DB Update failed. Synchronized locally.', dbErr);
-        }
-      }
+    const demoSession = await fetchDemoSession();
+    if (demoSession !== 'disabled') return;
+
+    const supabase = createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) return;
+
+    try {
+      await supabase.from('profiles').update({ name: profile.userName }).eq('id', user.id);
+      await replaceRestrictedIngredients(supabase, user.id, profile.restrictedIngredients);
+    } catch (dbErr) {
+      console.warn('Supabase DB update failed. Synchronized locally.', dbErr);
     }
   };
 
-  // -------------------------------------------------------------
-  // レンダリング
-  // -------------------------------------------------------------
   return (
     <div className="app-container">
-      {/* 1. ナビゲーションバー */}
       <Navbar
         currentView={currentView}
         setCurrentView={setCurrentView}
@@ -203,13 +278,8 @@ export default function Home() {
         onSignOut={handleSignOut}
       />
 
-      {/* 2. メインコンテンツ領域（ビューの動的切り替え） */}
       <main className="main-content">
-        {currentView === 'landing' && (
-          <LandingView
-            onSignIn={handleSignIn}
-          />
-        )}
+        {currentView === 'landing' && <LandingView onSignIn={handleSignIn} />}
 
         {currentView === 'list' && (
           <ListView
@@ -233,7 +303,6 @@ export default function Home() {
         )}
       </main>
 
-      {/* 3. 詳細モーダルポップアップ */}
       <RecipeModal
         recipe={selectedRecipe}
         onClose={() => setSelectedRecipe(null)}

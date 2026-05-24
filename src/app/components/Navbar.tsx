@@ -67,7 +67,7 @@ export default function Navbar({
                 title="サインアウト"
               >
                 <LogOut size={16} />
-                <span className="btn-text">退出</span>
+                <span className="btn-text">サインアウト</span>
               </button>
             </>
           ) : (
