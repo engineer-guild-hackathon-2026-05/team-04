@@ -66,6 +66,25 @@ const presetIngredientIds = allergens
 
 ## レシピ提案画面
 
+### `steps` のJSONBスキーマ
+
+`recipes.steps` の形は以下で統一する。AIへのプロンプトとフロントのレンダリング実装は必ずこの形に合わせること。
+
+```ts
+// steps の型定義
+type Step = {
+  order: number  // 手順番号（1始まり）
+  text: string   // 手順の説明
+}
+
+// 例
+const steps: Step[] = [
+  { order: 1, text: "玉ねぎをみじん切りにする" },
+  { order: 2, text: "フライパンを中火で熱し、サラダ油を引く" },
+  { order: 3, text: "玉ねぎを炒め、透明になったら塩コショウで味を調える" }
+]
+```
+
 ### AIへ渡す情報
 
 API Routeに以下を送り、サーバーサイドでClaudeに渡す。
@@ -73,21 +92,34 @@ API Routeに以下を送り、サーバーサイドでClaudeに渡す。
 ```ts
 // クライアント → API Route に渡す情報
 {
-  restrictedIngredientIds: string[],  // user_restricted_ingredients
-  dietaryRestrictions: string[],      // user_dietary_restrictions
-  locale: 'ja' | 'en',               // レシピの言語
+  restrictedIngredientNames: string[],  // NG材料の名前リスト（name_ja or name_en）
+  locale: 'ja' | 'en',                 // レシピの生成言語
 }
 ```
 
-Claudeへのプロンプト例：
+Claudeへのプロンプト・期待するJSONの形例：
 
 ```
 以下の制限を守って、食べられる料理を5つ提案してください。
-- 除外する材料: えび、乳
-- 食事制限: グルテンフリー
-- 言語: 日本語でレシピを返してください
+除外する材料: えび、乳
 
-JSON形式で返してください。
+以下のJSON形式で返してください。
+{
+  "recipes": [
+    {
+      "title": "料理名",
+      "description": "一言説明",
+      "servings": 2,
+      "cook_time_min": 20,
+      "ingredients": [
+        { "name": "材料名", "quantity": "分量" }
+      ],
+      "steps": [
+        { "order": 1, "text": "手順の説明" }
+      ]
+    }
+  ]
+}
 ```
 
 ### 既存レシピのフィルタリング
@@ -98,7 +130,7 @@ JSON形式で返してください。
 
 ## レシピ詳細画面
 
-- `steps`（jsonb）は手順の配列として保存されている。表示時に `steps.map()` でステップごとにレンダリングする
+- `steps`（jsonb）は `{ order: number, text: string }[]` の配列。スキーマ定義は「レシピ提案画面」の `steps` の型定義を参照
 - `ingredients_used` ではなく `recipe_ingredients` テーブルをJOINして材料一覧を取得する
 
 ```ts
