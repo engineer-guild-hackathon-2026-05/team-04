@@ -69,18 +69,6 @@ export default function LandingView({
           </p>
         </div>
       </section>
-
-      {/* 特徴の下にもう一つの大きなCTAボタン */}
-      <section className="landing-bottom-cta" style={{ textAlign: 'center', margin: '20px 0' }}>
-        <button 
-          className="submit-explore-btn" 
-          onClick={onSignIn}
-          id="landing-start-bottom-btn"
-        >
-          <span>さっそく好みを設定しにいく</span>
-          <Compass size={20} className="btn-arrow-icon" />
-        </button>
-      </section>
     </div>
   );
 }
