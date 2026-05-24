@@ -211,6 +211,17 @@ export default function Home() {
     localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(current));
   };
 
+  const handleNavigateHome = () => {
+    if (isLoggedIn) {
+      setCurrentView('list');
+      router.push('/app');
+      return;
+    }
+
+    setCurrentView('landing');
+    router.push('/');
+  };
+
   const handleSignIn = () => {
     router.push('/login?redirect=/app');
   };
@@ -291,8 +302,8 @@ export default function Home() {
   return (
     <div className="app-container">
       <Navbar
-        currentView={currentView}
         setCurrentView={setCurrentView}
+        onNavigateHome={handleNavigateHome}
         userName={userName}
         isLoggedIn={isLoggedIn}
         onSignIn={handleSignIn}
