@@ -22,6 +22,32 @@ export default function LoginPage() {
 }
 
 const PASSWORD_PATTERN = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[!@#$%^&*()_+\\-=\\[\\]{};':\"|<>?,./`~]).{12,}$";
+const DEMO_PROFILE_STORAGE_KEY = 'globalbites_demo_profile';
+
+type DemoSignInResult = 'authenticated' | 'disabled' | 'failed';
+
+async function tryDemoSignIn(email: string): Promise<DemoSignInResult> {
+  const response = await fetch('/auth/demo', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  }).catch(() => null);
+
+  if (!response) return 'failed';
+  if (response.status === 404) return 'disabled';
+  if (!response.ok) return 'failed';
+
+  const data = await response.json().catch(() => ({ userName: 'デモユーザー' }));
+  localStorage.setItem(
+    DEMO_PROFILE_STORAGE_KEY,
+    JSON.stringify({
+      email,
+      userName: data.userName || email.split('@')[0] || 'デモユーザー',
+    }),
+  );
+
+  return 'authenticated';
+}
 
 function LoginForm() {
   const router = useRouter();
@@ -45,8 +71,6 @@ function LoginForm() {
     setNoticeMessage('');
     setIsSubmitting(true);
 
-    const supabase = createClient();
-
     if (mode === 'signup' && !new RegExp(PASSWORD_PATTERN).test(password)) {
       setErrorMessage('パスワードは12文字以上で、大文字・小文字・数字・記号をそれぞれ1文字以上含めてください。');
       setIsSubmitting(false);
@@ -55,6 +79,19 @@ function LoginForm() {
 
     try {
       if (mode === 'signin') {
+        const demoSignInResult = await tryDemoSignIn(email);
+        if (demoSignInResult === 'authenticated') {
+          router.replace(redirectTo);
+          router.refresh();
+          return;
+        }
+
+        if (demoSignInResult === 'failed') {
+          setErrorMessage('デモログインに失敗しました。時間をおいてもう一度お試しください。');
+          return;
+        }
+
+        const supabase = createClient();
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) {
           setErrorMessage('メールアドレスまたはパスワードが正しくありません。');
@@ -65,6 +102,7 @@ function LoginForm() {
         return;
       }
 
+      const supabase = createClient();
       const { data, error } = await supabase.auth.signUp({
         email,
         password,

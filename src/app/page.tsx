@@ -13,6 +13,7 @@ import { createClient } from '@/lib/supabase/client';
 type CurrentView = 'landing' | 'list' | 'profile';
 
 type StoredProfile = {
+  email?: string;
   userName?: string;
   restrictedIngredients?: string[];
   preferredDishes?: string[];
@@ -20,10 +21,34 @@ type StoredProfile = {
 };
 
 const PROFILE_STORAGE_KEY = 'globalbites_profile';
+const DEMO_PROFILE_STORAGE_KEY = 'globalbites_demo_profile';
 
 const ingredientNameToLocalId = new Map(
   INGREDIENT_MASTER.map((ingredient) => [ingredient.name_ja, ingredient.id]),
 );
+
+function readDemoProfile() {
+  const storedProfile = localStorage.getItem(DEMO_PROFILE_STORAGE_KEY);
+  if (!storedProfile) return null;
+
+  try {
+    return JSON.parse(storedProfile) as StoredProfile;
+  } catch (e) {
+    console.error('Failed to parse demo profile', e);
+    return null;
+  }
+}
+
+type DemoSessionStatus = 'authenticated' | 'unauthenticated' | 'disabled' | 'failed';
+
+async function fetchDemoSession(): Promise<DemoSessionStatus> {
+  const response = await fetch('/auth/demo', { cache: 'no-store' }).catch(() => null);
+  if (!response) return 'failed';
+  if (response.ok) return 'authenticated';
+  if (response.status === 401) return 'unauthenticated';
+  if (response.status === 404) return 'disabled';
+  return 'failed';
+}
 
 function localIngredientNames(localIds: string[]) {
   const selected = new Set(localIds);
@@ -110,6 +135,24 @@ export default function Home() {
     }
 
     const syncSupabaseSession = async () => {
+      const demoSession = await fetchDemoSession();
+      if (demoSession === 'authenticated') {
+        const demoProfile = readDemoProfile();
+        setIsLoggedIn(true);
+        setCurrentView('list');
+        setUserName(demoProfile?.userName || demoProfile?.email?.split('@')[0] || 'デモユーザー');
+        return;
+      }
+
+      if (demoSession === 'unauthenticated' || demoSession === 'failed') {
+        setIsLoggedIn(false);
+        setCurrentView('landing');
+        if (demoSession === 'failed') {
+          console.error('Demo session check failed. Supabase auth fallback was skipped.');
+        }
+        return;
+      }
+
       const supabase = createClient();
       const {
         data: { session },
@@ -169,8 +212,13 @@ export default function Home() {
   };
 
   const handleSignOut = async () => {
-    const supabase = createClient();
-    await supabase.auth.signOut();
+    const demoSession = await fetchDemoSession();
+    await fetch('/auth/demo', { method: 'DELETE' }).catch(() => null);
+
+    if (demoSession === 'disabled') {
+      const supabase = createClient();
+      await supabase.auth.signOut();
+    }
 
     setIsLoggedIn(false);
     setUserName('ゲスト愛好家');
@@ -178,6 +226,7 @@ export default function Home() {
     setPreferredDishes([]);
     setPreferredCuisines([]);
     localStorage.removeItem(PROFILE_STORAGE_KEY);
+    localStorage.removeItem(DEMO_PROFILE_STORAGE_KEY);
     setCurrentView('landing');
     router.push('/');
   };
@@ -201,6 +250,9 @@ export default function Home() {
     });
 
     setCurrentView('list');
+
+    const demoSession = await fetchDemoSession();
+    if (demoSession !== 'disabled') return;
 
     const supabase = createClient();
     const {
