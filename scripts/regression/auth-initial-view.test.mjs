@@ -39,10 +39,10 @@ assert.match(
   'デモ認証済み分岐では、ログイン済み/list/authenticated を同じ分岐内で確定してください。',
 );
 
-assert.match(
+assert.doesNotMatch(
   source,
   /if \(demoSession === 'unauthenticated'\) \{[\s\S]*?setIsLoggedIn\(false\);[\s\S]*?setCurrentView\('landing'\);[\s\S]*?setAuthStatus\('unauthenticated'\);[\s\S]*?return;/,
-  'デモ未ログイン分岐では、未ログイン/landing/unauthenticated を同じ分岐内で確定してください。',
+  'デモcookieなしだけで未ログイン確定せず、Supabase セッション確認へフォールバックしてください。',
 );
 
 const failedBlockStart = source.indexOf("if (demoSession === 'failed')");
@@ -71,15 +71,23 @@ assert.match(
   'Supabase セッションなし分岐では、未ログイン/landing/unauthenticated を同じ分岐内で確定してください。',
 );
 
+const sessionUserIndex = source.indexOf('if (!session?.user)');
+const restrictedSyncIndex = source.indexOf('const restrictedIngredientSync = await fetchRestrictedIngredientLocalIds');
+assert.ok(sessionUserIndex !== -1 && restrictedSyncIndex !== -1, 'Supabase session と制限食材同期の順序を検査できません。');
+assert.equal(
+  source.slice(sessionUserIndex, restrictedSyncIndex).includes("setAuthStatus('authenticated')"),
+  false,
+  'Supabase セッションありでも、制限食材同期前に authenticated render を許可しないでください。',
+);
 assert.match(
-  source,
-  /setIsLoggedIn\(true\);\s*setCurrentView\('list'\);\s*setAuthStatus\('authenticated'\);/,
-  'Supabase セッションあり分岐では、ログイン済み/list/authenticated を連動して確定してください。',
+  source.slice(restrictedSyncIndex),
+  /setAuthStatus\('authenticated'\)/,
+  'Supabase セッションあり分岐では、制限食材同期の成功/失敗処理後にauthenticatedを確定してください。',
 );
 
 assert.match(
   source,
-  /setAuthStatus\('authenticated'\);[\s\S]*?try \{[\s\S]*?fetchRestrictedIngredientLocalIds[\s\S]*?\} catch \(profileSyncError\) \{[\s\S]*?Authenticated session kept, but profile preference sync failed/,
+  /try \{[\s\S]*?fetchRestrictedIngredientLocalIds[\s\S]*?\} catch \(profileSyncError\) \{[\s\S]*?Authenticated session kept, but profile preference sync failed/,
   'Supabase 認証後のプロフィール/制限食材同期失敗はログイン状態を維持してwarnに留めてください。',
 );
 

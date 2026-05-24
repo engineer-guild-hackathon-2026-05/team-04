@@ -43,7 +43,7 @@ export const INGREDIENT_MASTER: IngredientMaster[] = [
   // 特定原材料に準ずるもの（20品目）
   { id: "ing-almond", name_ja: "アーモンド", name_en: "almond", category: "ナッツ類" },
   { id: "ing-cashew", name_ja: "カシューナッツ", name_en: "cashew nut", category: "ナッツ類" },
-  { id: "ing-sesame", name_ja: "ごま", name_en: "ごま", category: "その他" },
+  { id: "ing-sesame", name_ja: "ごま", name_en: "sesame", category: "その他" },
   { id: "ing-soybean", name_ja: "大豆", name_en: "soybean", category: "穀類" },
   { id: "ing-abalone", name_ja: "あわび", name_en: "abalone", category: "魚介類" },
   { id: "ing-squid", name_ja: "いか", name_en: "squid", category: "魚介類" },

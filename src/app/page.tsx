@@ -24,20 +24,49 @@ type StoredProfile = {
 const PROFILE_STORAGE_KEY = 'globalbites_profile';
 const DEMO_PROFILE_STORAGE_KEY = 'globalbites_demo_profile';
 
+const ingredientMasterIds = new Set(INGREDIENT_MASTER.map((ingredient) => ingredient.id));
 const ingredientNameToLocalId = new Map(
   INGREDIENT_MASTER.map((ingredient) => [ingredient.name_ja, ingredient.id]),
 );
 
-function readDemoProfile() {
-  const storedProfile = localStorage.getItem(DEMO_PROFILE_STORAGE_KEY);
+type RestrictedIngredientSyncResult =
+  | { ok: true; localIds: string[] }
+  | { ok: false; error: unknown };
+
+type RestrictedIngredientDbRow = {
+  ingredient_id: string;
+  reason: string | null;
+};
+
+function readStoredProfile(storageKey: string, label: string) {
+  const storedProfile = localStorage.getItem(storageKey);
   if (!storedProfile) return null;
 
   try {
     return JSON.parse(storedProfile) as StoredProfile;
   } catch (e) {
-    console.error('Failed to parse demo profile', e);
+    console.error(`Failed to parse ${label}`, e);
     return null;
   }
+}
+
+function writeStoredProfile(updates: StoredProfile) {
+  const current = readStoredProfile(PROFILE_STORAGE_KEY, 'local storage profile') ?? {};
+  localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify({ ...current, ...updates }));
+}
+
+function readDemoProfile() {
+  return readStoredProfile(DEMO_PROFILE_STORAGE_KEY, 'demo profile');
+}
+
+function writeDemoProfile(updates: StoredProfile) {
+  const current = readDemoProfile() ?? {};
+  localStorage.setItem(DEMO_PROFILE_STORAGE_KEY, JSON.stringify({ ...current, ...updates }));
+}
+
+function mergeSyncedRestrictedIngredients(localIds: string[], databaseIngredientIds: string[]) {
+  const localOnlyRestrictionIds = localIds.filter((id) => !ingredientMasterIds.has(id));
+  return Array.from(new Set([...databaseIngredientIds, ...localOnlyRestrictionIds]));
 }
 
 type DemoSessionStatus = 'authenticated' | 'unauthenticated' | 'disabled' | 'failed';
@@ -61,23 +90,49 @@ function localIngredientNames(localIds: string[]) {
 async function fetchRestrictedIngredientLocalIds(
   supabase: ReturnType<typeof createClient>,
   userId: string,
-) {
-  const { data: restrictedRows } = await supabase
+): Promise<RestrictedIngredientSyncResult> {
+  const { data: restrictedRows, error: restrictedError } = await supabase
     .from('user_restricted_ingredients')
     .select('ingredient_id')
     .eq('user_id', userId);
 
-  const ingredientIds = restrictedRows?.map((row) => row.ingredient_id).filter(Boolean) ?? [];
-  if (ingredientIds.length === 0) return [];
+  if (restrictedError) return { ok: false, error: restrictedError };
 
-  const { data: ingredients } = await supabase
+  const ingredientIds = restrictedRows?.map((row) => row.ingredient_id).filter(Boolean) ?? [];
+  if (ingredientIds.length === 0) return { ok: true, localIds: [] };
+
+  const { data: ingredients, error: ingredientError } = await supabase
     .from('ingredients')
     .select('id, name_ja')
     .in('id', ingredientIds);
 
-  return ingredients
+  if (ingredientError) return { ok: false, error: ingredientError };
+
+  const localIds = ingredients
     ?.map((ingredient) => ingredientNameToLocalId.get(ingredient.name_ja))
     .filter((id): id is string => Boolean(id)) ?? [];
+
+  return { ok: true, localIds };
+}
+
+async function restoreRestrictedIngredientRows(
+  supabase: ReturnType<typeof createClient>,
+  userId: string,
+  rows: RestrictedIngredientDbRow[],
+) {
+  if (rows.length === 0) return;
+
+  const { error } = await supabase.from('user_restricted_ingredients').insert(
+    rows.map((row) => ({
+      user_id: userId,
+      ingredient_id: row.ingredient_id,
+      reason: row.reason ?? 'allergy',
+    })),
+  );
+
+  if (error) {
+    console.warn('Failed to restore restricted ingredient rows after insert failure.', error);
+  }
 }
 
 async function replaceRestrictedIngredients(
@@ -85,29 +140,52 @@ async function replaceRestrictedIngredients(
   userId: string,
   localIds: string[],
 ) {
-  await supabase.from('user_restricted_ingredients').delete().eq('user_id', userId);
-
   const names = localIngredientNames(localIds);
-  if (names.length === 0) return;
+  let replacementIngredients: { id: string; name_ja: string }[] = [];
 
-  const { data: ingredients, error } = await supabase
-    .from('ingredients')
-    .select('id, name_ja')
-    .in('name_ja', names);
+  if (names.length > 0) {
+    const { data: ingredients, error } = await supabase
+      .from('ingredients')
+      .select('id, name_ja')
+      .in('name_ja', names);
 
-  if (error) throw error;
+    if (error) throw error;
 
-  const inserts = ingredients?.map((ingredient) => ({
+    replacementIngredients = ingredients ?? [];
+    if (replacementIngredients.length !== names.length) {
+      throw new Error('Some restricted ingredients could not be resolved before replacement.');
+    }
+  }
+
+  const { data: existingRows, error: existingError } = await supabase
+    .from('user_restricted_ingredients')
+    .select('ingredient_id, reason')
+    .eq('user_id', userId);
+
+  if (existingError) throw existingError;
+
+  const inserts = replacementIngredients.map((ingredient) => ({
     user_id: userId,
     ingredient_id: ingredient.id,
     reason: 'allergy',
-  })) ?? [];
+  }));
+
+  const { error: deleteError } = await supabase
+    .from('user_restricted_ingredients')
+    .delete()
+    .eq('user_id', userId);
+  if (deleteError) throw deleteError;
 
   if (inserts.length > 0) {
-    const { error: insertError } = await supabase
-      .from('user_restricted_ingredients')
-      .insert(inserts);
-    if (insertError) throw insertError;
+    const { error: insertError } = await supabase.from('user_restricted_ingredients').insert(inserts);
+    if (insertError) {
+      await restoreRestrictedIngredientRows(
+        supabase,
+        userId,
+        (existingRows ?? []) as RestrictedIngredientDbRow[],
+      );
+      throw insertError;
+    }
   }
 }
 
@@ -123,20 +201,13 @@ export default function Home() {
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
 
   useEffect(() => {
-    let localProfile: StoredProfile | null = null;
-    const savedProfile = localStorage.getItem(PROFILE_STORAGE_KEY);
-    if (savedProfile) {
-      try {
-        const parsed = JSON.parse(savedProfile) as StoredProfile;
-        localProfile = parsed;
-        if (parsed.userName) setUserName(parsed.userName);
-        if (parsed.restrictedIngredients) setRestrictedIngredients(parsed.restrictedIngredients);
-        if (parsed.preferredDishes) setPreferredDishes(parsed.preferredDishes);
-        if (parsed.preferredCuisines) setPreferredCuisines(parsed.preferredCuisines);
-      } catch (e) {
-        console.error('Failed to parse local storage profile', e);
-      }
-    }
+    const parsed = readStoredProfile(PROFILE_STORAGE_KEY, 'local storage profile');
+    const locallyStoredRestrictedIngredients = parsed?.restrictedIngredients ?? [];
+
+    if (parsed?.userName) setUserName(parsed.userName);
+    if (parsed?.restrictedIngredients) setRestrictedIngredients(parsed.restrictedIngredients);
+    if (parsed?.preferredDishes) setPreferredDishes(parsed.preferredDishes);
+    if (parsed?.preferredCuisines) setPreferredCuisines(parsed.preferredCuisines);
 
     const syncSupabaseSession = async () => {
       try {
@@ -145,15 +216,10 @@ export default function Home() {
           const demoProfile = readDemoProfile();
           setIsLoggedIn(true);
           setCurrentView('list');
-          setUserName(demoProfile?.userName || demoProfile?.email?.split('@')[0] || 'デモユーザー');
+          setUserName(
+            parsed?.userName || demoProfile?.userName || demoProfile?.email?.split('@')[0] || 'デモユーザー',
+          );
           setAuthStatus('authenticated');
-          return;
-        }
-
-        if (demoSession === 'unauthenticated') {
-          setIsLoggedIn(false);
-          setCurrentView('landing');
-          setAuthStatus('unauthenticated');
           return;
         }
 
@@ -175,7 +241,6 @@ export default function Home() {
 
         setIsLoggedIn(true);
         setCurrentView('list');
-        setAuthStatus('authenticated');
 
         const fallbackName =
           session.user.user_metadata?.name ||
@@ -185,27 +250,41 @@ export default function Home() {
         setUserName(fallbackName);
 
         try {
-          const { data: profile } = await supabase
+          const { data: profile, error: profileError } = await supabase
             .from('profiles')
             .select('name')
             .eq('id', session.user.id)
             .maybeSingle();
-          if (profile?.name) setUserName(profile.name);
+          if (profileError) throw profileError;
 
-          const databaseRestrictedIngredients = await fetchRestrictedIngredientLocalIds(
+          if (profile?.name) {
+            setUserName(profile.name);
+            writeStoredProfile({ userName: profile.name });
+          }
+
+          const restrictedIngredientSync = await fetchRestrictedIngredientLocalIds(
             supabase,
             session.user.id,
           );
-          const localPreferenceRestrictionIds = localProfile?.restrictedIngredients
-            ?.filter((id) => !id.startsWith('ing-')) ?? [];
-          const syncedRestrictedIngredients = [
-            ...databaseRestrictedIngredients,
-            ...localPreferenceRestrictionIds.filter((id) => !databaseRestrictedIngredients.includes(id)),
-          ];
-          setRestrictedIngredients(syncedRestrictedIngredients);
+
+          if (restrictedIngredientSync.ok) {
+            const mergedRestrictedIngredients = mergeSyncedRestrictedIngredients(
+              locallyStoredRestrictedIngredients,
+              restrictedIngredientSync.localIds,
+            );
+            setRestrictedIngredients(mergedRestrictedIngredients);
+            writeStoredProfile({ restrictedIngredients: mergedRestrictedIngredients });
+          } else {
+            console.warn(
+              'Supabase restricted ingredient sync failed. Keeping local restrictions.',
+              restrictedIngredientSync.error,
+            );
+          }
         } catch (profileSyncError) {
           console.warn('Authenticated session kept, but profile preference sync failed.', profileSyncError);
         }
+
+        setAuthStatus('authenticated');
       } catch (error) {
         console.error('Auth session sync failed. Treating the user as signed out.', error);
         setIsLoggedIn(false);
@@ -228,7 +307,18 @@ export default function Home() {
       preferredCuisines:
         updates.preferredCuisines !== undefined ? updates.preferredCuisines : preferredCuisines,
     };
-    localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(current));
+    writeStoredProfile(current);
+  };
+
+  const handleNavigateHome = () => {
+    if (isLoggedIn) {
+      setCurrentView('list');
+      router.push('/app');
+      return;
+    }
+
+    setCurrentView('landing');
+    router.push('/');
   };
 
   const handleSignIn = () => {
@@ -239,7 +329,7 @@ export default function Home() {
     const demoSession = await fetchDemoSession();
     await fetch('/auth/demo', { method: 'DELETE' }).catch(() => null);
 
-    if (demoSession === 'disabled') {
+    if (demoSession !== 'authenticated') {
       const supabase = createClient();
       await supabase.auth.signOut();
     }
@@ -277,7 +367,18 @@ export default function Home() {
     setCurrentView('list');
 
     const demoSession = await fetchDemoSession();
-    if (demoSession !== 'disabled') return;
+    if (demoSession === 'authenticated') {
+      writeDemoProfile({
+        userName: profile.userName,
+        restrictedIngredients: profile.restrictedIngredients,
+        preferredDishes: profile.preferredDishes,
+        preferredCuisines: profile.preferredCuisines,
+      });
+      return;
+    }
+    if (demoSession === 'failed') {
+      console.error('Demo session check failed while saving profile. Falling back to Supabase auth.');
+    }
 
     const supabase = createClient();
     const {
@@ -287,7 +388,12 @@ export default function Home() {
     if (!user) return;
 
     try {
-      await supabase.from('profiles').update({ name: profile.userName }).eq('id', user.id);
+      const { error: profileUpdateError } = await supabase
+        .from('profiles')
+        .update({ name: profile.userName })
+        .eq('id', user.id);
+      if (profileUpdateError) throw profileUpdateError;
+
       await replaceRestrictedIngredients(supabase, user.id, profile.restrictedIngredients);
     } catch (dbErr) {
       console.warn('Supabase DB update failed. Synchronized locally.', dbErr);
@@ -311,8 +417,8 @@ export default function Home() {
   return (
     <div className="app-container">
       <Navbar
-        currentView={currentView}
         setCurrentView={setCurrentView}
+        onNavigateHome={handleNavigateHome}
         userName={userName}
         isLoggedIn={isLoggedIn}
         onSignIn={handleSignIn}
