@@ -31,6 +31,12 @@ const CUISINE_MATCH_TERMS: Record<string, string[]> = {
   ethiopia: ['エチオピア', 'ethiopia'],
 };
 
+function isCuisinePreferenceMatch(preferredCuisine: string, recipeCuisine: string) {
+  const cuisineKey = recipeCuisine.toLowerCase();
+  const terms = CUISINE_MATCH_TERMS[preferredCuisine] ?? [preferredCuisine];
+  return terms.some((term) => cuisineKey === term.toLowerCase());
+}
+
 export default function ListView({
   restrictedIngredients,
   preferredDishes,
@@ -69,6 +75,13 @@ export default function ListView({
     return matched.map(ing => ing.name_ja.split('（')[0].trim()); // 「卵 (半分カット)」などの表記から「卵」を抽出
   };
 
+  const handleRecipeCardKeyDown = (event: React.KeyboardEvent<HTMLElement>, recipe: Recipe) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      onSelectRecipe(recipe);
+    }
+  };
+
   // おすすめ優先度の判定（ユーザーの好みの国や料理タイプにマッチするか）
   const getRecommendationScore = React.useCallback((recipe: Recipe) => {
     let score = 0;
@@ -78,12 +91,8 @@ export default function ListView({
       score += 4;
     }
     
-    // 好みの国にマッチ
-    const cuisineKey = recipe.cuisine.toLowerCase();
-    if (preferredCuisines.some(c => {
-      const terms = CUISINE_MATCH_TERMS[c] ?? [c];
-      return terms.some(term => cuisineKey.includes(term.toLowerCase()));
-    })) {
+    // 好みの国にマッチ（インドとインドネシアなどの部分一致を避ける）
+    if (preferredCuisines.some((cuisine) => isCuisinePreferenceMatch(cuisine, recipe.cuisine))) {
       score += 2;
     }
 
@@ -178,7 +187,11 @@ export default function ListView({
                     <article 
                       key={recipe.id} 
                       className={`recipe-card ${warnings.length > 0 ? 'has-allergen-warning' : ''} ${isRecommended ? 'recommended-highlight' : ''}`}
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`${recipe.title}のレシピ詳細を開く`}
                       onClick={() => onSelectRecipe(recipe)}
+                      onKeyDown={(event) => handleRecipeCardKeyDown(event, recipe)}
                     >
                       {/* カード上部 */}
                       <div className="card-header">
@@ -259,7 +272,11 @@ export default function ListView({
                     <article 
                       key={recipe.id} 
                       className={`recipe-card secondary ${warnings.length > 0 ? 'has-allergen-warning' : ''}`}
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`${recipe.title}のレシピ詳細を開く`}
                       onClick={() => onSelectRecipe(recipe)}
+                      onKeyDown={(event) => handleRecipeCardKeyDown(event, recipe)}
                     >
                       <div className="card-header">
                         <span className="food-name">{recipe.title.split('(')[0].trim()}</span>

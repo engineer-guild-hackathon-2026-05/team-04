@@ -946,6 +946,14 @@ button, input {
   box-shadow: var(--shadow-hover);
 }
 
+.recipe-card:focus-visible {
+  outline: 3px solid rgba(16, 185, 129, 0.55);
+  outline-offset: 4px;
+  transform: translateY(-4px) scale(1.01);
+  border-color: var(--accent-green);
+  box-shadow: var(--shadow-hover);
+}
+
 /* お気に入りハイライト */
 .recipe-card.recommended-highlight {
   border-color: rgba(217, 119, 6, 0.3);
