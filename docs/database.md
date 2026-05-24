@@ -95,6 +95,31 @@ WHERE r.id NOT IN (
 );
 ```
 
+## 書き込み権限とservice roleの運用
+
+### ロール別の書き込み可否
+
+| source_type | 書き込み主体 | 使用するロール | 経路 |
+|---|---|---|---|
+| `ai` | サーバーサイド | service role | Next.js API Route |
+| `api` | サーバーサイド | service role | Next.js API Route（将来） |
+| `user` | クライアント | authenticated | Supabase JS Client |
+
+### なぜai/apiにRLS policyを設けないか
+
+`source_type = 'ai'` および `'api'` のレシピはサーバーサイド（Next.js API Route）からservice roleキーを使って書き込む。service roleはRLSをバイパスするため、クライアントからの不正書き込みを防ぎつつサーバーからの書き込みを可能にする。
+
+### 必要な環境変数
+
+```
+# .env.local（リポジトリにコミットしない）
+SUPABASE_URL=https://<project>.supabase.co
+SUPABASE_ANON_KEY=<anon key>          # クライアント用
+SUPABASE_SERVICE_ROLE_KEY=<service role key>  # サーバーサイド専用・絶対に公開しない
+```
+
+service role keyはSupabaseダッシュボードの `Settings > API` から取得できる。
+
 ## マイグレーションファイル
 
 | ファイル | 内容 |

@@ -105,7 +105,8 @@ create policy "自分のNG材料を削除できる"
   on public.user_restricted_ingredients for delete
   using (auth.uid() = user_id);
 
--- recipes: 公開レシピは全員参照可、自分のレシピは書き込み可
+-- recipes: 公開レシピは全員参照可、ユーザー投稿は本人のみ作成可
+-- ai / api レシピはサーバーサイド（service role）経由でのみ書き込む想定のため policy 対象外
 create policy "公開レシピは誰でも参照できる"
   on public.recipes for select
   using (is_public = true or auth.uid() = created_by);
@@ -115,6 +116,8 @@ create policy "ユーザーは自分のレシピを作成できる"
   with check (source_type = 'user' and auth.uid() = created_by);
 
 -- recipe_ingredients: レシピが参照できるなら材料も参照可
+-- ai / api レシピへの INSERT はサーバーサイド（service role）経由で行うため policy 対象外
+-- ユーザー投稿レシピの材料は本人のみ登録可
 create policy "参照できるレシピの材料は参照できる"
   on public.recipe_ingredients for select
   using (
@@ -122,6 +125,17 @@ create policy "参照できるレシピの材料は参照できる"
       select 1 from public.recipes r
       where r.id = recipe_id
         and (r.is_public = true or auth.uid() = r.created_by)
+    )
+  );
+
+create policy "自分のレシピに材料を登録できる"
+  on public.recipe_ingredients for insert
+  with check (
+    exists (
+      select 1 from public.recipes r
+      where r.id = recipe_id
+        and r.source_type = 'user'
+        and auth.uid() = r.created_by
     )
   );
 
