@@ -1,17 +1,18 @@
 # 認証（Supabase Auth）
 
-Supabase Auth を使った認証基盤とログイン画面の使い方。`/login` でメールアドレス認証を行い、ログイン後は `/app` に遷移する。
+Supabase Auth を使った認証基盤とログイン画面の使い方。MVP ではメールアドレス + パスワード方式を採用し、ログイン後は `/app` に遷移する。
 
 ## セットアップ（初回のみ）
 
 1. `.env.local.example` をコピーして `.env.local` を作成
-2. `supabase start` してローカル Supabase を起動
-3. `supabase status` で表示される `API URL` と `anon key` を `.env.local` に設定
+2. Supabase Dashboard / CLI で取得した Project URL と anon key を `.env.local` に設定
 
 ```
-NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
-NEXT_PUBLIC_SUPABASE_ANON_KEY=<supabase status の anon key>
+NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon key>
 ```
+
+秘密鍵（service role key など）はブラウザ向け環境変数に入れない。
 
 ## クライアントの使い分け
 
@@ -52,18 +53,16 @@ if (error) {
 
 成功するとセッション Cookie が立ち、`/login` から `redirect` パラメータ（既定 `/app`）へ遷移する。
 
-## Google ログイン
+## 認証方式の判断
 
-```ts
-const { error } = await supabase.auth.signInWithOAuth({
-  provider: "google",
-  options: {
-    redirectTo: `${location.origin}/auth/confirm?next=/app`,
-  },
-});
-```
+MVP では magic link / OTP や Google ログインも検討したが、メール送信設定・送信元管理・OAuth 設定の複雑さがデモの目的に対して大きいため、メールアドレス + パスワード方式を維持する。
 
-Supabase Dashboard で Google プロバイダの有効化が必要（後述）。
+この方式を使う前提として、以下を必須条件にする。
+
+- Supabase Auth のみを使用し、アプリ側でパスワードを直接保存しない
+- HTTPS を維持する
+- パスワードポリシーと漏洩パスワード保護を有効化する
+- RLS と `getUser()` ベースのサーバー側検証を維持する
 
 ## ログアウト
 
@@ -104,19 +103,15 @@ const { data: { user } } = await supabase.auth.getUser();
 
 @Kazuki-Onishi に作業依頼:
 
-- [ ] Auth > Providers > Email: `Confirm email` ON
-- [ ] Auth > Policies: `Minimum password length` を 12 に
+- [ ] Auth > Policies: `Minimum password length` を 12 以上にする
+- [ ] Auth > Policies: `Password requirements` で大文字・小文字・数字・記号を必須にする
 - [ ] Auth > Policies: `Leaked password protection` ON（Pro プランの場合）
-- [ ] Auth > Rate Limits: sign-in / sign-up / OTP / password reset を絞る
-- [ ] Auth > URL Configuration: Redirect URLs に本番ドメインの `/auth/callback` を allowlist 登録
-- [ ] Auth > Providers > Google:
-  - Google Cloud Console で OAuth Client (Web) を作成
-  - 承認済みリダイレクト URI に `https://<project-ref>.supabase.co/auth/v1/callback` を登録
-  - Client ID / Secret を Supabase Dashboard に貼る
+- [ ] Auth > Rate Limits: sign-in / sign-up / password reset を絞る
+- [ ] Auth > URL Configuration: Redirect URLs に利用するデモ / 本番 URL を allowlist 登録する
 
 ## マイグレーション
 
-`supabase/migrations/20260524175549_create_profiles.sql` で `public.profiles` テーブルと RLS が定義済み。
+`supabase/migrations/20260524000001_init_schema.sql` で基本テーブルと RLS を定義し、`20260524190000_harden_auth_rls.sql` で auth / RLS の hardening を行う。
 
 - `auth.users` 作成時に trigger で `profiles` 行が自動生成される
 - RLS により自分の行のみ SELECT / UPDATE 可能

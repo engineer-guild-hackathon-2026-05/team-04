@@ -21,6 +21,8 @@ export default function LoginPage() {
   );
 }
 
+const PASSWORD_PATTERN = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[!@#$%^&*()_+\\-=\\[\\]{};':\"|<>?,./`~]).{12,}$";
+
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -44,6 +46,12 @@ function LoginForm() {
     setIsSubmitting(true);
 
     const supabase = createClient();
+
+    if (mode === 'signup' && !new RegExp(PASSWORD_PATTERN).test(password)) {
+      setErrorMessage('パスワードは12文字以上で、大文字・小文字・数字・記号をそれぞれ1文字以上含めてください。');
+      setIsSubmitting(false);
+      return;
+    }
 
     try {
       if (mode === 'signin') {
@@ -151,7 +159,9 @@ function LoginForm() {
               onChange={(event) => setPassword(event.target.value)}
               placeholder="12文字以上を推奨"
               autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
-              minLength={6}
+              minLength={mode === 'signup' ? 12 : undefined}
+              pattern={mode === 'signup' ? PASSWORD_PATTERN : undefined}
+              title={mode === 'signup' ? '12文字以上で、大文字・小文字・数字・記号をそれぞれ1文字以上含めてください。' : undefined}
               required
             />
           </label>
