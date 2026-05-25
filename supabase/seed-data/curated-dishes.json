@@ -2541,7 +2541,12 @@
         "name_en": "nuoc cham",
         "quantity": "適量",
         "master_name_en": null,
-        "is_optional": false
+        "is_optional": false,
+        "category": "魚介類",
+        "dietary_tags": [
+          "fish",
+          "animal-product"
+        ]
       }
     ],
     "steps": [
@@ -2655,7 +2660,12 @@
         "name_en": "fish sauce",
         "quantity": "大さじ2",
         "master_name_en": null,
-        "is_optional": false
+        "is_optional": false,
+        "category": "魚介類",
+        "dietary_tags": [
+          "fish",
+          "animal-product"
+        ]
       },
       {
         "name_ja": "パームシュガー",
@@ -2749,7 +2759,12 @@
         "name_en": "dried shrimp",
         "quantity": "大さじ2",
         "master_name_en": null,
-        "is_optional": false
+        "is_optional": false,
+        "category": "甲殻類",
+        "dietary_tags": [
+          "shellfish",
+          "animal-product"
+        ]
       },
       {
         "name_ja": "ココナッツミルク",
@@ -2871,7 +2886,12 @@
         "name_en": "white fish",
         "quantity": "500g",
         "master_name_en": null,
-        "is_optional": false
+        "is_optional": false,
+        "category": "魚介類",
+        "dietary_tags": [
+          "fish",
+          "animal-product"
+        ]
       },
       {
         "name_ja": "ココナッツミルク",
@@ -2920,7 +2940,12 @@
         "name_en": "fish sauce",
         "quantity": "大さじ1",
         "master_name_en": null,
-        "is_optional": false
+        "is_optional": false,
+        "category": "魚介類",
+        "dietary_tags": [
+          "fish",
+          "animal-product"
+        ]
       },
       {
         "name_ja": "パームシュガー",
@@ -3042,7 +3067,12 @@
         "name_en": "fish sauce",
         "quantity": "大さじ1と1/2",
         "master_name_en": null,
-        "is_optional": false
+        "is_optional": false,
+        "category": "魚介類",
+        "dietary_tags": [
+          "fish",
+          "animal-product"
+        ]
       },
       {
         "name_ja": "ライム果汁",
@@ -3266,7 +3296,12 @@
         "name_en": "fish sauce",
         "quantity": "大さじ2",
         "master_name_en": null,
-        "is_optional": false
+        "is_optional": false,
+        "category": "魚介類",
+        "dietary_tags": [
+          "fish",
+          "animal-product"
+        ]
       },
       {
         "name_ja": "唐辛子粉",
@@ -3388,7 +3423,12 @@
         "name_en": "shrimp shells or stock",
         "quantity": "800ml分",
         "master_name_en": null,
-        "is_optional": false
+        "is_optional": false,
+        "category": "甲殻類",
+        "dietary_tags": [
+          "shellfish",
+          "animal-product"
+        ]
       },
       {
         "name_ja": "レモングラス",
@@ -3437,7 +3477,12 @@
         "name_en": "fish sauce",
         "quantity": "大さじ2",
         "master_name_en": null,
-        "is_optional": false
+        "is_optional": false,
+        "category": "魚介類",
+        "dietary_tags": [
+          "fish",
+          "animal-product"
+        ]
       },
       {
         "name_ja": "ライム果汁",
@@ -3681,7 +3726,12 @@
         "name_en": "fish sauce",
         "quantity": "大さじ3",
         "master_name_en": null,
-        "is_optional": false
+        "is_optional": false,
+        "category": "魚介類",
+        "dietary_tags": [
+          "fish",
+          "animal-product"
+        ]
       },
       {
         "name_ja": "砂糖",
