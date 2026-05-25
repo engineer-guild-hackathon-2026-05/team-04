@@ -10,8 +10,13 @@ assert.match(
 );
 assert.match(
   source,
-  /remoteProfile\?\.source\s*===\s*'local-fallback'[\s\S]*localProfile\?\.restrictedIngredients/,
-  'プロフィールAPIのDB read失敗時は localStorage の制限食材を保持してください。',
+  /function\s+getProfileFallbackFields[\s\S]*fallbackFields/,
+  'プロフィールAPIの部分的なDB read失敗は fallbackFields でフィールド単位に扱ってください。',
+);
+assert.match(
+  source,
+  /shouldUseLocalRestrictions[\s\S]*localProfile\?\.restrictedIngredients/,
+  '制限食材のDB read失敗時だけ localStorage の制限食材を保持してください。',
 );
 assert.match(
   source,
@@ -24,8 +29,8 @@ assert.match(
   '認証後のプロフィール/制限食材同期は /api/me/profile の結果を使ってください。',
 );
 
-const fixedSync = (localRestrictedIngredients, databaseRestrictedIngredients, source = 'database') => {
-  if (source === 'local-fallback') return localRestrictedIngredients;
+const fixedSync = (localRestrictedIngredients, databaseRestrictedIngredients, fallbackFields = []) => {
+  if (fallbackFields.includes('restrictedIngredients')) return localRestrictedIngredients;
   return [
     ...databaseRestrictedIngredients,
     ...localRestrictedIngredients.filter((id) => !id.startsWith('ing-')),
@@ -35,6 +40,7 @@ const fixedSync = (localRestrictedIngredients, databaseRestrictedIngredients, so
 assert.deepEqual(fixedSync(['ing-egg', 'ing-shrimp'], []), []);
 assert.deepEqual(fixedSync(['ing-egg', 'diet-vegan'], []), ['diet-vegan']);
 assert.deepEqual(fixedSync(['ing-egg', 'diet-vegan'], ['ing-shrimp']), ['ing-shrimp', 'diet-vegan']);
-assert.deepEqual(fixedSync(['ing-egg'], [], 'local-fallback'), ['ing-egg']);
+assert.deepEqual(fixedSync(['ing-egg'], [], ['restrictedIngredients']), ['ing-egg']);
+assert.deepEqual(fixedSync(['ing-egg'], ['ing-shrimp'], ['preferences']), ['ing-shrimp']);
 
 console.log('auth-db-sync regression checks passed');

@@ -3,7 +3,7 @@ import { cookies } from 'next/headers';
 import { DEMO_AUTH_COOKIE, hasDemoAuthCookie } from '@/lib/demoMode';
 import { INGREDIENT_CODE_SET, isIngredientCode, toIngredientCodeFromDbRow } from '@/lib/ingredientCodes';
 import { createClient } from '@/lib/supabase/server';
-import type { ProfilePayload, ProfileResponse } from '@/lib/apiTypes';
+import type { ProfileFallbackField, ProfilePayload, ProfileResponse } from '@/lib/apiTypes';
 
 type PreferenceRow = {
   preferred_dishes?: string[] | null;
@@ -164,10 +164,25 @@ export async function GET() {
     .eq('user_id', user.id)
     .maybeSingle();
 
-  const hasReadError = Boolean(profileError || restrictedError || preferencesError);
-  if (profileError) console.warn('Failed to read profiles. Returning local-fallback profile payload.', profileError);
-  if (restrictedError) console.warn('Failed to read user_restricted_ingredients. Returning local-fallback profile payload.', restrictedError);
-  if (preferencesError) console.warn('Failed to read user_preferences. Returning profile without preference rows.', preferencesError);
+  const fallbackFields: ProfileFallbackField[] = [];
+  if (profileError) {
+    fallbackFields.push('userName');
+    console.warn('Failed to read profiles. Falling back to local profile name on the client.', profileError);
+  }
+  if (restrictedError) {
+    fallbackFields.push('restrictedIngredients');
+    console.warn('Failed to read user_restricted_ingredients. Falling back to local restrictions on the client.', restrictedError);
+  }
+  if (preferencesError) {
+    fallbackFields.push('preferences');
+    console.warn('Failed to read user_preferences. Falling back to local preferences on the client.', preferencesError);
+  }
+
+  const source: ProfileResponse['source'] = fallbackFields.length === 0
+    ? 'database'
+    : fallbackFields.length === 3
+      ? 'local-fallback'
+      : 'partial-fallback';
 
   const restrictedIngredients = restrictedError
     ? []
@@ -181,7 +196,8 @@ export async function GET() {
     restrictedIngredients,
     preferredDishes: preferenceRow.preferred_dishes ?? [],
     preferredCuisines: preferenceRow.preferred_cuisines ?? [],
-    source: hasReadError ? 'local-fallback' : 'database',
+    source,
+    ...(fallbackFields.length > 0 ? { fallbackFields } : {}),
   } satisfies ProfileResponse);
 }
 
@@ -228,9 +244,7 @@ export async function PUT(request: NextRequest) {
       updated_at: new Date().toISOString(),
     }, { onConflict: 'user_id' });
 
-  if (preferencesError) {
-    console.warn('Failed to save user_preferences. Continuing with restricted ingredient sync.', preferencesError);
-  }
+  if (preferencesError) throw preferencesError;
 
   await replaceRestrictedIngredients(supabase, user.id, requestedRestrictedIngredients);
 

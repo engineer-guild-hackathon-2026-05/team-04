@@ -8,7 +8,7 @@ import ListView from './components/ListView';
 import ProfileView from './components/ProfileView';
 import RecipeModal from './components/RecipeModal';
 import { INGREDIENT_MASTER, MOCK_RECIPES, type IngredientMaster, type Recipe } from '@/lib/mockData';
-import type { IngredientsResponse, ProfilePayload, ProfileResponse, RecipesResponse } from '@/lib/apiTypes';
+import type { IngredientsResponse, ProfileFallbackField, ProfilePayload, ProfileResponse, RecipesResponse } from '@/lib/apiTypes';
 
 type CurrentView = 'landing' | 'list' | 'profile';
 type AuthStatus = 'checking' | 'authenticated' | 'unauthenticated';
@@ -81,19 +81,34 @@ async function saveProfileToApi(profile: ProfilePayload) {
   return (await response.json()) as ProfileResponse;
 }
 
+function getProfileFallbackFields(remoteProfile: ProfileResponse | null) {
+  if (!remoteProfile) return new Set<ProfileFallbackField>();
+  if (remoteProfile.fallbackFields) return new Set(remoteProfile.fallbackFields);
+  if (remoteProfile.source === 'local-fallback') {
+    return new Set<ProfileFallbackField>(['userName', 'restrictedIngredients', 'preferences']);
+  }
+  return new Set<ProfileFallbackField>();
+}
+
 function mergeProfile(localProfile: StoredProfile | null, remoteProfile: ProfileResponse | null): ProfilePayload {
+  const fallbackFields = getProfileFallbackFields(remoteProfile);
+  const shouldUseLocalRestrictions = fallbackFields.has('restrictedIngredients');
+  const shouldUseLocalPreferences = fallbackFields.has('preferences');
+
   return {
-    userName: remoteProfile?.userName || localProfile?.userName || DEFAULT_USER_NAME,
-    restrictedIngredients: remoteProfile?.source === 'local-fallback'
+    userName: fallbackFields.has('userName')
+      ? localProfile?.userName || remoteProfile?.userName || DEFAULT_USER_NAME
+      : remoteProfile?.userName || localProfile?.userName || DEFAULT_USER_NAME,
+    restrictedIngredients: shouldUseLocalRestrictions
       ? localProfile?.restrictedIngredients ?? []
       : Array.from(new Set([
         ...(remoteProfile?.restrictedIngredients ?? []),
         ...(localProfile?.restrictedIngredients ?? []).filter((id) => !id.startsWith('ing-')),
       ])),
-    preferredDishes: remoteProfile?.source === 'local-fallback'
+    preferredDishes: shouldUseLocalPreferences
       ? localProfile?.preferredDishes ?? []
       : remoteProfile?.preferredDishes ?? localProfile?.preferredDishes ?? [],
-    preferredCuisines: remoteProfile?.source === 'local-fallback'
+    preferredCuisines: shouldUseLocalPreferences
       ? localProfile?.preferredCuisines ?? []
       : remoteProfile?.preferredCuisines ?? localProfile?.preferredCuisines ?? [],
   };

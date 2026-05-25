@@ -15,6 +15,13 @@ assert.match(
 );
 assert.match(routeSource, /await\s+replaceRestrictedIngredients\(supabase,\s*user\.id,\s*requestedRestrictedIngredients\);/);
 
+assert.match(
+  routeSource,
+  /if\s*\(preferencesError\)\s*throw\s+preferencesError;[\s\S]*await\s+replaceRestrictedIngredients/,
+  'preferences 更新に失敗した場合は database 成功レスポンス扱いにせず、制限食材同期へ進まないでください。',
+);
+
+
 const fixedSaveFlow = async ({ updateProfile, replaceRestrictedIngredients }) => {
   const { error: profileError } = await updateProfile();
   if (profileError) throw profileError;

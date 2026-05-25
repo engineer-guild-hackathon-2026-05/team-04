@@ -82,6 +82,8 @@ const presetIngredientCodes = ingredients
 ```
 
 保存後の画面復元は `GET /api/me/profile` の `restrictedIngredients` をチェック状態に反映する。
+`GET /api/me/profile` が `source: "partial-fallback"` と `fallbackFields` を返す場合は、失敗したフィールドだけ localStorage を使う。
+例: `fallbackFields: ["preferences"]` のときはDBから取得できた `restrictedIngredients` を維持し、好み設定だけローカル値を保持する。
 未ログイン時はプロフィールAPIを呼ばず、ローカルstateだけで選択状態を保持する。
 
 ---

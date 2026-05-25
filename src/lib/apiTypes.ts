@@ -12,8 +12,11 @@ export type IngredientsResponse = {
   source: 'database' | 'fallback';
 };
 
+export type ProfileFallbackField = 'userName' | 'restrictedIngredients' | 'preferences';
+
 export type ProfileResponse = ProfilePayload & {
-  source: 'database' | 'demo' | 'local-fallback';
+  source: 'database' | 'demo' | 'local-fallback' | 'partial-fallback';
+  fallbackFields?: ProfileFallbackField[];
 };
 
 export type RecipesResponse = {

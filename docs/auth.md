@@ -109,12 +109,16 @@ const { data: { user } } = await supabase.auth.getUser();
   "restrictedIngredients": ["ing-shrimp", "ing-milk"],
   "preferredDishes": ["soup"],
   "preferredCuisines": ["india"],
-  "source": "database"
+  "source": "database",
+  "fallbackFields": []
 }
 ```
 
 `restrictedIngredients` は `ingredients.ingredient_code` の配列。
 API側で存在しないコードを除外または400エラーにし、DB内部UUIDをクライアントへ要求しない。
+`source` は `database` / `demo` / `partial-fallback` / `local-fallback` を返す。
+一部のDB readだけが失敗した場合は `partial-fallback` と `fallbackFields`（`userName`, `restrictedIngredients`, `preferences`）で失敗フィールドを示し、フロントは該当フィールドだけローカル値を使う。
+`PUT /api/me/profile` は好み設定またはNG材料設定の永続化に失敗した場合、`database` 成功レスポンスを返さず、フロントはローカル保存で継続する。
 
 ## 保護ルート
 
