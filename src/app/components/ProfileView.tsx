@@ -140,10 +140,26 @@ export default function ProfileView({
     : PREFERRED_CUISINES
   );
 
+  const getRestrictionReason = (id: string) => selectedRestrictionReasons[id] ?? 'allergy';
+
+  const isRestrictionSelectedForReason = (id: string, reason: RestrictionReason) =>
+    selectedRestricted.includes(id) && getRestrictionReason(id) === reason;
+
   const toggleRestricted = (id: string, reason?: RestrictionReason) => {
+    const nextReason = reason ?? 'allergy';
+
     setSelectedRestricted(prev => {
       const isSelected = prev.includes(id);
       if (isSelected) {
+        const currentReason = selectedRestrictionReasons[id] ?? 'allergy';
+        if (currentReason !== nextReason) {
+          setSelectedRestrictionReasons(current => ({
+            ...current,
+            [id]: nextReason,
+          }));
+          return prev;
+        }
+
         setSelectedRestrictionReasons(current => {
           const next = { ...current };
           delete next[id];
@@ -154,14 +170,14 @@ export default function ProfileView({
 
       setSelectedRestrictionReasons(current => ({
         ...current,
-        [id]: reason ?? 'allergy',
+        [id]: nextReason,
       }));
       return [...prev, id];
     });
   };
 
-  const getSelectedOptions = (options: SelectableOption[]) => (
-    options.filter(option => selectedRestricted.includes(option.id))
+  const getSelectedOptions = (options: SelectableOption[], reason: RestrictionReason) => (
+    options.filter(option => isRestrictionSelectedForReason(option.id, reason))
   );
 
   const renderSearchableRestrictionField = ({
@@ -200,7 +216,7 @@ export default function ProfileView({
 
       <div className="toggle-grid compact">
         {options.length > 0 ? options.map(option => {
-          const active = selectedRestricted.includes(option.id);
+          const active = isRestrictionSelectedForReason(option.id, reason);
           return (
             <button
               key={`${inputId}-${option.id}`}
@@ -335,7 +351,7 @@ export default function ProfileView({
                   query: allergyQuery,
                   setQuery: setAllergyQuery,
                   options: visibleAllergyOptions,
-                  selectedOptions: getSelectedOptions(allergyOptions),
+                  selectedOptions: getSelectedOptions(allergyOptions, 'allergy'),
                   reason: 'allergy',
                   placeholder: '小麦、卵、えびなどを検索...',
                   emptyText: '該当するアレルギー要素が見つかりません。',
@@ -350,7 +366,7 @@ export default function ProfileView({
                   query: veganQuery,
                   setQuery: setVeganQuery,
                   options: visibleVeganOptions,
-                  selectedOptions: getSelectedOptions(VEGAN_LEVEL_OPTIONS),
+                  selectedOptions: getSelectedOptions(VEGAN_LEVEL_OPTIONS, 'dislike'),
                   reason: 'dislike',
                   placeholder: '完全ヴィーガン、ベジタリアンなどを検索...',
                   emptyText: '該当するヴィーガンレベルが見つかりません。',
@@ -365,7 +381,7 @@ export default function ProfileView({
                   query: religiousQuery,
                   setQuery: setReligiousQuery,
                   options: visibleReligiousOptions,
-                  selectedOptions: getSelectedOptions(RELIGIOUS_RESTRICTION_OPTIONS),
+                  selectedOptions: getSelectedOptions(RELIGIOUS_RESTRICTION_OPTIONS, 'religious'),
                   reason: 'religious',
                   placeholder: '豚肉、牛肉、甲殻類などを検索...',
                   emptyText: '該当する宗教上の制限項目が見つかりません。',
