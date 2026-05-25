@@ -33,6 +33,13 @@ export async function GET() {
           quantity,
           is_optional,
           ingredients ( ingredient_code, name_ja, name_en )
+        ),
+        recipe_culture_sections (
+          section_key,
+          label,
+          title,
+          body,
+          sort_order
         )
       `)
       .eq('is_public', true)

@@ -8,7 +8,7 @@ const masterEntries = [...source.matchAll(/\{ id: "(ing-[^"]+)", name_ja: "([^"]
 
 const masterIds = new Set(masterEntries.map(({ id }) => id));
 
-const recipePattern = /\{\n    id: "(rec-[^"]+)",[\s\S]*?title: "([^"]+)",[\s\S]*?description: "([^"]+)",[\s\S]*?is_vegan: (true|false),\n    is_gluten_free: (true|false),\n    tags: \[([^\]]*)\],\n    ingredients: \[([\s\S]*?)\n    \],\n    steps: \[([\s\S]*?)\n    \]\n  \}/g;
+const recipePattern = /\{\n    id: "(rec-[^"]+)",[\s\S]*?title: "([^"]+)",[\s\S]*?description: "([^"]+)",[\s\S]*?is_vegan: (true|false),\n    is_gluten_free: (true|false),\n    tags: \[([^\]]*)\],\n    ingredients: \[([\s\S]*?)\n    \],\n    (?:culture_sections: \[[\s\S]*?\],\n    )?steps: \[([\s\S]*?)\n    \]\n  \}/g;
 
 const recipes = [...source.matchAll(recipePattern)].map((match) => ({
   id: match[1],
