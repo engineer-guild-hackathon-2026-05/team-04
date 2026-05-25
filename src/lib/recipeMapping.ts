@@ -131,4 +131,3 @@ export function mapRecipeRowToRecipe(row: RecipeDbRow): Recipe | null {
     culture_sections: normalizeRecipeCultureSections(row.recipe_culture_sections),
   };
 }
-
