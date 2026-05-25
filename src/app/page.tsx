@@ -7,8 +7,8 @@ import LandingView from './components/LandingView';
 import ListView from './components/ListView';
 import ProfileView from './components/ProfileView';
 import RecipeModal from './components/RecipeModal';
-import { INGREDIENT_MASTER, Recipe } from '@/lib/mockData';
-import { createClient } from '@/lib/supabase/client';
+import { INGREDIENT_MASTER, MOCK_RECIPES, type IngredientMaster, type Recipe } from '@/lib/mockData';
+import type { IngredientsResponse, ProfilePayload, ProfileResponse, RecipesResponse } from '@/lib/apiTypes';
 
 type CurrentView = 'landing' | 'list' | 'profile';
 type AuthStatus = 'checking' | 'authenticated' | 'unauthenticated';
@@ -23,20 +23,7 @@ type StoredProfile = {
 
 const PROFILE_STORAGE_KEY = 'globalbites_profile';
 const DEMO_PROFILE_STORAGE_KEY = 'globalbites_demo_profile';
-
-const ingredientMasterIds = new Set(INGREDIENT_MASTER.map((ingredient) => ingredient.id));
-const ingredientNameToLocalId = new Map(
-  INGREDIENT_MASTER.map((ingredient) => [ingredient.name_ja, ingredient.id]),
-);
-
-type RestrictedIngredientSyncResult =
-  | { ok: true; localIds: string[] }
-  | { ok: false; error: unknown };
-
-type RestrictedIngredientDbRow = {
-  ingredient_id: string;
-  reason: string | null;
-};
+const DEFAULT_USER_NAME = 'ゲスト愛好家';
 
 function readStoredProfile(storageKey: string, label: string) {
   const storedProfile = localStorage.getItem(storageKey);
@@ -64,11 +51,6 @@ function writeDemoProfile(updates: StoredProfile) {
   localStorage.setItem(DEMO_PROFILE_STORAGE_KEY, JSON.stringify({ ...current, ...updates }));
 }
 
-function mergeSyncedRestrictedIngredients(localIds: string[], databaseIngredientIds: string[]) {
-  const localOnlyRestrictionIds = localIds.filter((id) => !ingredientMasterIds.has(id));
-  return Array.from(new Set([...databaseIngredientIds, ...localOnlyRestrictionIds]));
-}
-
 type DemoSessionStatus = 'authenticated' | 'unauthenticated' | 'disabled' | 'failed';
 
 async function fetchDemoSession(): Promise<DemoSessionStatus> {
@@ -80,113 +62,41 @@ async function fetchDemoSession(): Promise<DemoSessionStatus> {
   return 'failed';
 }
 
-function localIngredientNames(localIds: string[]) {
-  const selected = new Set(localIds);
-  return INGREDIENT_MASTER.filter((ingredient) => selected.has(ingredient.id)).map(
-    (ingredient) => ingredient.name_ja,
-  );
+async function fetchProfileFromApi() {
+  const response = await fetch('/api/me/profile', { cache: 'no-store' });
+  if (response.status === 401) return null;
+  if (!response.ok) throw new Error(`Profile API failed: ${response.status}`);
+  return (await response.json()) as ProfileResponse;
 }
 
-async function fetchRestrictedIngredientLocalIds(
-  supabase: ReturnType<typeof createClient>,
-  userId: string,
-): Promise<RestrictedIngredientSyncResult> {
-  const { data: restrictedRows, error: restrictedError } = await supabase
-    .from('user_restricted_ingredients')
-    .select('ingredient_id')
-    .eq('user_id', userId);
+async function saveProfileToApi(profile: ProfilePayload) {
+  const response = await fetch('/api/me/profile', {
+    method: 'PUT',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(profile),
+  });
 
-  if (restrictedError) return { ok: false, error: restrictedError };
-
-  const ingredientIds = restrictedRows?.map((row) => row.ingredient_id).filter(Boolean) ?? [];
-  if (ingredientIds.length === 0) return { ok: true, localIds: [] };
-
-  const { data: ingredients, error: ingredientError } = await supabase
-    .from('ingredients')
-    .select('id, name_ja')
-    .in('id', ingredientIds);
-
-  if (ingredientError) return { ok: false, error: ingredientError };
-
-  const localIds = ingredients
-    ?.map((ingredient) => ingredientNameToLocalId.get(ingredient.name_ja))
-    .filter((id): id is string => Boolean(id)) ?? [];
-
-  return { ok: true, localIds };
+  if (response.status === 401) return null;
+  if (!response.ok) throw new Error(`Profile save API failed: ${response.status}`);
+  return (await response.json()) as ProfileResponse;
 }
 
-async function restoreRestrictedIngredientRows(
-  supabase: ReturnType<typeof createClient>,
-  userId: string,
-  rows: RestrictedIngredientDbRow[],
-) {
-  if (rows.length === 0) return;
-
-  const { error } = await supabase.from('user_restricted_ingredients').insert(
-    rows.map((row) => ({
-      user_id: userId,
-      ingredient_id: row.ingredient_id,
-      reason: row.reason ?? 'allergy',
-    })),
-  );
-
-  if (error) {
-    console.warn('Failed to restore restricted ingredient rows after insert failure.', error);
-  }
-}
-
-async function replaceRestrictedIngredients(
-  supabase: ReturnType<typeof createClient>,
-  userId: string,
-  localIds: string[],
-) {
-  const names = localIngredientNames(localIds);
-  let replacementIngredients: { id: string; name_ja: string }[] = [];
-
-  if (names.length > 0) {
-    const { data: ingredients, error } = await supabase
-      .from('ingredients')
-      .select('id, name_ja')
-      .in('name_ja', names);
-
-    if (error) throw error;
-
-    replacementIngredients = ingredients ?? [];
-    if (replacementIngredients.length !== names.length) {
-      throw new Error('Some restricted ingredients could not be resolved before replacement.');
-    }
-  }
-
-  const { data: existingRows, error: existingError } = await supabase
-    .from('user_restricted_ingredients')
-    .select('ingredient_id, reason')
-    .eq('user_id', userId);
-
-  if (existingError) throw existingError;
-
-  const inserts = replacementIngredients.map((ingredient) => ({
-    user_id: userId,
-    ingredient_id: ingredient.id,
-    reason: 'allergy',
-  }));
-
-  const { error: deleteError } = await supabase
-    .from('user_restricted_ingredients')
-    .delete()
-    .eq('user_id', userId);
-  if (deleteError) throw deleteError;
-
-  if (inserts.length > 0) {
-    const { error: insertError } = await supabase.from('user_restricted_ingredients').insert(inserts);
-    if (insertError) {
-      await restoreRestrictedIngredientRows(
-        supabase,
-        userId,
-        (existingRows ?? []) as RestrictedIngredientDbRow[],
-      );
-      throw insertError;
-    }
-  }
+function mergeProfile(localProfile: StoredProfile | null, remoteProfile: ProfileResponse | null): ProfilePayload {
+  return {
+    userName: remoteProfile?.userName || localProfile?.userName || DEFAULT_USER_NAME,
+    restrictedIngredients: remoteProfile?.source === 'local-fallback'
+      ? localProfile?.restrictedIngredients ?? []
+      : Array.from(new Set([
+        ...(remoteProfile?.restrictedIngredients ?? []),
+        ...(localProfile?.restrictedIngredients ?? []).filter((id) => !id.startsWith('ing-')),
+      ])),
+    preferredDishes: remoteProfile?.source === 'local-fallback'
+      ? localProfile?.preferredDishes ?? []
+      : remoteProfile?.preferredDishes ?? localProfile?.preferredDishes ?? [],
+    preferredCuisines: remoteProfile?.source === 'local-fallback'
+      ? localProfile?.preferredCuisines ?? []
+      : remoteProfile?.preferredCuisines ?? localProfile?.preferredCuisines ?? [],
+  };
 }
 
 export default function Home() {
@@ -194,106 +104,93 @@ export default function Home() {
   const [currentView, setCurrentView] = useState<CurrentView>('list');
   const [authStatus, setAuthStatus] = useState<AuthStatus>('checking');
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
-  const [userName, setUserName] = useState<string>('ゲスト愛好家');
+  const [userName, setUserName] = useState<string>(DEFAULT_USER_NAME);
   const [restrictedIngredients, setRestrictedIngredients] = useState<string[]>([]);
   const [preferredDishes, setPreferredDishes] = useState<string[]>([]);
   const [preferredCuisines, setPreferredCuisines] = useState<string[]>([]);
+  const [ingredientOptions, setIngredientOptions] = useState<IngredientMaster[]>(INGREDIENT_MASTER);
+  const [recipes, setRecipes] = useState<Recipe[]>(MOCK_RECIPES);
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
 
   useEffect(() => {
     const parsed = readStoredProfile(PROFILE_STORAGE_KEY, 'local storage profile');
-    const locallyStoredRestrictedIngredients = parsed?.restrictedIngredients ?? [];
 
     if (parsed?.userName) setUserName(parsed.userName);
     if (parsed?.restrictedIngredients) setRestrictedIngredients(parsed.restrictedIngredients);
     if (parsed?.preferredDishes) setPreferredDishes(parsed.preferredDishes);
     if (parsed?.preferredCuisines) setPreferredCuisines(parsed.preferredCuisines);
 
-    const syncSupabaseSession = async () => {
+    const loadSharedData = async () => {
+      const [ingredientsResult, recipesResult] = await Promise.allSettled([
+        fetch('/api/ingredients', { cache: 'no-store' }),
+        fetch('/api/recipes', { cache: 'no-store' }),
+      ]);
+
+      if (ingredientsResult.status === 'fulfilled' && ingredientsResult.value.ok) {
+        const payload = (await ingredientsResult.value.json()) as IngredientsResponse;
+        if (payload.ingredients.length > 0) setIngredientOptions(payload.ingredients);
+      }
+
+      if (recipesResult.status === 'fulfilled' && recipesResult.value.ok) {
+        const payload = (await recipesResult.value.json()) as RecipesResponse;
+        if (payload.recipes.length > 0) setRecipes(payload.recipes);
+      }
+    };
+
+    const syncSessionAndProfile = async () => {
       try {
+        void loadSharedData();
+
         const demoSession = await fetchDemoSession();
         if (demoSession === 'authenticated') {
           const demoProfile = readDemoProfile();
+          const merged = mergeProfile(parsed, {
+            userName: demoProfile?.userName || demoProfile?.email?.split('@')[0] || 'デモユーザー',
+            restrictedIngredients: demoProfile?.restrictedIngredients ?? [],
+            preferredDishes: demoProfile?.preferredDishes ?? [],
+            preferredCuisines: demoProfile?.preferredCuisines ?? [],
+            source: 'demo',
+          });
           setIsLoggedIn(true);
           setCurrentView('list');
-          setUserName(
-            parsed?.userName || demoProfile?.userName || demoProfile?.email?.split('@')[0] || 'デモユーザー',
-          );
+          setUserName(merged.userName);
+          setRestrictedIngredients(merged.restrictedIngredients);
+          setPreferredDishes(merged.preferredDishes);
+          setPreferredCuisines(merged.preferredCuisines);
           setAuthStatus('authenticated');
           return;
         }
 
         if (demoSession === 'failed') {
-          console.error('Demo session check failed. Falling back to Supabase auth.');
+          console.error('Demo session check failed. Falling back to profile API auth.');
         }
 
-        const supabase = createClient();
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-
-        if (!session?.user) {
+        const remoteProfile = await fetchProfileFromApi();
+        if (!remoteProfile) {
           setIsLoggedIn(false);
           setCurrentView('landing');
           setAuthStatus('unauthenticated');
           return;
         }
 
+        const merged = mergeProfile(parsed, remoteProfile);
         setIsLoggedIn(true);
         setCurrentView('list');
-
-        const fallbackName =
-          session.user.user_metadata?.name ||
-          session.user.user_metadata?.display_name ||
-          session.user.email?.split('@')[0] ||
-          '旅するグルメ';
-        setUserName(fallbackName);
-
-        try {
-          const { data: profile, error: profileError } = await supabase
-            .from('profiles')
-            .select('name')
-            .eq('id', session.user.id)
-            .maybeSingle();
-          if (profileError) throw profileError;
-
-          if (profile?.name) {
-            setUserName(profile.name);
-            writeStoredProfile({ userName: profile.name });
-          }
-
-          const restrictedIngredientSync = await fetchRestrictedIngredientLocalIds(
-            supabase,
-            session.user.id,
-          );
-
-          if (restrictedIngredientSync.ok) {
-            const mergedRestrictedIngredients = mergeSyncedRestrictedIngredients(
-              locallyStoredRestrictedIngredients,
-              restrictedIngredientSync.localIds,
-            );
-            setRestrictedIngredients(mergedRestrictedIngredients);
-            writeStoredProfile({ restrictedIngredients: mergedRestrictedIngredients });
-          } else {
-            console.warn(
-              'Supabase restricted ingredient sync failed. Keeping local restrictions.',
-              restrictedIngredientSync.error,
-            );
-          }
-        } catch (profileSyncError) {
-          console.warn('Authenticated session kept, but profile preference sync failed.', profileSyncError);
-        }
-
+        setUserName(merged.userName);
+        setRestrictedIngredients(merged.restrictedIngredients);
+        setPreferredDishes(merged.preferredDishes);
+        setPreferredCuisines(merged.preferredCuisines);
+        writeStoredProfile(merged);
         setAuthStatus('authenticated');
       } catch (error) {
-        console.error('Auth session sync failed. Treating the user as signed out.', error);
+        console.error('Auth/profile sync failed. Treating the user as signed out.', error);
         setIsLoggedIn(false);
         setCurrentView('landing');
         setAuthStatus('unauthenticated');
       }
     };
 
-    void syncSupabaseSession();
+    void syncSessionAndProfile();
   }, []);
 
   const saveToLocalStorage = (updates: StoredProfile) => {
@@ -326,16 +223,9 @@ export default function Home() {
   };
 
   const handleSignOut = async () => {
-    const demoSession = await fetchDemoSession();
-    await fetch('/auth/demo', { method: 'DELETE' }).catch(() => null);
-
-    if (demoSession !== 'authenticated') {
-      const supabase = createClient();
-      await supabase.auth.signOut();
-    }
-
+    await fetch('/auth/signout', { method: 'POST' }).catch(() => null);
     setIsLoggedIn(false);
-    setUserName('ゲスト愛好家');
+    setUserName(DEFAULT_USER_NAME);
     setRestrictedIngredients([]);
     setPreferredDishes([]);
     setPreferredCuisines([]);
@@ -346,57 +236,35 @@ export default function Home() {
     router.push('/');
   };
 
-  const handleSaveProfile = async (profile: {
-    userName: string;
-    restrictedIngredients: string[];
-    preferredDishes: string[];
-    preferredCuisines: string[];
-  }) => {
+  const handleSaveProfile = async (profile: ProfilePayload) => {
     setUserName(profile.userName);
     setRestrictedIngredients(profile.restrictedIngredients);
     setPreferredDishes(profile.preferredDishes);
     setPreferredCuisines(profile.preferredCuisines);
 
-    saveToLocalStorage({
-      userName: profile.userName,
-      restrictedIngredients: profile.restrictedIngredients,
-      preferredDishes: profile.preferredDishes,
-      preferredCuisines: profile.preferredCuisines,
-    });
-
+    saveToLocalStorage(profile);
     setCurrentView('list');
 
     const demoSession = await fetchDemoSession();
     if (demoSession === 'authenticated') {
-      writeDemoProfile({
-        userName: profile.userName,
-        restrictedIngredients: profile.restrictedIngredients,
-        preferredDishes: profile.preferredDishes,
-        preferredCuisines: profile.preferredCuisines,
-      });
+      writeDemoProfile(profile);
       return;
     }
     if (demoSession === 'failed') {
-      console.error('Demo session check failed while saving profile. Falling back to Supabase auth.');
+      console.error('Demo session check failed while saving profile. Falling back to profile API.');
     }
 
-    const supabase = createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) return;
-
     try {
-      const { error: profileUpdateError } = await supabase
-        .from('profiles')
-        .update({ name: profile.userName })
-        .eq('id', user.id);
-      if (profileUpdateError) throw profileUpdateError;
-
-      await replaceRestrictedIngredients(supabase, user.id, profile.restrictedIngredients);
+      const savedProfile = await saveProfileToApi(profile);
+      if (!savedProfile) return;
+      const merged = mergeProfile(profile, savedProfile);
+      setUserName(merged.userName);
+      setRestrictedIngredients(merged.restrictedIngredients);
+      setPreferredDishes(merged.preferredDishes);
+      setPreferredCuisines(merged.preferredCuisines);
+      writeStoredProfile(merged);
     } catch (dbErr) {
-      console.warn('Supabase DB update failed. Synchronized locally.', dbErr);
+      console.warn('Profile API update failed. Synchronized locally.', dbErr);
     }
   };
 
@@ -432,6 +300,7 @@ export default function Home() {
 
         {currentView === 'list' && (
           <ListView
+            recipes={recipes}
             restrictedIngredients={restrictedIngredients}
             preferredDishes={preferredDishes}
             preferredCuisines={preferredCuisines}
@@ -442,6 +311,8 @@ export default function Home() {
 
         {currentView === 'profile' && (
           <ProfileView
+            ingredientOptions={ingredientOptions}
+            recipeOptions={recipes}
             initialUserName={userName}
             initialRestrictedIngredients={restrictedIngredients}
             initialPreferredDishes={preferredDishes}

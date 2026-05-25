@@ -2,7 +2,7 @@
 
 import React, { useEffect } from 'react';
 import { X, Clock, Users, ShieldAlert, ChefHat } from 'lucide-react';
-import { Recipe } from '@/lib/mockData';
+import { Recipe, type RecipeStep } from '@/lib/mockData';
 
 interface RecipeModalProps {
   recipe: Recipe | null;
@@ -29,6 +29,17 @@ const getIngredientListKey = (
   recipeId: string,
   ingredient: Recipe['ingredients'][number],
 ) => `${recipeId}:${ingredient.id}:${ingredient.name_ja}:${ingredient.quantity}`;
+
+const normalizeRecipeStep = (step: RecipeStep, index: number) => {
+  if (typeof step === 'string') {
+    return { order: index + 1, text: step };
+  }
+
+  return {
+    order: step.order ?? index + 1,
+    text: step.text,
+  };
+};
 
 export default function RecipeModal({
   recipe,
@@ -190,14 +201,17 @@ export default function RecipeModal({
               <h2 id="section-steps-title">作り方・手順 (Instructions)</h2>
             </div>
             <ol className="modal-steps-list">
-              {recipe.steps.map((step, index) => (
-                <li key={index} className="step-item">
-                  <div className="step-number-bubble">{index + 1}</div>
-                  <div className="step-text-content">
-                    <p>{step}</p>
-                  </div>
-                </li>
-              ))}
+              {recipe.steps.map((step, index) => {
+                const normalizedStep = normalizeRecipeStep(step, index);
+                return (
+                  <li key={`${recipe.id}-step-${normalizedStep.order}`} className="step-item">
+                    <div className="step-number-bubble">{normalizedStep.order}</div>
+                    <div className="step-text-content">
+                      <p>{normalizedStep.text}</p>
+                    </div>
+                  </li>
+                );
+              })}
             </ol>
           </section>
 

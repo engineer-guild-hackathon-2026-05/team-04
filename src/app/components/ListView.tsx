@@ -2,9 +2,10 @@
 
 import React, { useState, useMemo } from 'react';
 import { Search, Compass, ShieldCheck, Clock, Eye, Sparkles } from 'lucide-react';
-import { MOCK_RECIPES, Recipe } from '@/lib/mockData';
+import { Recipe } from '@/lib/mockData';
 
 interface ListViewProps {
+  recipes: Recipe[];
   restrictedIngredients: string[];
   preferredDishes: string[];
   preferredCuisines: string[];
@@ -38,6 +39,7 @@ function isCuisinePreferenceMatch(preferredCuisine: string, recipeCuisine: strin
 }
 
 export default function ListView({
+  recipes,
   restrictedIngredients,
   preferredDishes,
   preferredCuisines,
@@ -50,7 +52,7 @@ export default function ListView({
   const filteredRecipes = useMemo(() => {
     const normalizedQuery = searchQuery.toLowerCase();
 
-    return MOCK_RECIPES.filter((recipe) => {
+    return recipes.filter((recipe) => {
       const matchesQuery =
         recipe.title.toLowerCase().includes(normalizedQuery) ||
         recipe.description.toLowerCase().includes(normalizedQuery) ||
@@ -65,7 +67,7 @@ export default function ListView({
 
       return matchesQuery && !containsRestrictedIngredient;
     });
-  }, [searchQuery, restrictedIngredients]);
+  }, [recipes, searchQuery, restrictedIngredients]);
 
   const handleRecipeCardKeyDown = (event: React.KeyboardEvent<HTMLElement>, recipe: Recipe) => {
     if (event.key === 'Enter' || event.key === ' ') {

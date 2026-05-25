@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 
 const source = readFileSync('src/lib/mockData.ts', 'utf8');
 
-const masterEntries = [...source.matchAll(/\{ id: "(ing-[^"]+)", name_ja: "([^"]+)", name_en: "[^"]+", category: "([^"]+)" \}/g)]
+const masterEntries = [...source.matchAll(/\{ id: "(ing-[^"]+)", name_ja: "([^"]+)", name_en: "[^"]+", category: "([^"]+)"(?:, dietary_tags: \[[^\]]*\])? \}/g)]
   .map(([, id, nameJa, category]) => ({ id, nameJa, category }));
 
 const masterIds = new Set(masterEntries.map(({ id }) => id));
