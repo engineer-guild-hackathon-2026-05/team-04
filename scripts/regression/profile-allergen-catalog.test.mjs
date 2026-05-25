@@ -35,5 +35,10 @@ for (const source of [seedMigration, dietaryMigration, alignMigration, updateMig
 assert.doesNotMatch(seedMigration, /matsutake|まつたけ/, '新規DB seed には削除済みの まつたけ を含めないでください。');
 assert.doesNotMatch(dietaryMigration, /name_en = 'matsutake'/, '新規DBのアレルゲン設定では まつたけ を有効化しないでください。');
 assert.match(updateMigration, /set is_allergen = false[\s\S]*where name_en = 'matsutake'/, '既存DBでは まつたけ 行を残したままアレルゲン選択肢から外してください。');
+assert.match(
+  updateMigration,
+  /delete from public\.user_restricted_ingredients[\s\S]*using public\.ingredients[\s\S]*restricted\.ingredient_id = ingredient\.id[\s\S]*ingredient\.name_en = 'matsutake'/,
+  'まつたけを非表示にする前に、既存ユーザーの解除不能な まつたけNG設定を削除してください。',
+);
 
 console.log('profile allergen catalog regression checks passed');
