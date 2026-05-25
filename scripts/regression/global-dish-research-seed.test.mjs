@@ -6,6 +6,8 @@ const migrationPath = 'supabase/migrations/20260525073000_replace_mock_with_real
 
 const dishes = JSON.parse(readFileSync(seedPath, 'utf8'));
 const migrationSource = readFileSync(migrationPath, 'utf8');
+const embeddedDishes = JSON.parse(migrationSource.match(/\$global_dishes\$([\s\S]*?)\$global_dishes\$::jsonb/)?.[1] ?? '[]');
+const embeddedDishesBySourceRef = new Map(embeddedDishes.map((dish) => [dish.source_ref, dish]));
 
 assert.equal(dishes.length, 100, '実データベース seed は 100 件ちょうどの料理を持つ必要があります。');
 assert.equal(
@@ -13,6 +15,36 @@ assert.equal(
   dishes.length,
   '料理 seed の source_ref は重複させないでください。',
 );
+
+const dishesBySourceRef = new Map(dishes.map((dish) => [dish.source_ref, dish]));
+
+assert.equal(
+  dishesBySourceRef.get('research:pizza-margherita')?.is_vegan,
+  false,
+  'Pizza Margherita はモッツァレラを含むため vegan 対応にしないでください。',
+);
+assert.equal(
+  dishesBySourceRef.get('research:mofongo')?.is_vegan,
+  false,
+  'Mofongo はチチャロンを含むため vegan 対応にしないでください。',
+);
+assert.equal(
+  embeddedDishesBySourceRef.get('research:pizza-margherita')?.is_vegan,
+  false,
+  'migration に埋め込んだ Pizza Margherita も vegan 対応にしないでください。',
+);
+assert.equal(
+  embeddedDishesBySourceRef.get('research:mofongo')?.is_vegan,
+  false,
+  'migration に埋め込んだ Mofongo も vegan 対応にしないでください。',
+);
+for (const dish of dishes) {
+  if (!dish.is_vegan) continue;
+  const animalIngredients = dish.ingredients.filter((ingredient) =>
+    /鶏肉|牛肉|豚肉|羊肉|ウサギ|卵|バター|チーズ|モッツァレラ|パルメザン|ヨーグルト|乳|ベーコン|チチャロン|塩ダラ|白身魚|生魚|小魚|エビ|えび|乾燥エビ|干しエビ/.test(ingredient),
+  );
+  assert.deepEqual(animalIngredients, [], `${dish.title} は動物性材料を含むため vegan 対応にしないでください。`);
+}
 
 for (const dish of dishes) {
   assert.match(dish.source_ref, /^research:[a-z0-9-]+$/, `${dish.title} は research: の安定 source_ref を使ってください。`);
@@ -43,6 +75,23 @@ assert.match(
   /jsonb_to_recordset\(\$global_dishes\$/i,
   '100 件の調査済み料理 seed を migration に埋め込んでください。',
 );
+
+assert.match(
+  migrationSource,
+  /canonical_name_en[\s\S]*小麦粉[\s\S]*'wheat'/i,
+  '小麦粉など既存アレルゲン材料は recipe 固有 name_en ではなく canonical wheat ingredient に紐付けてください。',
+);
+assert.match(
+  migrationSource,
+  /canonical_name_en[\s\S]*(?:モッツァレラ|チーズ|バター|ヨーグルト)[\s\S]*'milk'/i,
+  '乳製品材料は canonical milk ingredient に紐付けて安全表示の制限コードを維持してください。',
+);
+assert.match(
+  migrationSource,
+  /coalesce\(\s*canonical_name_en\s*,[\s\S]*source_ref\s*\|\|\s*':ingredient:'/i,
+  'research ingredient seed は canonical alias がある場合に既存 ingredient を使い、未知材料だけ recipe 固有 name_en を作ってください。',
+);
+
 assert.match(
   migrationSource,
   /insert\s+into\s+public\.recipe_culture_sections/i,

@@ -38,7 +38,7 @@
     "source_urls": [
       "https://en.wikipedia.org/wiki/Pizza_Margherita"
     ],
-    "is_vegan": true,
+    "is_vegan": false,
     "is_gluten_free": false
   },
   {
@@ -3998,7 +3998,7 @@
       "https://www.smithsonianmag.com/travel/a-brief-history-of-puerto-ricos-beloved-mofongo-180979947/",
       "https://en.wikipedia.org/wiki/Mofongo"
     ],
-    "is_vegan": true,
+    "is_vegan": false,
     "is_gluten_free": true
   },
   {
