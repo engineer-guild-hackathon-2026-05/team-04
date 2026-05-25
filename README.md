@@ -24,10 +24,10 @@
 |---|---|---|---|
 | @sebastian-oshiro | 大城セバスティアン | 芝浦工業大学 システム理工学部 | PdM / BE |
 | @Kazuki-Onishi | 大西一輝 | 京都大学 工学研究科 | BE |
-| @snowykr | KOO JUN | 東海大学 情報通信学部 | FE |
+| @snowykr | KOO JUN | 東海大学 情報通信学部 | Full Stack |
 | @c-hikita | 疋田 智佳子 | 同志社大学 理工学研究科 | FE / Design |
 
-担当役割の凡例：**PM** / **BE**（Backend）/ **FE**（Frontend）/ **Design** / **Infra** / **Data** / その他
+担当役割の凡例：**PM** / **BE**（Backend）/ **FE**（Frontend）/ **Full Stack** / **Design** / **Infra** / **Data** / その他
 
 ## プロダクト概要
 
