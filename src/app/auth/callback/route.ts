@@ -70,8 +70,8 @@ function getSafeRedirectOrigin(requestUrl: URL, headers: Headers) {
   return fallbackOrigin;
 }
 
-// Supabase Auth が認可後にリダイレクトしてくるエンドポイント。
-// メール確認・パスワードリセット・OAuth（Google など）すべてここを経由する。
+// Supabase Auth の PKCE code callback 用エンドポイント。
+// MVP の通常フローはメールアドレス + パスワードのみで、確認メールや magic link は使わない。
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
   const { searchParams } = requestUrl;

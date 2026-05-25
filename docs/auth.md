@@ -28,18 +28,20 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon key>
 import { createClient } from "@/lib/supabase/client";
 
 const supabase = createClient();
-const { error } = await supabase.auth.signUp({
+const { data, error } = await supabase.auth.signUp({
   email,
   password,
   options: {
-    // メール確認後にこの URL へ戻る。完全な URL である必要あり。
-    emailRedirectTo: `${location.origin}/auth/confirm?next=/app`,
     data: { display_name: displayName },
   },
 });
+
+if (data.session) {
+  router.replace("/app");
+}
 ```
 
-確認メールのリンクをユーザーがクリック → `/auth/confirm`（fragment 形式）または `/auth/callback`（PKCE code 形式）でセッション確立 → `/app` へリダイレクト。
+MVP では確認メールを送らない。Supabase Dashboard 側の Email provider は `Confirm email` をOFFにし、登録直後にセッションが作成される前提にする。`data.session` が返らない場合は、hosted Auth 側でメール確認が有効になっている可能性が高い。
 
 ## メール + パスワードでログイン
 
@@ -55,7 +57,7 @@ if (error) {
 
 ## 認証方式の判断
 
-MVP では magic link / OTP や Google ログインも検討したが、メール送信設定・送信元管理・OAuth 設定の複雑さがデモの目的に対して大きいため、メールアドレス + パスワード方式を維持する。
+MVP では magic link / OTP、確認メール、Google ログインも検討したが、メール送信設定・送信元管理・OAuth 設定の複雑さがデモの目的に対して大きいため、メールアドレス + パスワード方式のみを維持する。
 
 この方式を使う前提として、以下を必須条件にする。
 
@@ -94,8 +96,7 @@ const { data: { user } } = await supabase.auth.getUser();
 ## エラーメッセージ方針（セキュリティ）
 
 - ログイン失敗・パスワード不一致 → 「メールまたはパスワードが正しくありません」固定
-- パスワードリセット要求 → 「該当アドレスがあればメールを送信しました」固定
-- メール確認待ち → 区別して OK（「確認メールをご確認ください」）
+- サインアップ後に `data.session` が無い → hosted Auth 側でメール確認が有効な設定ミスとして扱う
 
 ユーザー列挙攻撃（このメールは登録されてる/されてない、を試行で判別される）を防ぐため。
 
@@ -103,11 +104,12 @@ const { data: { user } } = await supabase.auth.getUser();
 
 @Kazuki-Onishi に作業依頼:
 
+- [ ] Auth > Providers > Email: `Confirm email` をOFFにする（実メール送信を使わない）
 - [ ] Auth > Policies: `Minimum password length` を 12 以上にする
 - [ ] Auth > Policies: `Password requirements` で大文字・小文字・数字・記号を必須にする
 - [ ] Auth > Policies: `Leaked password protection` ON（Pro プランの場合）
 - [ ] Auth > Rate Limits: sign-in / sign-up / password reset を絞る
-- [ ] Auth > URL Configuration: Redirect URLs に利用するデモ / 本番 URL を allowlist 登録する
+- [ ] Auth > URL Configuration: `/auth/callback` を使う追加フローを有効化する場合だけ、利用するデモ / 本番 URL を allowlist 登録する
 
 ## マイグレーション
 
