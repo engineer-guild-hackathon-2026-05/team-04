@@ -4,6 +4,7 @@ import React, { useState, useMemo } from 'react';
 import { Search, Compass, ShieldCheck, Clock, Eye, Sparkles } from 'lucide-react';
 import { Recipe } from '@/lib/mockData';
 import { violatesDietaryRestrictions } from '@/lib/dietaryRestrictions';
+import { violatesPreparationRestrictions } from '@/lib/preparationRestrictions';
 
 interface ListViewProps {
   recipes: Recipe[];
@@ -66,8 +67,9 @@ export default function ListView({
         restrictedIngredients.includes(ingredient.id),
       );
       const violatesSelectedDiet = violatesDietaryRestrictions(recipe, restrictedIngredients);
+      const violatesSelectedPreparation = violatesPreparationRestrictions(recipe, restrictedIngredients);
 
-      return matchesQuery && !containsRestrictedIngredient && !violatesSelectedDiet;
+      return matchesQuery && !containsRestrictedIngredient && !violatesSelectedDiet && !violatesSelectedPreparation;
     });
   }, [recipes, searchQuery, restrictedIngredients]);
 

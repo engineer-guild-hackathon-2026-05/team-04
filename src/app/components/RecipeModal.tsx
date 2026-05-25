@@ -8,6 +8,11 @@ import {
   getDietaryConflictingIngredients,
   getSelectedDietaryRestrictionIds,
 } from '@/lib/dietaryRestrictions';
+import {
+  PREPARATION_RESTRICTION_RULES,
+  getPreparationConflictingIngredients,
+  getSelectedPreparationRestrictionIds,
+} from '@/lib/preparationRestrictions';
 
 type ModalTabKey = 'basic' | RecipeCultureSectionKey;
 
@@ -128,6 +133,7 @@ export default function RecipeModal({
     .filter(ing => restrictedIngredients.includes(ing.id) && RELIGIOUS_RESTRICTION_LABELS[ing.id])
     .map(ing => RELIGIOUS_RESTRICTION_LABELS[ing.id]);
   const selectedDietaryRestrictionIds = getSelectedDietaryRestrictionIds(restrictedIngredients);
+  const selectedPreparationRestrictionIds = getSelectedPreparationRestrictionIds(restrictedIngredients);
   const animalProductNames = getUniqueIngredientNames(
     recipe.ingredients.filter(ing => ing.dietary_tags?.includes(ANIMAL_PRODUCT_DIETARY_TAG)),
   );
@@ -150,6 +156,19 @@ export default function RecipeModal({
             ? { label: '完全ヴィーガン対応', tone: 'safe' }
             : { label: '食事制限要確認', tone: 'caution' },
       ];
+  const preparationRestrictionTags = selectedPreparationRestrictionIds.map((restrictionId) => {
+    const rule = PREPARATION_RESTRICTION_RULES[restrictionId];
+    const conflictNames = getUniqueIngredientNames(getPreparationConflictingIngredients(recipe, restrictionId));
+
+    return conflictNames.length > 0
+      ? { label: `${rule.conflictLabel}: ${conflictNames.join(', ')}`, tone: 'danger' }
+      : { label: rule.compatibleLabel, tone: 'safe' };
+  });
+  const preparationConflictNames = new Set(
+    selectedPreparationRestrictionIds.flatMap((restrictionId) =>
+      getPreparationConflictingIngredients(recipe, restrictionId).map((ing) => getBaseIngredientName(ing.name_ja)),
+    ),
+  );
   const glutenRestrictionTag = glutenIngredientNames.length > 0
     ? { label: `グルテン含有: ${glutenIngredientNames.join(', ')}`, tone: 'danger' }
     : recipe.is_gluten_free
@@ -158,6 +177,7 @@ export default function RecipeModal({
   const recipeRestrictionTags = [
     ...dietaryRestrictionTags,
     glutenRestrictionTag,
+    ...preparationRestrictionTags,
     ...matchedAllergens.map(ing => ({ label: `含有: ${getBaseIngredientName(ing.name_ja)}`, tone: 'danger' })),
     ...matchedReligiousLabels.map(label => ({ label, tone: 'caution' })),
   ];
@@ -301,10 +321,11 @@ export default function RecipeModal({
                   <ul className="modal-ingredient-list">
                     {recipe.ingredients.map((ing) => {
                       const isAllergen = restrictedIngredients.includes(ing.id);
+                      const hasPreparationConflict = preparationConflictNames.has(getBaseIngredientName(ing.name_ja));
                       return (
                         <li
                           key={getIngredientListKey(recipe.id, ing)}
-                          className={`ingredient-item ${isAllergen ? 'has-allergy' : ''}`}
+                          className={`ingredient-item ${isAllergen || hasPreparationConflict ? 'has-allergy' : ''}`}
                         >
                           <div className="ingredient-left">
                             <span className="bullet">•</span>
@@ -312,6 +333,9 @@ export default function RecipeModal({
 
                             {isAllergen && (
                               <span className="allergen-badge-tag">NG食材</span>
+                            )}
+                            {hasPreparationConflict && !isAllergen && (
+                              <span className="allergen-badge-tag">調理状態NG</span>
                             )}
                           </div>
                           <span className="ingredient-qty">{ing.quantity}</span>

@@ -11,6 +11,7 @@ type RecipeIngredientJoinRow = {
   quantity?: string | null;
   is_optional?: boolean | null;
   display_name_ja?: string | null;
+  preparation_tags?: string[] | null;
   ingredients?: {
     ingredient_code?: string | null;
     name_ja?: string | null;
@@ -113,6 +114,7 @@ function normalizeRecipeIngredients(rows: RecipeIngredientJoinRow[] | null | und
         category: ingredient.category ?? undefined,
         is_allergen: ingredient.is_allergen ?? false,
         dietary_tags: ingredient.dietary_tags ?? [],
+        preparation_tags: row.preparation_tags ?? [],
       };
     })
     .filter((ingredient): ingredient is RecipeIngredient => Boolean(ingredient));

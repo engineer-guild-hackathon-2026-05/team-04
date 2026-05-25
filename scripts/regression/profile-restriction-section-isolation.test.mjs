@@ -33,8 +33,8 @@ assert.match(
 );
 assert.match(
   profileSource,
-  /const\s+isRestrictionSelectedForReason\s*=\s*\([\s\S]*?getRestrictionReason\(id\)\s*===\s*reason/,
-  'ProfileView の chip active 判定は id だけでなく section reason も確認してください。',
+  /const\s+isRestrictionSelectedForReason\s*=\s*\([\s\S]*?getVisibleRestrictionReason\(id\)\s*===\s*reason/,
+  'ProfileView の chip active 判定は id だけでなく section reason と条件制限の既定 reason も確認してください。',
 );
 assert.match(
   profileSource,
