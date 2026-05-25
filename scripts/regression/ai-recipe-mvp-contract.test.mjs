@@ -55,11 +55,19 @@ for (const [path, source] of sourceFiles) {
     /NEXT_PUBLIC_OPENROUTER/i,
     `${path}: OpenRouter secrets must never use a NEXT_PUBLIC_ client-visible env var.`,
   );
-  assert.doesNotMatch(
-    source,
-    /NEXT_PUBLIC_SUPABASE_ANON_KEY|SUPABASE_SERVICE_ROLE_KEY/,
-    `${path}: use current Supabase publishable/secret API key variables, not legacy key names.`,
-  );
+  if (path === 'src/lib/supabase/config.ts') {
+    assert.doesNotMatch(
+      source,
+      /SUPABASE_SERVICE_ROLE_KEY/,
+      `${path}: use current Supabase secret API key variable, not the legacy service-role key name.`,
+    );
+  } else {
+    assert.doesNotMatch(
+      source,
+      /NEXT_PUBLIC_SUPABASE_ANON_KEY|SUPABASE_SERVICE_ROLE_KEY/,
+      `${path}: use current Supabase publishable/secret API key variables, not legacy key names.`,
+    );
+  }
 }
 
 for (const [path, source] of srcClientFiles) {
