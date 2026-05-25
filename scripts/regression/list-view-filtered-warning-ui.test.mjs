@@ -5,8 +5,8 @@ const source = readFileSync('src/app/components/ListView.tsx', 'utf8');
 
 assert.match(
   source,
-  /const containsRestrictedIngredient = recipe\.ingredients\.some[\s\S]*?restrictedIngredients\.includes\(ingredient\.id\)[\s\S]*?return matchesQuery && !containsRestrictedIngredient;/,
-  'ListView は制限食材を含むレシピをカード描画前に除外してください。',
+  /const containsRestrictedIngredient = recipe\.ingredients\.some[\s\S]*?restrictedIngredients\.includes\(ingredient\.id\)[\s\S]*?const violatesSelectedDiet = violatesDietaryRestrictions\(recipe,\s*restrictedIngredients\)[\s\S]*?return matchesQuery && !containsRestrictedIngredient && !violatesSelectedDiet;/,
+  'ListView は制限食材または選択 diet に違反するレシピをカード描画前に除外してください。',
 );
 
 assert.doesNotMatch(

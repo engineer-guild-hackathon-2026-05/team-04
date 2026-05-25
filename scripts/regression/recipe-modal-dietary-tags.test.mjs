@@ -5,6 +5,7 @@ const modalSource = readFileSync('src/app/components/RecipeModal.tsx', 'utf8');
 const routeSource = readFileSync('src/app/api/recipes/route.ts', 'utf8');
 const mappingSource = readFileSync('src/lib/recipeMapping.ts', 'utf8');
 const mockDataSource = readFileSync('src/lib/mockData.ts', 'utf8');
+const dietaryRestrictionsSource = readFileSync('src/lib/dietaryRestrictions.ts', 'utf8');
 
 assert.match(
   mockDataSource,
@@ -37,20 +38,40 @@ assert.match(
 
 assert.match(
   modalSource,
-  /ANIMAL_PRODUCT_DIETARY_TAG\s*=\s*['"]animal-product['"][\s\S]*?recipe\.ingredients\.filter\([\s\S]*?dietary_tags\?\.includes\(ANIMAL_PRODUCT_DIETARY_TAG\)/,
-  'RecipeModal のヴィーガン判定は recipe.is_vegan だけでなく材料の dietary_tags(animal-product) を確認してください。',
+  /getSelectedDietaryRestrictionIds\(restrictedIngredients\)[\s\S]*?getDietaryConflictingIngredients\(recipe,\s*restrictionId\)/,
+  'RecipeModal の食事制限タグは選択された diet 種別ごとに ingredients.dietary_tags を評価してください。',
 );
 
 assert.match(
   modalSource,
-  /animalProductNames\.length\s*>\s*0[\s\S]*?ヴィーガン不可:\s*\$\{animalProductNames\.join\(/,
-  'animal-product 材料がある料理は ヴィーガン要確認 ではなく、材料名付きの ヴィーガン不可 タグを表示してください。',
+  /\$\{rule\.conflictLabel\}:\s*\$\{conflictNames\.join\(/,
+  '選択 diet に違反する材料がある場合は diet 種別の不可ラベルと材料名を表示してください。',
+);
+
+for (const label of ['完全ヴィーガン不可', 'ラクト不可', 'オボ不可', 'ペスカタリアン不可']) {
+  assert.match(
+    dietaryRestrictionsSource,
+    new RegExp(label),
+    `dietaryRestrictions は ${label} の段階別不可ラベルを定義してください。`,
+  );
+}
+
+assert.match(
+  dietaryRestrictionsSource,
+  /'diet-vegan'[\s\S]*?ANIMAL_PRODUCT_DIETARY_TAG[\s\S]*?'diet-lacto-vegetarian'[\s\S]*?DAIRY_DIETARY_TAG[\s\S]*?'diet-ovo-vegetarian'[\s\S]*?EGG_DIETARY_TAG[\s\S]*?'diet-pescatarian'[\s\S]*?fish[\s\S]*?shellfish/s,
+  'dietaryRestrictions は vegan/lacto/ovo/pescatarian をそれぞれ別ルールで判定してください。',
+);
+
+assert.match(
+  modalSource,
+  /動物性含有:\s*\$\{animalProductNames\.join\(/,
+  'diet 未選択時は特定の vegan 種別ではなく、動物性含有として材料名を表示してください。',
 );
 
 assert.doesNotMatch(
   modalSource,
-  /const\s+recipeRestrictionTags\s*=\s*\[\s*recipe\.is_vegan\s*\?/,
-  'RecipeModal で recipe.is_vegan=false だけを根拠に ヴィーガン要確認 を即表示しないでください。',
+  /ヴィーガン不可:\s*\$\{animalProductNames\.join\(/,
+  'RecipeModal は diet 種別を無視した汎用 ヴィーガン不可 ラベルを表示しないでください。',
 );
 
 console.log('recipe modal dietary tag regression checks passed');

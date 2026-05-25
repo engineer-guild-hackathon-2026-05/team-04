@@ -3,6 +3,11 @@
 import React, { useEffect, useState, type KeyboardEvent } from 'react';
 import { X, Clock, Users, ShieldAlert, ChefHat } from 'lucide-react';
 import { Recipe, type RecipeCultureSectionKey, type RecipeStep } from '@/lib/mockData';
+import {
+  DIETARY_RESTRICTION_RULES,
+  getDietaryConflictingIngredients,
+  getSelectedDietaryRestrictionIds,
+} from '@/lib/dietaryRestrictions';
 
 type ModalTabKey = 'basic' | RecipeCultureSectionKey;
 
@@ -32,13 +37,6 @@ const TAB_PANEL_IDS: Record<ModalTabKey, string> = {
   basic: 'recipe-modal-tabpanel-basic',
   origin: 'recipe-modal-tabpanel-origin',
   food_culture: 'recipe-modal-tabpanel-food_culture',
-};
-
-const DIET_RESTRICTION_LABELS: Record<string, string> = {
-  'diet-vegan': '完全ヴィーガン希望',
-  'diet-lacto-vegetarian': 'ラクト・ベジタリアン希望',
-  'diet-ovo-vegetarian': 'オボ・ベジタリアン希望',
-  'diet-pescatarian': 'ペスカタリアン希望',
 };
 
 const RELIGIOUS_RESTRICTION_LABELS: Record<string, string> = {
@@ -125,26 +123,34 @@ export default function RecipeModal({
   const matchedAllergens = recipe.ingredients.filter(ing =>
     restrictedIngredients.includes(ing.id),
   );
-  const selectedDietLabels = restrictedIngredients
-    .filter(id => DIET_RESTRICTION_LABELS[id])
-    .map(id => DIET_RESTRICTION_LABELS[id]);
   const matchedReligiousLabels = recipe.ingredients
     .filter(ing => restrictedIngredients.includes(ing.id) && RELIGIOUS_RESTRICTION_LABELS[ing.id])
     .map(ing => RELIGIOUS_RESTRICTION_LABELS[ing.id]);
+  const selectedDietaryRestrictionIds = getSelectedDietaryRestrictionIds(restrictedIngredients);
   const animalProductNames = getUniqueIngredientNames(
     recipe.ingredients.filter(ing => ing.dietary_tags?.includes(ANIMAL_PRODUCT_DIETARY_TAG)),
   );
-  const veganRestrictionTag = animalProductNames.length > 0
-    ? { label: `ヴィーガン不可: ${animalProductNames.join(', ')}`, tone: 'danger' }
-    : recipe.is_vegan
-      ? { label: 'ヴィーガン対応', tone: 'safe' }
-      : { label: 'ヴィーガン要確認', tone: 'caution' };
+  const dietaryRestrictionTags = selectedDietaryRestrictionIds.length > 0
+    ? selectedDietaryRestrictionIds.map((restrictionId) => {
+        const rule = DIETARY_RESTRICTION_RULES[restrictionId];
+        const conflictNames = getUniqueIngredientNames(getDietaryConflictingIngredients(recipe, restrictionId));
+
+        return conflictNames.length > 0
+          ? { label: `${rule.conflictLabel}: ${conflictNames.join(', ')}`, tone: 'danger' }
+          : { label: rule.compatibleLabel, tone: 'safe' };
+      })
+    : [
+        animalProductNames.length > 0
+          ? { label: `動物性含有: ${animalProductNames.join(', ')}`, tone: 'caution' }
+          : recipe.is_vegan
+            ? { label: '完全ヴィーガン対応', tone: 'safe' }
+            : { label: '食事制限要確認', tone: 'caution' },
+      ];
   const recipeRestrictionTags = [
-    veganRestrictionTag,
+    ...dietaryRestrictionTags,
     recipe.is_gluten_free ? { label: 'グルテンフリー対応', tone: 'safe' } : { label: 'グルテン要確認', tone: 'caution' },
     ...matchedAllergens.map(ing => ({ label: `含有: ${getBaseIngredientName(ing.name_ja)}`, tone: 'danger' })),
     ...matchedReligiousLabels.map(label => ({ label, tone: 'caution' })),
-    ...selectedDietLabels.map(label => ({ label, tone: 'neutral' })),
   ];
 
   const focusTab = (tab: ModalTabKey) => {
