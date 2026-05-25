@@ -16,7 +16,7 @@ erDiagram
         text name_en
         text category
         boolean is_allergen
-        text dietary_tags
+        text[] dietary_tags
         timestamptz created_at
     }
 
@@ -64,16 +64,18 @@ erDiagram
 `auth.users` の拡張テーブル。ユーザー登録時にトリガーで自動生成される。
 
 ### ingredients
-原材料マスタ。日本語名（`name_ja`）と英語名（`name_en`）を持ち、多言語対応のUIで出し分けられる。
+材料マスタ。日本のアレルギー表示基準に基づく28品目を初期データとしてシード済み。
+日本語名（`name_ja`）と英語名（`name_en`）を持ち、多言語対応のUIで出し分けられる。
 
 | カラム | 説明 |
 |---|---|
-| `is_allergen` | `true` のものだけユーザーのNG材料選択UIに表示される。初期28品目は `true` 、AIが追加する材料は `false` |
+| `is_allergen` | `true` のものだけユーザーのNG材料選択UIに表示される。初期28品目は `true`、AIが追加する材料は `false` |
 | `dietary_tags` | `vegan` / `gluten-free` 等のプリセット除外に使うタグ配列。例: `{meat, animal-product}` |
 
 ### user_restricted_ingredients
 ユーザーが選択したNG材料。ヴィーガン・グルテンフリー等のプリセットも含めて、最終的にユーザーが確定した個別材料のみをここに保存する。
 `reason` で除外理由（`allergy` / `dislike` / `religious`）を区別できる。
+`(user_id, ingredient_id)` にユニーク制約があり、同じ材料の重複登録を防ぐ。
 
 ### recipes
 AI生成・外部API取得・ユーザー投稿のレシピをすべて格納する。
@@ -86,7 +88,7 @@ AI生成・外部API取得・ユーザー投稿のレシピをすべて格納す
 | `user` | ユーザー投稿（将来） | ユーザーのID |
 
 ### recipe_ingredients
-レシピと原材料の中間テーブル。材料をJSONに埋め込まず正規化することで、NG材料の除外をSQLで完結させられる。
+レシピと材料の中間テーブル。材料をJSONに埋め込まず正規化することで、NG材料の除外をSQLで完結させられる。
 
 ```sql
 -- NG材料を含まないレシピを取得するクエリ例

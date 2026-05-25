@@ -52,3 +52,7 @@ coverage/
 
 # OMX local state
 .omx/
+
+# Claude Code
+.claude/
+CLAUDE.md
