@@ -9,7 +9,7 @@ const substituteRoute = read('src/app/api/recipes/[id]/substitute/route.ts');
 const persistence = read('src/lib/server/recipePersistence.ts');
 const recipeAi = read('src/lib/recipeAi.ts');
 const openRouter = read('src/lib/server/openRouter.ts');
-const migration = read('supabase/migrations/20260525090000_add_ai_recipe_mvp_fields.sql');
+const migration = read('supabase/migrations/20260525134500_add_ai_recipe_mvp_fields.sql');
 
 assert.match(
   suggestRoute,
