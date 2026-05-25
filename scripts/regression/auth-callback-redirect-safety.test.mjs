@@ -12,6 +12,9 @@ const fixedRedirectOrigin = ({ requestOrigin, protocol, forwardedHost, isLocalEn
   return allowedOrigins.includes(forwardedOrigin) ? forwardedOrigin : requestOrigin;
 };
 
+const canonicalOriginFallback = ({ requestOrigin, configuredOrigins }) =>
+  configuredOrigins[0] ?? requestOrigin;
+
 assert.equal(
   previousRedirectOrigin({
     requestOrigin: 'https://globalbites.example',
@@ -44,6 +47,25 @@ assert.equal(
   'https://app.globalbites.example',
   '修正: allowlist 済み forwarded host だけを公開originとして採用します。',
 );
+assert.equal(
+  canonicalOriginFallback({
+    requestOrigin: 'http://localhost:3000',
+    configuredOrigins: ['https://globalbites.example'],
+  }),
+  'https://globalbites.example',
+  '再現: configured origin を fallback にすると、localhost callback で発行された session cookie と redirect 先 host がずれます。',
+);
+assert.equal(
+  fixedRedirectOrigin({
+    requestOrigin: 'http://localhost:3000',
+    protocol: 'http:',
+    forwardedHost: null,
+    isLocalEnv: false,
+    allowedOrigins: ['https://globalbites.example', 'http://localhost:3000'],
+  }),
+  'http://localhost:3000',
+  '修正: trusted forwarded host が無い場合は、session cookie を受け取った request origin に留まります。',
+);
 
 const previousNextPath = (nextParam) =>
   nextParam?.startsWith('/') && !nextParam.startsWith('//') ? nextParam : '/app';
@@ -71,6 +93,16 @@ assert.match(
   source,
   /allowedRedirectOrigins\.has\(forwardedOrigin\)/,
   'forwarded origin は configured/request origin allowlist と照合してください。',
+);
+assert.match(
+  source,
+  /const fallbackOrigin = requestUrl\.origin;/,
+  'trusted forwarded host が無い auth callback は、configured origin ではなく request origin へ戻して session cookie host を維持してください。',
+);
+assert.doesNotMatch(
+  source,
+  /const fallbackOrigin = configuredOrigins\[0\] \?\? requestUrl\.origin;/,
+  'configured origin は forwarded host の allowlist として使い、通常 fallback redirect origin にはしないでください。',
 );
 assert.match(
   source,

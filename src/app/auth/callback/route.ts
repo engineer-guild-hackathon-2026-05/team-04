@@ -54,7 +54,7 @@ function getSafeNextPath(nextParam: string | null) {
 
 function getSafeRedirectOrigin(requestUrl: URL, headers: Headers) {
   const configuredOrigins = getConfiguredRedirectOrigins();
-  const fallbackOrigin = configuredOrigins[0] ?? requestUrl.origin;
+  const fallbackOrigin = requestUrl.origin;
   const allowedRedirectOrigins = new Set([requestUrl.origin, ...configuredOrigins]);
   const isLocalEnv = process.env.NODE_ENV === "development";
   const forwardedOrigin = isLocalEnv ? null : getForwardedOrigin(requestUrl, headers);
