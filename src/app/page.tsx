@@ -159,7 +159,7 @@ export default function Home() {
         const demoSession = await fetchDemoSession();
         if (demoSession === 'authenticated') {
           const demoProfile = readDemoProfile();
-          const merged = mergeProfile(parsed, {
+          const merged = mergeProfile(demoProfile ?? null, {
             userName: demoProfile?.userName || demoProfile?.email?.split('@')[0] || 'デモユーザー',
             restrictedIngredients: demoProfile?.restrictedIngredients ?? [],
             preferredDishes: demoProfile?.preferredDishes ?? [],
@@ -257,7 +257,6 @@ export default function Home() {
     setPreferredDishes(profile.preferredDishes);
     setPreferredCuisines(profile.preferredCuisines);
 
-    saveToLocalStorage(profile);
     setCurrentView('list');
 
     const demoSession = await fetchDemoSession();
@@ -265,6 +264,8 @@ export default function Home() {
       writeDemoProfile(profile);
       return;
     }
+
+    saveToLocalStorage(profile);
     if (demoSession === 'failed') {
       console.error('Demo session check failed while saving profile. Falling back to profile API.');
     }
