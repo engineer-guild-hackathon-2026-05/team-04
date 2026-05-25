@@ -102,8 +102,13 @@ for (const [path, source] of [
 
 assert.match(
   suggestRoute,
-  /MAX_RECIPE_CANDIDATES_FOR_AI[\s\S]*\.slice\(0,\s*MAX_RECIPE_CANDIDATES_FOR_AI\)/,
+  /edibleCandidates\.length\s*<\s*MAX_RECIPE_CANDIDATES_FOR_AI[\s\S]*edibleCandidates\.length\s*>=\s*MAX_RECIPE_CANDIDATES_FOR_AI/,
   'suggest route must cap filtered candidates before serializing them into the OpenRouter prompt.',
+);
+assert.match(
+  suggestRoute,
+  /FETCH_RECIPE_CANDIDATE_PAGE_SIZE[\s\S]*edibleCandidates\.length\s*<\s*MAX_RECIPE_CANDIDATES_FOR_AI[\s\S]*\.range\(/s,
+  'suggest route must page recipe candidates and filter until enough edible recipes are collected instead of limiting before filtering.',
 );
 assert.match(
   suggestRoute,

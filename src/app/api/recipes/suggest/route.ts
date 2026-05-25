@@ -10,6 +10,8 @@ import { includesRestrictedIngredientText, isDietaryConflictIngredient, type Res
 import { violatesPreparationRestrictions } from '@/lib/preparationRestrictions';
 
 const MAX_RECIPE_CANDIDATES_FOR_AI = 40;
+const FETCH_RECIPE_CANDIDATE_PAGE_SIZE = 200;
+const MAX_RECIPE_CANDIDATE_PAGES = 10;
 
 function normalizeMood(value: unknown) {
   if (typeof value !== 'string') return null;
@@ -35,6 +37,30 @@ type RecipeCandidateRow = {
   recipe_ingredients?: RecipeIngredientJoinRow[] | null;
   is_vegan?: boolean | null;
 };
+
+const RECIPE_CANDIDATE_SELECT = `
+  id,
+  title,
+  description,
+  cuisine,
+  flag,
+  image_url,
+  cook_time_min,
+  servings,
+  is_vegan,
+  is_gluten_free,
+  tags,
+  cultural_background,
+  parent_recipe_id,
+  steps,
+  recipe_ingredients (
+    quantity,
+    is_optional,
+    display_name_ja,
+    preparation_tags,
+    ingredients!recipe_ingredients_ingredient_id_fkey ( ingredient_code, name_ja, name_en, category, is_allergen, dietary_tags )
+  )
+`;
 
 function ingredientNames(row: RecipeCandidateRow) {
   return (row.recipe_ingredients ?? [])
@@ -96,44 +122,37 @@ async function fetchEdibleRecipeCandidates(input: {
   dietaryConstraints: string[];
   preparationRestrictions: string[];
 }): Promise<Recipe[]> {
-  const { data, error } = await input.supabase
-    .from('recipes')
-    .select(`
-      id,
-      title,
-      description,
-      cuisine,
-      flag,
-      image_url,
-      cook_time_min,
-      servings,
-      is_vegan,
-      is_gluten_free,
-      tags,
-      cultural_background,
-      parent_recipe_id,
-      steps,
-      recipe_ingredients (
-        quantity,
-        is_optional,
-        display_name_ja,
-        preparation_tags,
-        ingredients!recipe_ingredients_ingredient_id_fkey ( ingredient_code, name_ja, name_en, category, is_allergen, dietary_tags )
-      )
-    `)
-    .or(`is_public.eq.true,created_by.eq.${input.userId}`)
-    .order('created_at', { ascending: false })
-    .limit(200);
+  const edibleCandidates: Recipe[] = [];
+  let page = 0;
 
-  if (error) throw error;
+  while (edibleCandidates.length < MAX_RECIPE_CANDIDATES_FOR_AI && page < MAX_RECIPE_CANDIDATE_PAGES) {
+    const from = page * FETCH_RECIPE_CANDIDATE_PAGE_SIZE;
+    const to = from + FETCH_RECIPE_CANDIDATE_PAGE_SIZE - 1;
+    const { data, error } = await input.supabase
+      .from('recipes')
+      .select(RECIPE_CANDIDATE_SELECT)
+      .or(`is_public.eq.true,created_by.eq.${input.userId}`)
+      .order('created_at', { ascending: false })
+      .range(from, to);
 
-  return ((data ?? []) as RecipeCandidateRow[])
-    .filter((row) => !includesRestrictedIngredient(row, input.restrictions))
-    .filter((row) => !violatesDietaryConstraints(row, input.dietaryConstraints))
-    .filter((row) => !violatesPreparationConstraints(row, input.preparationRestrictions))
-    .slice(0, MAX_RECIPE_CANDIDATES_FOR_AI)
-    .map((row) => mapRecipeRowToRecipe(row))
-    .filter((recipe): recipe is Recipe => Boolean(recipe));
+    if (error) throw error;
+
+    const rows = (data ?? []) as RecipeCandidateRow[];
+    for (const row of rows) {
+      if (includesRestrictedIngredient(row, input.restrictions)) continue;
+      if (violatesDietaryConstraints(row, input.dietaryConstraints)) continue;
+      if (violatesPreparationConstraints(row, input.preparationRestrictions)) continue;
+
+      const recipe = mapRecipeRowToRecipe(row);
+      if (recipe) edibleCandidates.push(recipe);
+      if (edibleCandidates.length >= MAX_RECIPE_CANDIDATES_FOR_AI) break;
+    }
+
+    if (rows.length < FETCH_RECIPE_CANDIDATE_PAGE_SIZE) break;
+    page += 1;
+  }
+
+  return edibleCandidates;
 }
 
 export async function POST(request: NextRequest) {

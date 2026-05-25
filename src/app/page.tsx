@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Navbar from './components/Navbar';
 import LandingView from './components/LandingView';
@@ -130,6 +130,10 @@ function mergeRecipesById(currentRecipes: Recipe[], incomingRecipes: Recipe[]) {
   });
 }
 
+function buildSubstituteCacheKey(recipeId: string, restrictedIngredients: string[]) {
+  return `${recipeId}:${[...restrictedIngredients].sort().join('|')}`;
+}
+
 function getProfileFallbackFields(remoteProfile: ProfileResponse | null) {
   if (!remoteProfile) return new Set<ProfileFallbackField>();
   if (remoteProfile.fallbackFields) return new Set(remoteProfile.fallbackFields);
@@ -206,6 +210,21 @@ export default function Home() {
   const [substituteError, setSubstituteError] = useState<string | null>(null);
   const [substituteSuggestions, setSubstituteSuggestions] = useState<IngredientSubstitution[]>([]);
   const [substituteCache, setSubstituteCache] = useState<Record<string, IngredientSubstitution[]>>({});
+  const selectedRecipeIdRef = useRef<string | null>(null);
+  const activeSubstituteKeyRef = useRef<string | null>(null);
+  const substituteRequestSeqRef = useRef(0);
+  const selectedRecipeId = selectedRecipe?.id ?? null;
+
+  useEffect(() => {
+    selectedRecipeIdRef.current = selectedRecipeId;
+    activeSubstituteKeyRef.current = selectedRecipeId
+      ? buildSubstituteCacheKey(selectedRecipeId, restrictedIngredients)
+      : null;
+    substituteRequestSeqRef.current += 1;
+    setSubstituteSuggestions([]);
+    setSubstituteStatus('idle');
+    setSubstituteError(null);
+  }, [selectedRecipeId, restrictedIngredients]);
 
   useEffect(() => {
     const parsed = readStoredProfile(PROFILE_STORAGE_KEY, 'local storage profile');
@@ -390,7 +409,11 @@ export default function Home() {
   };
 
   const handleSubstituteRecipe = async (recipeId: string) => {
-    const substituteCacheKey = `${recipeId}:${[...restrictedIngredients].sort().join('|')}`;
+    const substituteCacheKey = buildSubstituteCacheKey(recipeId, restrictedIngredients);
+    if (selectedRecipeIdRef.current !== recipeId || activeSubstituteKeyRef.current !== substituteCacheKey) {
+      return;
+    }
+
     const cachedSubstitutions = substituteCache[substituteCacheKey];
     if (cachedSubstitutions) {
       setSubstituteSuggestions(cachedSubstitutions);
@@ -399,6 +422,8 @@ export default function Home() {
       return;
     }
 
+    const requestSeq = substituteRequestSeqRef.current + 1;
+    substituteRequestSeqRef.current = requestSeq;
     setSubstituteStatus('loading');
     setSubstituteError(null);
     setSubstituteSuggestions([]);
@@ -419,13 +444,47 @@ export default function Home() {
       }
 
       const substitutions = Array.isArray(body?.substitutions) ? body.substitutions : [];
-      setSubstituteSuggestions(substitutions);
       setSubstituteCache((currentCache) => ({ ...currentCache, [substituteCacheKey]: substitutions }));
+      if (
+        substituteRequestSeqRef.current !== requestSeq ||
+        selectedRecipeIdRef.current !== recipeId ||
+        activeSubstituteKeyRef.current !== substituteCacheKey
+      ) {
+        return;
+      }
+      setSubstituteSuggestions(substitutions);
       setSubstituteStatus('success');
     } catch (error) {
+      if (
+        substituteRequestSeqRef.current !== requestSeq ||
+        selectedRecipeIdRef.current !== recipeId ||
+        activeSubstituteKeyRef.current !== substituteCacheKey
+      ) {
+        return;
+      }
       setSubstituteStatus('error');
       setSubstituteError(error instanceof Error ? error.message : '日本の食材での再提案に失敗しました。');
     }
+  };
+
+  const handleSelectRecipe = (recipe: Recipe) => {
+    selectedRecipeIdRef.current = recipe.id;
+    activeSubstituteKeyRef.current = buildSubstituteCacheKey(recipe.id, restrictedIngredients);
+    substituteRequestSeqRef.current += 1;
+    setSubstituteSuggestions([]);
+    setSubstituteStatus('idle');
+    setSubstituteError(null);
+    setSelectedRecipe(recipe);
+  };
+
+  const handleCloseRecipeModal = () => {
+    selectedRecipeIdRef.current = null;
+    activeSubstituteKeyRef.current = null;
+    substituteRequestSeqRef.current += 1;
+    setSelectedRecipe(null);
+    setSubstituteSuggestions([]);
+    setSubstituteStatus('idle');
+    setSubstituteError(null);
   };
 
   const handleSaveProfile = async (profile: ProfilePayload) => {
@@ -526,7 +585,7 @@ export default function Home() {
             restrictedIngredients={restrictedIngredients}
             preferredDishes={preferredDishes}
             preferredCuisines={preferredCuisines}
-            onSelectRecipe={setSelectedRecipe}
+            onSelectRecipe={handleSelectRecipe}
             setCurrentView={setCurrentView}
             onSuggestRecipes={handleSuggestRecipes}
             suggestStatus={suggestStatus}
@@ -551,12 +610,7 @@ export default function Home() {
 
       <RecipeModal
         recipe={selectedRecipe}
-        onClose={() => {
-          setSelectedRecipe(null);
-          setSubstituteSuggestions([]);
-          setSubstituteStatus('idle');
-          setSubstituteError(null);
-        }}
+        onClose={handleCloseRecipeModal}
         restrictedIngredients={restrictedIngredients}
         onSubstituteRecipe={handleSubstituteRecipe}
         substituteStatus={substituteStatus}

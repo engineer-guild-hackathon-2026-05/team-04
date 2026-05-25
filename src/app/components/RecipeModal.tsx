@@ -75,7 +75,7 @@ const getIngredientListKey = (
   ingredient: Recipe['ingredients'][number],
 ) => `${recipeId}:${ingredient.id}:${ingredient.name_ja}:${ingredient.quantity}`;
 
-const getBaseIngredientName = (name: string) => name.split('（')[0].trim();
+const getBaseIngredientName = (name: string) => name.replace(/\s*[（(][^）)]*[）)]\s*$/, '').trim();
 
 const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 

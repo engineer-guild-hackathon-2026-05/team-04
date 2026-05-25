@@ -87,7 +87,8 @@ export async function POST(
     return apiError(401, 'authentication_required', 'ログイン後に日本の食材で再提案できます。');
   }
 
-  const payload = await request.json().catch(() => ({})) as Partial<RecipeSubstituteRequest> | null;
+  const payload = await request.json().catch(() => null) as Partial<RecipeSubstituteRequest> | null;
+  if (!payload) return apiError(400, 'invalid_json', 'リクエスト本文を確認してください。');
 
   try {
     const { data: recipeRow, error: recipeError } = await supabase

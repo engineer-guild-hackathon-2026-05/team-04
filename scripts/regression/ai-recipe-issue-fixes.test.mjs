@@ -102,6 +102,11 @@ assert.match(
   /MAX_SUBSTITUTE_CANDIDATES_FOR_AI[\s\S]*\.slice\(0,\s*MAX_SUBSTITUTE_CANDIDATES_FOR_AI\)[\s\S]*selectIngredientSubstitutionsWithOpenRouter/s,
   'substitute route must cap replacement candidates before serializing them into the OpenRouter prompt.',
 );
+assert.match(
+  substituteRoute,
+  /request\.json\(\)\.catch\(\(\)\s*=>\s*null\)[\s\S]*invalid_json/,
+  'substitute route must return controlled 400 invalid_json for malformed JSON bodies.',
+);
 
 assert.match(
   recipeAi,
@@ -195,12 +200,17 @@ assert.match(
 );
 assert.match(
   page,
+  /selectedRecipeIdRef[\s\S]*selectedRecipeIdRef\.current\s*!==\s*recipeId[\s\S]*return[\s\S]*setSubstituteSuggestions\(substitutions\)/,
+  'page must ignore stale substitute responses when the selected recipe changed or the modal closed.',
+);
+assert.match(
+  page,
   /setSubstituteCache\(\(currentCache\)\s*=>\s*\(\{\s*\.\.\.currentCache,\s*\[substituteCacheKey\]:\s*substitutions\s*\}\)\)/,
   'page must cache the computed substitution mapping by recipe id and current restrictions.',
 );
 assert.match(
   page,
-  /onClose=\{\(\)\s*=>\s*\{[\s\S]*setSelectedRecipe\(null\)[\s\S]*setSubstituteSuggestions\(\[\]\)[\s\S]*setSubstituteStatus\('idle'\)/,
+  /handleCloseRecipeModal[\s\S]*setSelectedRecipe\(null\)[\s\S]*setSubstituteSuggestions\(\[\]\)[\s\S]*setSubstituteStatus\('idle'\)[\s\S]*onClose=\{handleCloseRecipeModal\}/,
   'closing the modal must reset the visible substituted session so reopening starts from the original recipe.',
 );
 assert.doesNotMatch(
@@ -215,8 +225,8 @@ assert.doesNotMatch(
 );
 assert.match(
   recipeModal,
-  /findSubstitutionForIngredient[\s\S]*getBaseIngredientName/,
-  'RecipeModal must map AI substitutions onto existing ingredient rows for modal-only display.',
+  /getBaseIngredientName[\s\S]*replace\(\s*\/\\s\*\[（\(\]\[\^）\)\]\*\[）\)\]\\s\*\$\/[\s\S]*trim\(\)/,
+  'RecipeModal must strip both Japanese and half-width trailing parenthetical ingredient notes.',
 );
 assert.match(
   recipeModal,
