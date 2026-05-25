@@ -33,8 +33,8 @@ assert.match(
 );
 assert.match(
   profileSource,
-  /const\s+isRestrictionSelectedForReason\s*=\s*\([\s\S]*?getRestrictionReason\(id\)\s*===\s*reason/,
-  'ProfileView の chip active 判定は id だけでなく section reason も確認してください。',
+  /const\s+isRestrictionSelectedForReason\s*=\s*\([\s\S]*?getVisibleRestrictionReason\(id\)\s*===\s*reason/,
+  'ProfileView の chip active 判定は id だけでなく section reason と条件制限の既定 reason も確認してください。',
 );
 assert.match(
   profileSource,
@@ -45,6 +45,11 @@ assert.match(
   profileSource,
   /currentReason\s*!==\s*nextReason[\s\S]*setSelectedRestrictionReasons/,
   '別 section で同じ ingredient を選び直した場合は、削除ではなく reason を移動してください。',
+);
+assert.match(
+  profileSource,
+  /selectedRestricted\.map\(\(id\) => \[id,\s*getVisibleRestrictionReason\(id\)\]\)/,
+  'ProfileView の保存 payload は diet-* / prep-* の既定 reason を allergy ではなく dislike として保存してください。',
 );
 assert.match(
   profileSource,

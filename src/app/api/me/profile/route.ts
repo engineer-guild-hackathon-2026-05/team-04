@@ -8,6 +8,8 @@ import type { ProfileFallbackField, ProfilePayload, ProfileResponse, Restriction
 type PreferenceRow = {
   preferred_dishes?: string[] | null;
   preferred_cuisines?: string[] | null;
+  non_ingredient_restrictions?: string[] | null;
+  non_ingredient_restriction_reasons?: unknown;
 };
 
 type RestrictedJoinRow = {
@@ -212,7 +214,7 @@ export async function GET() {
 
   const { data: preferences, error: preferencesError } = await supabase
     .from('user_preferences')
-    .select('preferred_dishes, preferred_cuisines')
+    .select('preferred_dishes, preferred_cuisines, non_ingredient_restrictions, non_ingredient_restriction_reasons')
     .eq('user_id', user.id)
     .maybeSingle();
 
@@ -253,11 +255,20 @@ export async function GET() {
         .filter((entry): entry is readonly [string, RestrictionReason] => Boolean(entry)),
     );
   const preferenceRow = preferencesError ? {} as PreferenceRow : (preferences ?? {}) as PreferenceRow;
+  const nonIngredientRestrictions = normalizeStringArray(preferenceRow.non_ingredient_restrictions);
+  const nonIngredientRestrictionReasons = normalizeRestrictionReasonMap(preferenceRow.non_ingredient_restriction_reasons);
+  const combinedRestrictedIngredients = [
+    ...restrictedIngredients,
+    ...nonIngredientRestrictions.filter((id) => !restrictedIngredients.includes(id)),
+  ];
 
   return NextResponse.json({
     userName: profile?.name || fallbackName,
-    restrictedIngredients,
-    restrictedIngredientReasons,
+    restrictedIngredients: combinedRestrictedIngredients,
+    restrictedIngredientReasons: {
+      ...restrictedIngredientReasons,
+      ...nonIngredientRestrictionReasons,
+    },
     preferredDishes: preferenceRow.preferred_dishes ?? [],
     preferredCuisines: preferenceRow.preferred_cuisines ?? [],
     source,
@@ -332,6 +343,12 @@ export async function PUT(request: NextRequest) {
       user_id: user.id,
       preferred_dishes: preferredDishes,
       preferred_cuisines: preferredCuisines,
+      non_ingredient_restrictions: requestedRestrictedIngredients.filter((code) => !code.startsWith('ing-')),
+      non_ingredient_restriction_reasons: Object.fromEntries(
+        requestedRestrictedIngredients
+          .filter((code) => !code.startsWith('ing-'))
+          .map((code) => [code, requestedRestrictionReasons[code] ?? inferRestrictionReason(code)]),
+      ),
       updated_at: new Date().toISOString(),
     }, { onConflict: 'user_id' });
 

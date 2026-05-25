@@ -63,7 +63,8 @@ const allergenNamePatterns = {
   'ing-banana': /バナナ|banana/i,
   'ing-peach': /もも|桃|peach/i,
   'ing-apple': /りんご|apple/i,
-  'ing-matsutake': /まつたけ|matsutake/i,
+  'ing-pistachio': /ピスタチオ|pistachio/i,
+  'ing-macadamia': /マカダミアナッツ|マカデミアナッツ|macadamia/i,
   'ing-yam': /やまいも|yam/i,
   'ing-gelatin': /ゼラチン|gelatin/i,
 };
@@ -205,9 +206,10 @@ for (const recipe of recipes) {
     assert.ok(!hasGlutenFreeTag, `${recipe.id}: gluten-containing recipes must not include a gluten-free tag.`);
   }
 
-  if (recipe.tags.some((tag) => tag.includes('8大アレルギーフリー'))) {
+  if (recipe.tags.some((tag) => tag.includes('9大アレルギーフリー'))) {
     const majorAllergenIds = new Set([
       'ing-shrimp',
+      'ing-cashew',
       'ing-crab',
       'ing-wheat',
       'ing-buckwheat',
@@ -223,7 +225,7 @@ for (const recipe of recipes) {
     assert.deepEqual(
       majorAllergenIngredients,
       [],
-      `${recipe.id}: recipes tagged 8大アレルギーフリー must not include any of the 8 major allergens.`,
+      `${recipe.id}: recipes tagged 9大アレルギーフリー must not include any of the 9 mandatory allergens.`,
     );
   }
 }

@@ -33,7 +33,8 @@ update public.ingredients set ingredient_code = 'ing-kiwi'      where name_en = 
 update public.ingredients set ingredient_code = 'ing-banana'    where name_en = 'banana';
 update public.ingredients set ingredient_code = 'ing-peach'     where name_en = 'peach';
 update public.ingredients set ingredient_code = 'ing-apple'     where name_en = 'apple';
-update public.ingredients set ingredient_code = 'ing-matsutake' where name_en = 'matsutake';
+update public.ingredients set ingredient_code = 'ing-pistachio' where name_en = 'pistachio';
+update public.ingredients set ingredient_code = 'ing-macadamia' where name_en = 'macadamia nut';
 update public.ingredients set ingredient_code = 'ing-yam'       where name_en = 'yam';
 update public.ingredients set ingredient_code = 'ing-gelatin'   where name_en = 'gelatin';
 

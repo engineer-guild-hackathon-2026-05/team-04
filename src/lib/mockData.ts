@@ -29,6 +29,7 @@ export interface RecipeIngredient {
   category?: string;    // DB ingredients.category（制限表示の根拠）
   is_allergen?: boolean; // DB ingredients.is_allergen（特定原材料判定の根拠）
   dietary_tags?: string[]; // DB ingredients.dietary_tags（ヴィーガン等の判定根拠）
+  preparation_tags?: string[]; // DB recipe_ingredients.preparation_tags（生・半生など調理状態の判定根拠）
 }
 
 export interface Recipe {
@@ -48,21 +49,21 @@ export interface Recipe {
   culture_sections: RecipeCultureSection[]; // 由来・食文化の読み物（DB-primary、fallbackは空配列）
 }
 
-// データベースの `ingredients` 初期データ (特定原材料8品目 + 推奨20品目) に準拠
+// データベースの `ingredients` 初期データ (令和8年4月時点: 特定原材料9品目 + 推奨20品目) に準拠
 export const INGREDIENT_MASTER: IngredientMaster[] = [
-  // 特定原材料（8品目）
+  // 特定原材料（表示義務あり・9品目）
   { id: "ing-shrimp", name_ja: "えび", name_en: "shrimp", category: "甲殻類", dietary_tags: ["shellfish", "animal-product"] },
+  { id: "ing-cashew", name_ja: "カシューナッツ", name_en: "cashew nut", category: "ナッツ類", dietary_tags: [] },
   { id: "ing-crab", name_ja: "かに", name_en: "crab", category: "甲殻類", dietary_tags: ["shellfish", "animal-product"] },
+  { id: "ing-walnut", name_ja: "くるみ", name_en: "walnut", category: "ナッツ類", dietary_tags: [] },
   { id: "ing-wheat", name_ja: "小麦", name_en: "wheat", category: "穀類", dietary_tags: ["gluten"] },
   { id: "ing-buckwheat", name_ja: "そば", name_en: "buckwheat", category: "穀類", dietary_tags: [] },
   { id: "ing-egg", name_ja: "卵", name_en: "egg", category: "卵・乳", dietary_tags: ["egg", "animal-product"] },
   { id: "ing-milk", name_ja: "乳", name_en: "milk", category: "卵・乳", dietary_tags: ["dairy", "animal-product"] },
   { id: "ing-peanut", name_ja: "落花生", name_en: "peanut", category: "ナッツ類", dietary_tags: [] },
-  { id: "ing-walnut", name_ja: "くるみ", name_en: "walnut", category: "ナッツ類", dietary_tags: [] },
 
-  // 特定原材料に準ずるもの（20品目）
+  // 特定原材料に準ずるもの（表示推奨・20品目）
   { id: "ing-almond", name_ja: "アーモンド", name_en: "almond", category: "ナッツ類", dietary_tags: [] },
-  { id: "ing-cashew", name_ja: "カシューナッツ", name_en: "cashew nut", category: "ナッツ類", dietary_tags: [] },
   { id: "ing-sesame", name_ja: "ごま", name_en: "sesame", category: "その他", dietary_tags: [] },
   { id: "ing-soybean", name_ja: "大豆", name_en: "soybean", category: "穀類", dietary_tags: [] },
   { id: "ing-abalone", name_ja: "あわび", name_en: "abalone", category: "魚介類", dietary_tags: ["shellfish", "animal-product"] },
@@ -72,14 +73,15 @@ export const INGREDIENT_MASTER: IngredientMaster[] = [
   { id: "ing-mackerel", name_ja: "さば", name_en: "mackerel", category: "魚介類", dietary_tags: ["fish", "animal-product"] },
   { id: "ing-beef", name_ja: "牛肉", name_en: "beef", category: "肉類", dietary_tags: ["meat", "animal-product"] },
   { id: "ing-chicken", name_ja: "鶏肉", name_en: "chicken", category: "肉類", dietary_tags: ["meat", "animal-product"] },
-  { id: "ing-pork", name_ja: "豚肉", name_en: "pork", category: "肉類", dietary_tags: ["meat", "animal-product", "pork"] },
   { id: "ing-orange", name_ja: "オレンジ", name_en: "orange", category: "果物", dietary_tags: [] },
   { id: "ing-kiwi", name_ja: "キウイフルーツ", name_en: "kiwi fruit", category: "果物", dietary_tags: [] },
   { id: "ing-banana", name_ja: "バナナ", name_en: "banana", category: "果物", dietary_tags: [] },
+  { id: "ing-pistachio", name_ja: "ピスタチオ", name_en: "pistachio", category: "ナッツ類", dietary_tags: [] },
+  { id: "ing-pork", name_ja: "豚肉", name_en: "pork", category: "肉類", dietary_tags: ["meat", "animal-product", "pork"] },
+  { id: "ing-macadamia", name_ja: "マカダミアナッツ", name_en: "macadamia nut", category: "ナッツ類", dietary_tags: [] },
   { id: "ing-peach", name_ja: "もも", name_en: "peach", category: "果物", dietary_tags: [] },
-  { id: "ing-apple", name_ja: "りんご", name_en: "apple", category: "果物", dietary_tags: [] },
-  { id: "ing-matsutake", name_ja: "まつたけ", name_en: "matsutake", category: "その他", dietary_tags: [] },
   { id: "ing-yam", name_ja: "やまいも", name_en: "yam", category: "その他", dietary_tags: [] },
+  { id: "ing-apple", name_ja: "りんご", name_en: "apple", category: "果物", dietary_tags: [] },
   { id: "ing-gelatin", name_ja: "ゼラチン", name_en: "gelatin", category: "その他", dietary_tags: ["animal-product"] },
 ];
 
@@ -151,7 +153,7 @@ export const MOCK_RECIPES: Recipe[] = [
   {
     id: "rec-dal",
     title: "レンズ豆のダル (南インドの本格まろやか豆カレー)",
-    description: "小麦粉（ルウ）や動物性食材を使わず、レンズ豆のデンプンとココナッツミルクのまろやかさだけで仕上げる南インドの日常食。スパイスの香りと豆のやさしい甘みを楽しめる、アレルギー特定原材料8品目を含まないレシピです。",
+    description: "小麦粉（ルウ）や動物性食材を使わず、レンズ豆のデンプンとココナッツミルクのまろやかさだけで仕上げる南インドの日常食。スパイスの香りと豆のやさしい甘みを楽しめる、アレルギー特定原材料9品目を含まないレシピです。",
     cuisine: "インド",
     flag: "🇮🇳",
     image_url: "https://images.unsplash.com/photo-1546833999-b9f581a1996d?auto=format&fit=crop&q=80&w=800",
@@ -159,7 +161,7 @@ export const MOCK_RECIPES: Recipe[] = [
     servings: 3,
     is_vegan: true,
     is_gluten_free: true,
-    tags: ["ヴィーガン", "グルテンフリー", "8大アレルギーフリー", "スパイス薬膳"],
+    tags: ["ヴィーガン", "グルテンフリー", "9大アレルギーフリー", "スパイス薬膳"],
     ingredients: [
       { id: "none-lentils", name_ja: "赤レンズ豆（皮なし乾燥・水洗いする）", quantity: "150g", is_optional: false },
       { id: "none-coconut-milk", name_ja: "ココナッツミルク缶", quantity: "200ml", is_optional: false },
