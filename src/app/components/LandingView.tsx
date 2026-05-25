@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Clock, Globe } from 'lucide-react';
+import { Clock } from 'lucide-react';
 import { type Recipe } from '@/lib/mockData';
 
 interface LandingViewProps {
@@ -13,17 +13,12 @@ export default function LandingView({ onSignIn, previewRecipes = [] }: LandingVi
   return (
     <div className="landing-container">
       <section className="landing-hero" aria-labelledby="hero-title">
-        <div className="hero-badge">
-          <Globe size={14} className="badge-icon" />
-          <span>世界の料理が、あなたのテーブルへ</span>
-        </div>
         <h1 id="hero-title" className="hero-title-main">
-          新しい世界、<span className="text-gradient">いただきます。</span>
+          食べられる料理で、<br /><span className="text-gradient">世界を旅する。</span>
         </h1>
         <p className="hero-subtitle">
           「食べられないものがあるから」と、諦めてきた料理がある。<br />
-          GlobalBites は食の制限を起点に、<strong>まだ知らない世界の味</strong>へ案内します。<br />
-          あなたの「食べられる」が、旅の始まりです。
+          あなたの食の制限を起点に、<strong>まだ知らない世界の味</strong>へ案内します。
         </p>
       </section>
 

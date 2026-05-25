@@ -225,36 +225,27 @@ button, input {
   text-align: left;
 }
 
-.brand-logo:hover .brand-name,
-.brand-logo:focus-visible .brand-name {
-  color: var(--forest-hover);
-}
-
 .brand-logo:focus-visible {
   border-radius: 16px;
   outline: 3px solid rgba(27, 67, 50, 0.16);
   outline-offset: 6px;
 }
 
-.logo-icon {
-  color: var(--forest-green);
-}
-
-.brand-name {
-  font-size: 1.4rem;
-  font-weight: 900;
-  letter-spacing: -0.02em;
-  color: var(--forest-green);
-  transition: color 0.2s ease;
+.logo-svg {
+  height: 36px;
+  width: auto;
+  display: block;
 }
 
 .brand-tagline {
-  font-size: 0.72rem;
-  color: var(--text-light);
-  font-weight: 500;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  letter-spacing: -0.01em;
   border-left: 1px solid #d6d3d1;
-  padding-left: 8px;
-  margin-left: 4px;
+  padding-left: 10px;
+  margin-left: 2px;
+  white-space: nowrap;
 }
 
 .navbar-actions {

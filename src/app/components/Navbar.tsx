@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Globe, LogIn, LogOut, Settings, User, UserPlus } from 'lucide-react';
+import { LogIn, LogOut, Settings, User, UserPlus } from 'lucide-react';
 
 interface NavbarProps {
   setCurrentView: (view: 'landing' | 'list' | 'profile') => void;
@@ -164,16 +164,15 @@ export default function Navbar({
   return (
     <nav className="navbar">
       <div className="navbar-container">
-        {/* ロゴクリックでログイン中のメインページ（レシピ検索）へ戻る */}
         <button
           type="button"
           className="brand-logo"
           onClick={handleLogoClick}
           title="メインページへ戻る"
         >
-          <Globe className="logo-icon animate-pulse-slow" size={24} />
-          <span className="brand-name">GlobalBites</span>
-          <span className="brand-tagline">世界の味を、日本の食卓で。</span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.svg" alt="GlobalBites ロゴ" className="logo-svg" />
+          <span className="brand-tagline">新しい世界、いただきます</span>
         </button>
 
         <div className="navbar-actions">
