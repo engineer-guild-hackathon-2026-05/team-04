@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { DEMO_AUTH_COOKIE, hasDemoAuthCookie } from '@/lib/demoMode';
 import { isIngredientCodeFormat, toIngredientCodeFromDbRow } from '@/lib/ingredientCodes';
 import { createClient } from '@/lib/supabase/server';
+import { hasSupabaseConfig } from '@/lib/supabase/config';
 import type { ProfileFallbackField, ProfilePayload, ProfileResponse, RestrictionReason } from '@/lib/apiTypes';
 
 type PreferenceRow = {
@@ -182,7 +183,7 @@ export async function GET() {
     return NextResponse.json({ ...EMPTY_PROFILE, userName: DEMO_PROFILE_NAME, source: 'demo' } satisfies ProfileResponse);
   }
 
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+  if (!hasSupabaseConfig()) {
     return NextResponse.json({ error: 'Supabase is not configured.' }, { status: 503 });
   }
 
@@ -289,7 +290,7 @@ export async function PUT(request: NextRequest) {
     } satisfies ProfileResponse);
   }
 
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+  if (!hasSupabaseConfig()) {
     return NextResponse.json({ error: 'Supabase is not configured.' }, { status: 503 });
   }
 

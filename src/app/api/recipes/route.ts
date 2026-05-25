@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { mapRecipeRowToRecipe } from '@/lib/recipeMapping';
 import { createClient } from '@/lib/supabase/server';
+import { hasSupabaseConfig } from '@/lib/supabase/config';
 import type { RecipesResponse } from '@/lib/apiTypes';
 
 function unavailableResponse() {
@@ -8,7 +9,7 @@ function unavailableResponse() {
 }
 
 export async function GET() {
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+  if (!hasSupabaseConfig()) {
     return unavailableResponse();
   }
 

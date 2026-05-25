@@ -16,7 +16,11 @@ assert.ok(
   'demo PUT は EMPTY_PROFILE ではなく、送信payloadを返せるようにdemo判定前にpayloadを正規化してください。',
 );
 
-const demoBranch = putRoute.slice(demoIndex, putRoute.indexOf('if (!process.env.NEXT_PUBLIC_SUPABASE_URL', demoIndex));
+const supabaseConfigGuardIndex = putRoute.indexOf('if (!hasSupabaseConfig())', demoIndex);
+const legacyEnvGuardIndex = putRoute.indexOf('if (!process.env.NEXT_PUBLIC_SUPABASE_URL', demoIndex);
+const demoBranchEnd = supabaseConfigGuardIndex === -1 ? legacyEnvGuardIndex : supabaseConfigGuardIndex;
+assert.notEqual(demoBranchEnd, -1, 'PUT は demo 分岐の直後に Supabase 設定ガードを維持してください。');
+const demoBranch = putRoute.slice(demoIndex, demoBranchEnd);
 assert.doesNotMatch(
   demoBranch,
   /EMPTY_PROFILE/,
