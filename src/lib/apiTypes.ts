@@ -26,3 +26,28 @@ export type RecipesResponse = {
   recipes: Recipe[];
   source: 'database';
 };
+
+export type ApiErrorResponse = {
+  error: string;
+  code: string;
+  details?: unknown;
+};
+
+export type RecipeSuggestRequest = {
+  mood: string;
+  locale?: 'ja';
+  restrictedIngredients?: string[];
+};
+
+export type RecipeSuggestResponse = {
+  recipes: Recipe[];
+  source: 'ai';
+};
+
+export type RecipeSubstituteRequest = {
+  restrictedIngredients?: string[];
+};
+
+export type RecipeSubstituteResponse = {
+  recipe: Recipe;
+};

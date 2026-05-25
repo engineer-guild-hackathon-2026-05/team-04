@@ -44,6 +44,8 @@ export interface Recipe {
   is_vegan: boolean;
   is_gluten_free: boolean;
   tags: string[];       // 料理の特徴タグ
+  cultural_background?: string | null; // 文化的背景（AI生成/代替提案で使用）
+  parent_recipe_id?: string | null;    // 代替提案元レシピ
   ingredients: RecipeIngredient[];
   steps: RecipeStep[];  // 調理手順（DBでは { order, text }[]、旧mock文字列も許容）
   culture_sections: RecipeCultureSection[]; // 由来・食文化の読み物（DB-primary、fallbackは空配列）
