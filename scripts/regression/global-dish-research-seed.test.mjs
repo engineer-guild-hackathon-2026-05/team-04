@@ -41,7 +41,7 @@ assert.equal(
 for (const dish of dishes) {
   if (!dish.is_vegan) continue;
   const animalIngredients = dish.ingredients.filter((ingredient) =>
-    /鶏肉|牛肉|豚肉|羊肉|ウサギ|卵|バター|チーズ|モッツァレラ|パルメザン|ヨーグルト|乳|ベーコン|チチャロン|塩ダラ|白身魚|生魚|小魚|エビ|えび|乾燥エビ|干しエビ/.test(ingredient),
+    /鶏肉|牛肉|豚肉|羊肉|ウサギ|卵|バター|チーズ|モッツァレラ|パルメザン|ヨーグルト|乳|クリーム|サワークリーム|ベーコン|チチャロン|塩ダラ|白身魚|生魚|小魚|エビ|えび|乾燥エビ|干しエビ/.test(ingredient),
   );
   assert.deepEqual(animalIngredients, [], `${dish.title} は動物性材料を含むため vegan 対応にしないでください。`);
 }
@@ -81,10 +81,34 @@ assert.match(
   /canonical_name_en[\s\S]*小麦粉[\s\S]*'wheat'/i,
   '小麦粉など既存アレルゲン材料は recipe 固有 name_en ではなく canonical wheat ingredient に紐付けてください。',
 );
-assert.match(
+const assertCanonicalAlias = (code, aliases) => {
+  for (const alias of aliases) {
+    const escapedAlias = alias.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    assert.match(
+      migrationSource,
+      new RegExp(`when\\s+i\\.ingredient\\s+in\\s*\\([^)]*'${escapedAlias}'[^)]*\\)\\s+then\\s+'${code}'`, 'i'),
+      `${alias} は canonical ${code} ingredient に紐付けて安全表示の制限コードを維持してください。`,
+    );
+  }
+};
+
+assertCanonicalAlias('milk', [
+  'モッツァレラ',
+  'バター',
+  'パルメザンチーズ',
+  'チーズ',
+  'フェタチーズ',
+  'アヤブチーズ',
+  'ヨーグルト',
+  '牛乳',
+  'クリーム',
+  '生クリーム',
+  'サワークリーム',
+]);
+assert.doesNotMatch(
   migrationSource,
-  /canonical_name_en[\s\S]*(?:モッツァレラ|チーズ|バター|ヨーグルト)[\s\S]*'milk'/i,
-  '乳製品材料は canonical milk ingredient に紐付けて安全表示の制限コードを維持してください。',
+  /when\s+i\.ingredient\s+in\s*\([^)]*'ココナッツミルク'[^)]*\)\s+then\s+'milk'/i,
+  'ココナッツミルクは植物性のため canonical milk ingredient に紐付けないでください。',
 );
 assert.match(
   migrationSource,

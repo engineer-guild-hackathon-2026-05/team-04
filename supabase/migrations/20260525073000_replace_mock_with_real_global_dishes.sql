@@ -112,7 +112,7 @@ with raw_ingredient_seed as (
     i.ordinality,
     case
       when i.ingredient in ('小麦粉', '小麦粉の皮', '小麦粒', 'パン', 'ピタパン', '食パン', '中華麺', '手延べ麺', '薄い麺', '甜麺醤') then 'wheat'
-      when i.ingredient in ('モッツァレラ', 'バター', 'パルメザンチーズ', 'チーズ', 'フェタチーズ', 'アヤブチーズ', 'ヨーグルト') then 'milk'
+      when i.ingredient in ('モッツァレラ', 'バター', 'パルメザンチーズ', 'チーズ', 'フェタチーズ', 'アヤブチーズ', 'ヨーグルト', '牛乳', 'クリーム', '生クリーム', 'サワークリーム') then 'milk'
       when i.ingredient in ('ゆで卵', '卵', '卵白') then 'egg'
       when i.ingredient in ('ピーナッツ') then 'peanut'
       when i.ingredient in ('豆腐', '大豆ミート') then 'soybean'
@@ -146,7 +146,7 @@ with raw_ingredient_seed as (
     i.ordinality,
     case
       when i.ingredient in ('小麦粉', '小麦粉の皮', '小麦粒', 'パン', 'ピタパン', '食パン', '中華麺', '手延べ麺', '薄い麺', '甜麺醤') then 'wheat'
-      when i.ingredient in ('モッツァレラ', 'バター', 'パルメザンチーズ', 'チーズ', 'フェタチーズ', 'アヤブチーズ', 'ヨーグルト') then 'milk'
+      when i.ingredient in ('モッツァレラ', 'バター', 'パルメザンチーズ', 'チーズ', 'フェタチーズ', 'アヤブチーズ', 'ヨーグルト', '牛乳', 'クリーム', '生クリーム', 'サワークリーム') then 'milk'
       when i.ingredient in ('ゆで卵', '卵', '卵白') then 'egg'
       when i.ingredient in ('ピーナッツ') then 'peanut'
       when i.ingredient in ('豆腐', '大豆ミート') then 'soybean'
