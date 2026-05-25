@@ -1,4 +1,5 @@
 import { INGREDIENT_MASTER, type Recipe, type RecipeIngredient, type RecipeStep } from './mockData';
+import { isPreparationRestrictionId, type PreparationRestrictionId } from './preparationRestrictions';
 
 export type RestrictionFact = {
   id: string;
@@ -33,6 +34,7 @@ export type AiGeneratedRecipe = {
 export type ParsedRestrictionInput = {
   ingredientCodes: string[];
   dietaryConstraints: string[];
+  preparationRestrictions: PreparationRestrictionId[];
 };
 
 const SUPPORTED_DIET_CONSTRAINTS = new Set([
@@ -260,11 +262,12 @@ function normalizeIngredients(value: unknown) {
 }
 
 export function parseRestrictionInput(value: unknown): ParsedRestrictionInput | { error: string; unknownValues: string[] } {
-  if (value == null) return { ingredientCodes: [], dietaryConstraints: [] };
+  if (value == null) return { ingredientCodes: [], dietaryConstraints: [], preparationRestrictions: [] };
   if (!Array.isArray(value)) return { error: 'restrictedIngredients must be an array.', unknownValues: [] };
 
   const ingredientCodes = new Set<string>();
   const dietaryConstraints = new Set<string>();
+  const preparationRestrictions = new Set<PreparationRestrictionId>();
   const unknownValues: string[] = [];
 
   for (const item of value) {
@@ -276,6 +279,8 @@ export function parseRestrictionInput(value: unknown): ParsedRestrictionInput | 
       ingredientCodes.add(item);
     } else if (SUPPORTED_DIET_CONSTRAINTS.has(item)) {
       dietaryConstraints.add(item);
+    } else if (isPreparationRestrictionId(item)) {
+      preparationRestrictions.add(item);
     } else {
       unknownValues.push(item);
     }
@@ -288,6 +293,7 @@ export function parseRestrictionInput(value: unknown): ParsedRestrictionInput | 
   return {
     ingredientCodes: Array.from(ingredientCodes),
     dietaryConstraints: Array.from(dietaryConstraints),
+    preparationRestrictions: Array.from(preparationRestrictions),
   };
 }
 

@@ -125,5 +125,6 @@ export async function mergedRestrictionContext(input: {
   return {
     restrictions: Array.from(factsById.values()),
     dietaryConstraints: parsed.dietaryConstraints,
+    preparationRestrictions: parsed.preparationRestrictions,
   };
 }

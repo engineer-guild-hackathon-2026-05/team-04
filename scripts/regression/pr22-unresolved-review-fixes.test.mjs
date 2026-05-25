@@ -112,4 +112,20 @@ assert.match(
   'substitute route must filter candidate ingredients with shared tag + name-based diet conflict detection.',
 );
 
+assert.match(
+  recipeAi,
+  /isPreparationRestrictionId[\s\S]*preparationRestrictions\.add\(item\)/,
+  'AI restriction parsing must accept supported prep-* preparation restriction IDs instead of returning invalid_restricted_ingredients.',
+);
+assert.match(
+  routeUtils,
+  /preparationRestrictions:\s*parsed\.preparationRestrictions/,
+  'AI route restriction context must preserve parsed prep-* restrictions for downstream route behavior.',
+);
+assert.match(
+  suggestRoute,
+  /violatesPreparationRestrictions[\s\S]*preparationRestrictions/,
+  'AI recipe suggestions must filter candidates with selected prep-* restrictions before prompting OpenRouter.',
+);
+
 console.log('PR22 unresolved review regression checks passed');

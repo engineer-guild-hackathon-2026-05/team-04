@@ -7,6 +7,7 @@ import { apiError } from '@/lib/server/apiErrors';
 import { getRecipeRouteUser, mergedRestrictionContext } from '@/lib/server/recipeRouteUtils';
 import { createClient } from '@/lib/supabase/server';
 import { includesRestrictedIngredientText, isDietaryConflictIngredient, type RestrictionFact } from '@/lib/recipeAi';
+import { violatesPreparationRestrictions } from '@/lib/preparationRestrictions';
 
 const MAX_RECIPE_CANDIDATES_FOR_AI = 40;
 
@@ -68,11 +69,32 @@ function violatesDietaryConstraints(row: RecipeCandidateRow, dietaryConstraints:
   });
 }
 
+function violatesPreparationConstraints(row: RecipeCandidateRow, preparationRestrictions: string[]) {
+  if (preparationRestrictions.length === 0) return false;
+
+  return violatesPreparationRestrictions({
+    ingredients: (row.recipe_ingredients ?? []).map((item) => {
+      const ingredient = item.ingredients;
+      return {
+        id: ingredient?.ingredient_code ?? '',
+        name_ja: item.display_name_ja ?? ingredient?.name_ja ?? '',
+        quantity: '',
+        is_optional: false,
+        category: ingredient?.category ?? undefined,
+        is_allergen: ingredient?.is_allergen ?? undefined,
+        dietary_tags: ingredient?.dietary_tags ?? [],
+        preparation_tags: item.preparation_tags ?? [],
+      };
+    }),
+  }, preparationRestrictions);
+}
+
 async function fetchEdibleRecipeCandidates(input: {
   supabase: Awaited<ReturnType<typeof createClient>>;
   userId: string;
   restrictions: RestrictionFact[];
   dietaryConstraints: string[];
+  preparationRestrictions: string[];
 }): Promise<Recipe[]> {
   const { data, error } = await input.supabase
     .from('recipes')
@@ -108,6 +130,7 @@ async function fetchEdibleRecipeCandidates(input: {
   return ((data ?? []) as RecipeCandidateRow[])
     .filter((row) => !includesRestrictedIngredient(row, input.restrictions))
     .filter((row) => !violatesDietaryConstraints(row, input.dietaryConstraints))
+    .filter((row) => !violatesPreparationConstraints(row, input.preparationRestrictions))
     .slice(0, MAX_RECIPE_CANDIDATES_FOR_AI)
     .map((row) => mapRecipeRowToRecipe(row))
     .filter((recipe): recipe is Recipe => Boolean(recipe));
@@ -147,6 +170,7 @@ export async function POST(request: NextRequest) {
       userId: user.id,
       restrictions: restrictionContext.restrictions,
       dietaryConstraints: restrictionContext.dietaryConstraints,
+      preparationRestrictions: restrictionContext.preparationRestrictions,
     });
     if (candidates.length < 3) {
       return apiError(422, 'not_enough_recipe_candidates', '条件に合うレシピが3件未満です。プロフィールの制限を見直してください。');
