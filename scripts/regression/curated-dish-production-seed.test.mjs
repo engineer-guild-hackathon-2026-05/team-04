@@ -17,6 +17,25 @@ const displayBackfillMigrationSource = readFileSync(displayBackfillMigrationPath
 const migrationPayload = JSON.parse(migrationSource.match(/\$curated_dishes\$([\s\S]+?)\$curated_dishes\$::jsonb/)?.[1] ?? '[]');
 const forbiddenTags = new Set(['実データ', 'Web調査']);
 
+assert.doesNotMatch(
+  apiRouteSource,
+  /fallbackRecipes|source:\s*['"]fallback['"]|MOCK_RECIPES|Falling back to bundled recipes/,
+  'production recipe API は旧 mock recipe fallback を返さないでください。',
+);
+assert.match(apiRouteSource, /source:\s*['"]database['"]/, 'recipe API は DB primary の source を返してください。');
+const appPageSource = readFileSync('src/app/page.tsx', 'utf8');
+assert.doesNotMatch(
+  appPageSource,
+  /useState<Recipe\[\]>\(MOCK_RECIPES\)/,
+  '一覧初期表示で旧 mock recipes を production recipe fallback として使わないでください。',
+);
+const apiTypesSource = readFileSync('src/lib/apiTypes.ts', 'utf8');
+assert.match(
+  apiTypesSource,
+  /export\s+type\s+RecipesResponse\s*=\s*\{[\s\S]*source:\s*['"]database['"][\s\S]*\}/,
+  'RecipesResponse は recipe fallback source を公開しないでください。',
+);
+
 assert.equal(dishes.length, 20, 'curated seed は production 品質の 20 件に絞ってください。');
 assert.equal(new Set(dishes.map((dish) => dish.source_ref)).size, dishes.length, 'source_ref は重複させないでください。');
 assert.equal(new Set(dishes.map((dish) => dish.title)).size, dishes.length, '料理名は重複させないでください。');

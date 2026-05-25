@@ -1,5 +1,4 @@
 import {
-  MOCK_RECIPES,
   type Recipe,
   type RecipeCultureSection,
   type RecipeCultureSectionKey,
@@ -133,10 +132,3 @@ export function mapRecipeRowToRecipe(row: RecipeDbRow): Recipe | null {
   };
 }
 
-export function fallbackRecipes() {
-  return MOCK_RECIPES.map((recipe) => ({
-    ...recipe,
-    steps: normalizeRecipeSteps(recipe.steps),
-    culture_sections: recipe.culture_sections,
-  }));
-}

@@ -1,15 +1,15 @@
 import { NextResponse } from 'next/server';
-import { fallbackRecipes, mapRecipeRowToRecipe } from '@/lib/recipeMapping';
+import { mapRecipeRowToRecipe } from '@/lib/recipeMapping';
 import { createClient } from '@/lib/supabase/server';
 import type { RecipesResponse } from '@/lib/apiTypes';
 
-function fallbackResponse() {
-  return NextResponse.json({ recipes: fallbackRecipes(), source: 'fallback' } satisfies RecipesResponse);
+function unavailableResponse() {
+  return NextResponse.json({ recipes: [], source: 'database' } satisfies RecipesResponse, { status: 503 });
 }
 
 export async function GET() {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    return fallbackResponse();
+    return unavailableResponse();
   }
 
   try {
@@ -52,11 +52,9 @@ export async function GET() {
       .map((row) => mapRecipeRowToRecipe(row))
       .filter((recipe): recipe is NonNullable<typeof recipe> => Boolean(recipe));
 
-    if (recipes.length === 0) return fallbackResponse();
-
     return NextResponse.json({ recipes, source: 'database' } satisfies RecipesResponse);
   } catch (error) {
-    console.warn('Failed to load recipes from Supabase. Falling back to bundled recipes.', error);
-    return fallbackResponse();
+    console.error('Failed to load recipes from Supabase.', error);
+    return unavailableResponse();
   }
 }
