@@ -1130,11 +1130,11 @@ button, input {
   padding: 14px 18px;
   border: none;
   border-radius: 999px;
-  color: #fff7ed;
-  background: linear-gradient(135deg, var(--copper), var(--gold));
+  color: #f0fdf4;
+  background: linear-gradient(135deg, var(--forest-hover), var(--forest-green));
   font-weight: 900;
   cursor: pointer;
-  box-shadow: 0 16px 40px rgba(194, 65, 12, 0.28);
+  box-shadow: 0 16px 40px rgba(27, 67, 50, 0.28);
 }
 
 .mood-chat-panel {
