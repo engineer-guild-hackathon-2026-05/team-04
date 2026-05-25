@@ -8,6 +8,11 @@ const migrationSource = readdirSync('supabase/migrations')
   .map((file) => `-- ${file}\n${readFileSync(join('supabase/migrations', file), 'utf8')}`)
   .join('\n');
 
+const cultureMigrationSource = readFileSync(
+  join('supabase/migrations', '20260525061500_add_recipe_culture_sections.sql'),
+  'utf8',
+);
+
 assert.match(
   migrationSource,
   /create\s+table\s+(?:if\s+not\s+exists\s+)?public\.recipe_culture_sections\s*\([\s\S]*?\)/i,
@@ -73,6 +78,26 @@ for (const sourceRef of ['mock:rec-lobio', 'mock:rec-gadogado', 'mock:rec-dal', 
     `${sourceRef} を stable source_ref として seed/upsert してください。`,
   );
 }
+
+for (const sourceRef of ['mock:rec-lobio', 'mock:rec-gadogado', 'mock:rec-dal', 'mock:rec-tacos']) {
+  const escapedSourceRef = sourceRef.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  assert.match(
+    cultureMigrationSource,
+    new RegExp(`mock_ingredient_seed[\\s\\S]*?${escapedSourceRef}`, 'i'),
+    `${sourceRef} は fresh DB でも材料が空にならないよう mock_ingredient_seed に含めてください。`,
+  );
+}
+assert.match(
+  cultureMigrationSource,
+  /insert\s+into\s+public\.ingredients[\s\S]*?on\s+conflict\s*\(\s*name_en\s*\)\s+do\s+update/i,
+  'mock recipe ingredient seed は public.ingredients も idempotent に upsert してください。',
+);
+assert.match(
+  cultureMigrationSource,
+  /insert\s+into\s+public\.recipe_ingredients[\s\S]*?on\s+conflict\s*\(\s*recipe_id\s*,\s*ingredient_id\s*\)\s+do\s+update/i,
+  'mock recipe ingredient seed は public.recipe_ingredients を idempotent に upsert してください。',
+);
+
 assert.match(
   migrationSource,
   /on\s+conflict\s*\([\s\S]*?recipe_id\s*,\s*section_key[\s\S]*?\)\s+do\s+update/i,

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, type KeyboardEvent } from 'react';
 import { X, Clock, Users, ShieldAlert, ChefHat } from 'lucide-react';
 import { Recipe, type RecipeCultureSectionKey, type RecipeStep } from '@/lib/mockData';
 
@@ -26,6 +26,12 @@ const MODAL_TABS: ModalTab[] = [
 const CULTURE_SECTION_FALLBACK: Record<RecipeCultureSectionKey, string> = {
   origin: 'この料理の由来記事は現在準備中です。',
   food_culture: 'この料理と食文化の読み物は現在準備中です。',
+};
+
+const TAB_PANEL_IDS: Record<ModalTabKey, string> = {
+  basic: 'recipe-modal-tabpanel-basic',
+  origin: 'recipe-modal-tabpanel-origin',
+  food_culture: 'recipe-modal-tabpanel-food_culture',
 };
 
 const DIET_RESTRICTION_LABELS: Record<string, string> = {
@@ -126,25 +132,46 @@ export default function RecipeModal({
     ...selectedDietLabels.map(label => ({ label, tone: 'neutral' })),
   ];
 
-  const handleTabClick = (tab: ModalTabKey) => {
-    if (tab === 'origin') {
-      setActiveTab('origin');
-      return;
-    }
-    if (tab === 'food_culture') {
-      setActiveTab('food_culture');
-      return;
-    }
-    setActiveTab('basic');
+  const focusTab = (tab: ModalTabKey) => {
+    requestAnimationFrame(() => {
+      document.getElementById(`recipe-modal-tab-${tab}`)?.focus();
+    });
   };
 
-  const activeCultureSection = isCultureTab(activeTab)
-    ? recipe.culture_sections.find(
-        section => section.key === activeTab && (section.key === 'origin' || section.key === 'food_culture'),
-      )
-    : undefined;
+  const handleTabClick = (tab: ModalTabKey) => {
+    setActiveTab(tab);
+  };
+
+  const handleTabKeyDown = (event: KeyboardEvent<HTMLButtonElement>, currentTab: ModalTabKey) => {
+    const currentIndex = MODAL_TABS.findIndex(tab => tab.key === currentTab);
+    const lastIndex = MODAL_TABS.length - 1;
+    let nextIndex: number | null = null;
+
+    if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+      nextIndex = currentIndex === lastIndex ? 0 : currentIndex + 1;
+    } else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+      nextIndex = currentIndex === 0 ? lastIndex : currentIndex - 1;
+    } else if (event.key === 'Home') {
+      nextIndex = 0;
+    } else if (event.key === 'End') {
+      nextIndex = lastIndex;
+    }
+
+    if (nextIndex === null) return;
+
+    event.preventDefault();
+    const nextTab = MODAL_TABS[nextIndex].key;
+    setActiveTab(nextTab);
+    focusTab(nextTab);
+  };
+
+  const getCultureSection = (tab: RecipeCultureSectionKey) =>
+    recipe.culture_sections.find(
+      section => section.key === tab && (section.key === 'origin' || section.key === 'food_culture'),
+    );
+  const activeCultureSection = isCultureTab(activeTab) ? getCultureSection(activeTab) : undefined;
   const activeCultureFallback = isCultureTab(activeTab) ? CULTURE_SECTION_FALLBACK[activeTab] : '';
-  const activePanelId = `recipe-modal-tabpanel-${activeTab}`;
+  const activePanelId = TAB_PANEL_IDS[activeTab];
 
   return (
     <div
@@ -299,6 +326,17 @@ export default function RecipeModal({
             )}
           </div>
 
+          {MODAL_TABS.filter(tab => tab.key !== activeTab).map(tab => (
+            <div
+              key={`inactive-panel-${tab.key}`}
+              id={TAB_PANEL_IDS[tab.key]}
+              className={`modal-content modal-tab-panel modal-tab-panel--${tab.key}`}
+              role="tabpanel"
+              aria-labelledby={`recipe-modal-tab-${tab.key}`}
+              hidden={activeTab !== tab.key}
+            />
+          ))}
+
           <div className="modal-bookmark-tabs" role="tablist" aria-label="レシピ詳細セクションタブ">
             {MODAL_TABS.map((tab) => {
               const selected = activeTab === tab.key;
@@ -310,9 +348,10 @@ export default function RecipeModal({
                   className={`modal-bookmark-tab ${selected ? 'active' : ''}`}
                   role="tab"
                   aria-selected={selected}
-                  aria-controls={`recipe-modal-tabpanel-${tab.key}`}
+                  aria-controls={TAB_PANEL_IDS[tab.key]}
                   tabIndex={selected ? 0 : -1}
                   onClick={() => handleTabClick(tab.key)}
+                  onKeyDown={(event) => handleTabKeyDown(event, tab.key)}
                 >
                   {tab.label}
                 </button>

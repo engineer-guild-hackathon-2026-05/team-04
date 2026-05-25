@@ -36,6 +36,24 @@ assert.match(
   /aria-controls=\{[\s\S]*?\}|aria-controls=['"][^'"]+['"]/,
   'tab button には aria-controls を付与してください。',
 );
+
+assert.match(
+  source,
+  /onKeyDown=\{[\s\S]*?handleTabKeyDown[\s\S]*?\}|const\s+handleTabKeyDown\s*=/,
+  'roving tabIndex を使う tab UI は矢印/Home/End キーで focus と active tab を移動できる handler を持ってください。',
+);
+for (const key of ['basic', 'origin', 'food_culture']) {
+  assert.match(
+    source,
+    new RegExp(`recipe-modal-tabpanel-${key}`),
+    `${key} tab の aria-controls が常に存在する tabpanel id を参照してください。`,
+  );
+}
+assert.match(
+  source,
+  /hidden=\{[\s\S]*?activeTab\s*!==[\s\S]*?\}/,
+  '非active tabpanel は DOM に残したまま hidden で切り替えてください。',
+);
 assert.match(
   source,
   /id=\{[\s\S]*?tabpanel[\s\S]*?\}|role=\{?['"]tabpanel['"]\}?/,
@@ -43,13 +61,13 @@ assert.match(
 );
 assert.match(
   source,
-  /set\w*Tab\(['"]origin['"]\)|setActive\w*\(['"]origin['"]\)/,
-  '由来タブの click は active tab を origin に切り替えてください。',
+  /onClick=\{\(\)\s*=>\s*handleTabClick\(tab\.key\)\}|setActiveTab\(tab\)/,
+  'tab click は選択した tab key を active tab に切り替えてください。',
 );
 assert.match(
   source,
-  /set\w*Tab\(['"]food_culture['"]\)|setActive\w*\(['"]food_culture['"]\)/,
-  '食文化タブの click は active tab を food_culture に切り替えてください。',
+  /['"]origin['"][\s\S]*['"]food_culture['"]|['"]food_culture['"][\s\S]*['"]origin['"]/,
+  '由来/食文化タブの key は click handler に渡せる状態で保持してください。',
 );
 assert.match(
   source,

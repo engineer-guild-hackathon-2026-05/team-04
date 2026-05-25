@@ -155,6 +155,59 @@ on conflict (source_type, source_ref) where source_ref is not null do update set
   tags = excluded.tags,
   steps = excluded.steps;
 
+with mock_ingredient_seed (source_ref, name_en, name_ja, quantity, is_optional) as (
+  values
+    ('mock:rec-lobio', 'mock:rec-lobio:ingredient:01', '赤インゲン豆', '400g', false),
+    ('mock:rec-lobio', 'walnut', 'くるみ', '50g', false),
+    ('mock:rec-lobio', 'mock:rec-lobio:ingredient:03', '玉ねぎ', '1個', false),
+    ('mock:rec-gadogado', 'peanut', 'ピーナッツバター', '大さじ4', false),
+    ('mock:rec-gadogado', 'soybean', '厚揚げ', '1パック', false),
+    ('mock:rec-gadogado', 'mock:rec-gadogado:ingredient:03', 'キャベツ', '3〜4枚', false),
+    ('mock:rec-dal', 'mock:rec-dal:ingredient:01', '赤レンズ豆', '150g', false),
+    ('mock:rec-dal', 'mock:rec-dal:ingredient:02', 'ココナッツミルク', '200ml', false),
+    ('mock:rec-dal', 'mock:rec-dal:ingredient:03', 'トマト', '200g', false),
+    ('mock:rec-tacos', 'soybean', '大豆ミート', '120g', false),
+    ('mock:rec-tacos', 'mock:rec-tacos:ingredient:02', 'コーントルティーヤ', '4枚', false),
+    ('mock:rec-tacos', 'mock:rec-tacos:ingredient:03', 'サルサ', '適量', false)
+), custom_mock_ingredients as (
+  select distinct name_en, name_ja
+  from mock_ingredient_seed
+  where name_en like 'mock:%'
+)
+insert into public.ingredients (name_ja, name_en, category)
+select name_ja, name_en, 'mock料理'
+from custom_mock_ingredients
+on conflict (name_en) do update set
+  name_ja = excluded.name_ja,
+  category = excluded.category;
+
+with mock_ingredient_seed (source_ref, name_en, quantity, is_optional) as (
+  values
+    ('mock:rec-lobio', 'mock:rec-lobio:ingredient:01', '400g', false),
+    ('mock:rec-lobio', 'walnut', '50g', false),
+    ('mock:rec-lobio', 'mock:rec-lobio:ingredient:03', '1個', false),
+    ('mock:rec-gadogado', 'peanut', '大さじ4', false),
+    ('mock:rec-gadogado', 'soybean', '1パック', false),
+    ('mock:rec-gadogado', 'mock:rec-gadogado:ingredient:03', '3〜4枚', false),
+    ('mock:rec-dal', 'mock:rec-dal:ingredient:01', '150g', false),
+    ('mock:rec-dal', 'mock:rec-dal:ingredient:02', '200ml', false),
+    ('mock:rec-dal', 'mock:rec-dal:ingredient:03', '200g', false),
+    ('mock:rec-tacos', 'soybean', '120g', false),
+    ('mock:rec-tacos', 'mock:rec-tacos:ingredient:02', '4枚', false),
+    ('mock:rec-tacos', 'mock:rec-tacos:ingredient:03', '適量', false)
+)
+insert into public.recipe_ingredients (recipe_id, ingredient_id, quantity, is_optional)
+select r.id, i.id, s.quantity, s.is_optional
+from mock_ingredient_seed s
+join public.recipes r
+  on r.source_type = 'api'
+ and r.source_ref = s.source_ref
+join public.ingredients i
+  on i.name_en = s.name_en
+on conflict (recipe_id, ingredient_id) do update set
+  quantity = excluded.quantity,
+  is_optional = excluded.is_optional;
+
 with culture_seed (source_ref, section_key, label, title, body, sort_order) as (
   values
     ('mock:rec-lobio', 'origin', '由来', '豆を囲む食卓の読み物', 'ロビオは、豆を主役にした家庭的な煮込みとして親しまれてきた料理という設定の mock 記事です。くるみ、香草、酸味を重ねることで、山あいの食卓にある素朴さと温かさを感じられる一皿として紹介します。', 1),

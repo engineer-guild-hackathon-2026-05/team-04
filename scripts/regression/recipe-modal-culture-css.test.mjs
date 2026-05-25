@@ -36,4 +36,13 @@ assert.match(
   'small screen media block で bookmark tabs が横はみ出ししない responsive layout を定義してください。',
 );
 
+
+const smallScreenBlock = source.match(/@media\s*\([^)]*max-width[\s\S]*?\n\}/)?.[0] ?? '';
+const mobileBookmarkTabsDefinitions = smallScreenBlock.match(/\.modal-bookmark-tabs\s*\{/g) ?? [];
+assert.equal(
+  mobileBookmarkTabsDefinitions.length,
+  1,
+  'small screen media block 内の .modal-bookmark-tabs 定義は 1 箇所に統合してください。',
+);
+
 console.log('recipe modal culture CSS regression checks passed');
