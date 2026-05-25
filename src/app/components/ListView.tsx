@@ -349,7 +349,6 @@ export default function ListView({
           <div className="mood-chat-panel" id="mood-chat-panel">
             <div className="mood-chat-header">
               <div>
-                <p className="mood-chat-eyebrow">AIレシピ相談</p>
                 <h3>今の気分を教えてください</h3>
               </div>
               <button
@@ -390,11 +389,12 @@ export default function ListView({
               </div>
             </form>
 
-            <p className="mood-chat-helper" role="status" aria-live="polite">
-              {suggestStatus === 'loading' && 'あなたの制限食材を避けてレシピを考えています。'}
-              {suggestStatus === 'success' && '新しいAIレシピを一覧に追加しました。'}
-              {suggestStatus === 'idle' && 'プロフィールの食材制限を反映して、日本語で提案します。'}
-            </p>
+            {suggestStatus !== 'idle' && (
+              <p className="mood-chat-helper" role="status" aria-live="polite">
+                {suggestStatus === 'loading' && 'あなたの制限食材を避けてレシピを考えています。'}
+                {suggestStatus === 'success' && '新しいAIレシピを一覧に追加しました。'}
+              </p>
+            )}
             {suggestStatus === 'error' && suggestError && (
               <p className="mood-chat-error" role="alert">{suggestError}</p>
             )}

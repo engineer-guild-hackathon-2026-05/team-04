@@ -1130,11 +1130,11 @@ button, input {
   padding: 14px 18px;
   border: none;
   border-radius: 999px;
-  color: white;
-  background: linear-gradient(135deg, var(--forest-green), var(--accent-green));
+  color: #fff7ed;
+  background: linear-gradient(135deg, var(--copper), var(--gold));
   font-weight: 900;
   cursor: pointer;
-  box-shadow: 0 16px 40px rgba(27, 67, 50, 0.24);
+  box-shadow: 0 16px 40px rgba(194, 65, 12, 0.28);
 }
 
 .mood-chat-panel {
@@ -1154,14 +1154,6 @@ button, input {
   align-items: flex-start;
   gap: 12px;
   margin-bottom: 14px;
-}
-
-.mood-chat-eyebrow {
-  margin-bottom: 4px;
-  color: var(--accent-green);
-  font-size: 0.74rem;
-  font-weight: 900;
-  letter-spacing: 0.08em;
 }
 
 .mood-chat-header h3 {
@@ -1189,7 +1181,7 @@ button, input {
 }
 
 .mood-chat-form label {
-  color: var(--text-muted);
+  color: var(--text-light);
   font-size: 0.82rem;
   font-weight: 700;
   line-height: 1.5;
