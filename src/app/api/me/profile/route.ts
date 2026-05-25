@@ -184,7 +184,7 @@ export async function GET() {
     return NextResponse.json({ ...EMPTY_PROFILE, userName: DEMO_PROFILE_NAME, source: 'demo' } satisfies ProfileResponse);
   }
 
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) {
     return NextResponse.json({ error: 'Supabase is not configured.' }, { status: 503 });
   }
 
@@ -300,7 +300,7 @@ export async function PUT(request: NextRequest) {
     } satisfies ProfileResponse);
   }
 
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) {
     return NextResponse.json({ error: 'Supabase is not configured.' }, { status: 503 });
   }
 

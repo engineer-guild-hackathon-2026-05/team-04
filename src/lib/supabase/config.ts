@@ -1,17 +1,17 @@
 export type SupabaseConfig = {
   supabaseUrl: string;
-  supabaseAnonKey: string;
+  supabasePublishableKey: string;
 };
 
 export function getSupabaseConfig(): SupabaseConfig | null {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const supabasePublishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
-  if (!supabaseUrl || !supabaseAnonKey) {
+  if (!supabaseUrl || !supabasePublishableKey) {
     return null;
   }
 
-  return { supabaseUrl, supabaseAnonKey };
+  return { supabaseUrl, supabasePublishableKey };
 }
 
 export function hasSupabaseConfig() {
@@ -22,7 +22,7 @@ export function requireSupabaseConfig() {
   const config = getSupabaseConfig();
   if (!config) {
     throw new Error(
-      "Supabase configuration is missing. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.",
+      "Supabase configuration is missing. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY.",
     );
   }
 

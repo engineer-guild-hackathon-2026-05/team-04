@@ -5,12 +5,12 @@ import { requireSupabaseConfig } from "@/lib/supabase/config";
 // Server Component / Server Action / Route Handler から呼び出す Supabase クライアント。
 // Next.js の Cookie ストアを介してセッションを読み書きする。
 export async function createClient() {
-  const { supabaseUrl, supabaseAnonKey } = requireSupabaseConfig();
+  const { supabaseUrl, supabasePublishableKey } = requireSupabaseConfig();
   const cookieStore = await cookies();
 
   return createServerClient(
     supabaseUrl,
-    supabaseAnonKey,
+    supabasePublishableKey,
     {
       cookies: {
         getAll() {

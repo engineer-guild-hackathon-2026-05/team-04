@@ -48,13 +48,13 @@ assert.match(
 );
 assert.match(
   databaseDocs,
-  /NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon key>/,
-  'docs/database.md の anon key 環境変数名は実装と同じ NEXT_PUBLIC_SUPABASE_ANON_KEY にしてください。',
+  /NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<publishable key>/,
+  'docs/database.md の publishable key 環境変数名は実装と同じ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY にしてください。',
 );
 assert.doesNotMatch(
   databaseDocs,
-  /\nSUPABASE_(?:URL|ANON_KEY)=/,
-  'docs/database.md に実装が読まない SUPABASE_URL / SUPABASE_ANON_KEY 例を再導入しないでください。',
+  /\nSUPABASE_(?:URL|PUBLISHABLE_KEY)=/,
+  'docs/database.md に実装が読まない SUPABASE_URL / SUPABASE_PUBLISHABLE_KEY 例を再導入しないでください。',
 );
 
 assert.match(

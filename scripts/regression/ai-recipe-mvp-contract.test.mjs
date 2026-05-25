@@ -55,13 +55,18 @@ for (const [path, source] of sourceFiles) {
     /NEXT_PUBLIC_OPENROUTER/i,
     `${path}: OpenRouter secrets must never use a NEXT_PUBLIC_ client-visible env var.`,
   );
+  assert.doesNotMatch(
+    source,
+    /NEXT_PUBLIC_SUPABASE_ANON_KEY|SUPABASE_SERVICE_ROLE_KEY/,
+    `${path}: use current Supabase publishable/secret API key variables, not legacy key names.`,
+  );
 }
 
 for (const [path, source] of srcClientFiles) {
   assert.doesNotMatch(
     source,
-    /OPENROUTER_API_KEY|SUPABASE_SERVICE_ROLE_KEY|serviceRole|createServiceRole/i,
-    `${path}: client-facing files must not import/read OpenRouter or service-role secrets.`,
+    /OPENROUTER_API_KEY|SUPABASE_SECRET_KEY|serviceRole|createServiceRole/i,
+    `${path}: client-facing files must not import/read OpenRouter or secret keys.`,
   );
 }
 
@@ -139,9 +144,9 @@ if (openRouter) {
 }
 
 if (serviceRole) {
-  assert.match(serviceRole, /server-only/, 'service-role Supabase utility must import server-only.');
-  assert.match(serviceRole, /SUPABASE_SERVICE_ROLE_KEY/, 'service-role Supabase utility must read SUPABASE_SERVICE_ROLE_KEY.');
-  assert.doesNotMatch(serviceRole, /NEXT_PUBLIC_SUPABASE_SERVICE_ROLE/i, 'service-role key must not use NEXT_PUBLIC_.');
+  assert.match(serviceRole, /server-only/, 'Supabase secret-key utility must import server-only.');
+  assert.match(serviceRole, /SUPABASE_SECRET_KEY/, 'Supabase secret-key utility must read SUPABASE_SECRET_KEY.');
+  assert.doesNotMatch(serviceRole, /NEXT_PUBLIC_SUPABASE_SERVICE_ROLE/i, 'secret key must not use NEXT_PUBLIC_.');
 }
 
 if (suggestRoute) {
@@ -155,7 +160,7 @@ if (suggestRoute) {
     assert.ok(authIndex < openRouterIndex, 'suggest route must return 401 before calling OpenRouter.');
   }
   if (serviceRoleIndex !== -1) {
-    assert.ok(authIndex < serviceRoleIndex, 'suggest route must authorize before service-role persistence.');
+    assert.ok(authIndex < serviceRoleIndex, 'suggest route must authorize before secret-key persistence.');
   }
   assert.match(suggestRoute, /mood/, 'suggest route must validate a mood request field.');
   assert.match(suggestRoute, /restrictedIngredients/, 'suggest route must accept/merge restrictedIngredients.');
@@ -172,11 +177,11 @@ if (substituteRoute) {
   assert.match(
     substituteRoute,
     /[0-9a-f]\{8\}|isUuid|uuid|UUID/i,
-    'substitute route must reject non-UUID fallback/mock recipe ids before service-role work.',
+    'substitute route must reject non-UUID fallback/mock recipe ids before secret-key work.',
   );
-  assert.notEqual(authIndex, -1, 'substitute route must authenticate before DB/service-role work.');
+  assert.notEqual(authIndex, -1, 'substitute route must authenticate before DB/secret-key work.');
   if (serviceRoleIndex !== -1) {
-    assert.ok(authIndex < serviceRoleIndex, 'substitute route must authorize before service-role persistence.');
+    assert.ok(authIndex < serviceRoleIndex, 'substitute route must authorize before secret-key persistence.');
   }
   assert.match(substituteRoute, /parent_recipe_id|parentRecipe/i, 'substitute route must persist parent recipe lineage.');
   assert.match(substituteRoute, /cultural_background|culturalBackground/i, 'substitute route must return cultural background.');

@@ -27,13 +27,28 @@ const allSourceText = [...sourceTextByPath.values()].join('\n');
 
 assert.match(
   envExample,
-  /^# OPENROUTER_API_KEY=your-openrouter-api-key-here$/m,
+  /^OPENROUTER_API_KEY=your-openrouter-api-key-here$/m,
   '.env.local.example must document OPENROUTER_API_KEY as a server-only key.',
 );
 assert.match(
   envExample,
-  /^# OPENROUTER_MODEL=google\/gemini-3\.1-flash-lite$/m,
+  /^OPENROUTER_MODEL=google\/gemini-3\.1-flash-lite$/m,
   '.env.local.example must pin the approved OpenRouter model exactly.',
+);
+assert.match(
+  envExample,
+  /^NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-supabase-publishable-key-here$/m,
+  '.env.local.example must use the current Supabase publishable key variable.',
+);
+assert.match(
+  envExample,
+  /^SUPABASE_SECRET_KEY=your-supabase-secret-key-here$/m,
+  '.env.local.example must use the current Supabase secret key variable.',
+);
+assert.doesNotMatch(
+  envExample,
+  /NEXT_PUBLIC_SUPABASE_ANON_KEY|SUPABASE_SERVICE_ROLE_KEY/,
+  '.env.local.example must not document legacy Supabase API key variables.',
 );
 assert.doesNotMatch(
   `${envExample}\n${allSourceText}`,
@@ -60,8 +75,8 @@ for (const path of clientVisibleFiles) {
   const source = sourceTextByPath.get(path) ?? '';
   assert.doesNotMatch(
     source,
-    /OPENROUTER_API_KEY|SUPABASE_SERVICE_ROLE_KEY|serviceRole|openRouter/i,
-    `${relative('.', path)} must not import or reference server-only AI/service-role secrets.`,
+    /OPENROUTER_API_KEY|SUPABASE_SECRET_KEY|serviceRole|openRouter/i,
+    `${relative('.', path)} must not import or reference server-only AI/secret keys.`,
   );
 }
 
@@ -74,10 +89,10 @@ for (const path of aiRouteFiles) {
   const source = readFileSync(path, 'utf8');
   const authIndex = source.search(/getUser\s*\(|auth\.getUser\s*\(|requireAuthenticatedUser/);
   const privilegedIndex = source.search(/generateRecipesWithOpenRouter\s*\(|persistAiRecipe\s*\(|createServiceRoleClient\s*\(|rpc\s*\(/i);
-  assert.ok(authIndex >= 0, `${path} must authenticate before doing AI or service-role work.`);
+  assert.ok(authIndex >= 0, `${path} must authenticate before doing AI or secret-key work.`);
   assert.ok(
     privilegedIndex === -1 || authIndex < privilegedIndex,
-    `${path} must perform auth/session checks before OpenRouter or service-role/RPC work.`,
+    `${path} must perform auth/session checks before OpenRouter or secret-key/RPC work.`,
   );
 }
 

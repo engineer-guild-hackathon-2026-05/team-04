@@ -160,13 +160,13 @@ WHERE r.id NOT IN (
 ```
 # .env.local（リポジトリにコミットしない）
 NEXT_PUBLIC_SUPABASE_URL=https://<project>.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon key>      # ブラウザにも公開される。RLS前提のクライアント/通常操作用
-SUPABASE_SERVICE_ROLE_KEY=<service role key>  # サーバーサイド専用・NEXT_PUBLIC_禁止・絶対に公開しない
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<publishable key>      # ブラウザにも公開される。RLS前提のクライアント/通常操作用
+SUPABASE_SECRET_KEY=<secret key>  # サーバーサイド専用・NEXT_PUBLIC_禁止・絶対に公開しない
 ```
 
-service role keyはSupabaseダッシュボードの `Settings > API` から取得できる。
+secret keyはSupabaseダッシュボードの `Settings > API` から取得できる。
 `NEXT_PUBLIC_` 付きの値はブラウザに露出するため、RLSで許可された読み書きにだけ使う。
-`SUPABASE_SERVICE_ROLE_KEY` はRLSをバイパスするため、Route Handler内の信頼済み処理（例: AI/API由来レシピの保存）に限定する。
+`SUPABASE_SECRET_KEY` はRLSをバイパスするため、Route Handler内の信頼済み処理（例: AI/API由来レシピの保存）に限定する。
 プロフィール・ユーザー設定の更新は本人のCookieセッションとRLSで処理し、service roleを使わない。
 
 ## マイグレーションファイル

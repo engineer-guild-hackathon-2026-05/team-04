@@ -201,7 +201,7 @@ const { data: recipe } = await supabase
 
 ## 環境変数の使い分け
 
-- Client Componentから参照してよいのは `NEXT_PUBLIC_SUPABASE_URL` と `NEXT_PUBLIC_SUPABASE_ANON_KEY` のみ
-- `SUPABASE_SERVICE_ROLE_KEY` はブラウザに出さない。`NEXT_PUBLIC_` プレフィックスも付けない
+- Client Componentから参照してよいのは `NEXT_PUBLIC_SUPABASE_URL` と `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` のみ
+- `SUPABASE_SECRET_KEY` はブラウザに出さない。`NEXT_PUBLIC_` プレフィックスも付けない
 - `/api/me/profile` は本人のCookieセッションとRLSで更新するため、service roleを使わない
 - `/api/recipes` でAI/API由来レシピをDBへ保存する処理だけ、Route Handler内でservice roleを使う

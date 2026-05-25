@@ -5,7 +5,7 @@ worker-3 のテスト lane は、AIレシピ提案・日本食材での再提案
 ## 追加した回帰テスト
 
 - `scripts/regression/ai-recipe-mvp-contract.test.mjs`
-  - OpenRouter / service-role secret が Client Component や `NEXT_PUBLIC_*` に漏れないことを常時検査する。
+  - OpenRouter / secret key が Client Component や `NEXT_PUBLIC_*` に漏れないことを常時検査する。
   - DB/API/UI 実装ファイルがマージされた時点で、MVP カラム、RPC 権限、固定モデル `google/gemini-3.1-flash-lite`、認証優先、非UUIDレシピの日本語 disabled copy などを自動的に検査する ratchet テスト。
 - `scripts/regression/ai-recipe-validation-mocks.test.mjs`
   - OpenRouter JSON 失敗、未対応 restriction、制限食材混入、`diet-vegan` 違反を mock payload で固定する。
