@@ -26,6 +26,8 @@ out/
 dist/
 build/
 .turbo/
+*.tsbuildinfo
+.vercel/
 
 # Python
 __pycache__/
@@ -47,3 +49,10 @@ logs/
 .cache/
 coverage/
 .nyc_output/
+
+# OMX local state
+.omx/
+
+# Claude Code
+.claude/
+CLAUDE.md
