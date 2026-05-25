@@ -33,7 +33,7 @@ export async function POST(
 ) {
   const { id } = await context.params;
   if (!isUuid(id)) {
-    return apiError(404, 'persisted_recipe_required', 'ログイン後の保存済みレシピで利用できます。');
+    return apiError(404, 'persisted_recipe_required', '対象レシピを確認できませんでした。');
   }
 
   let supabase: Awaited<ReturnType<typeof createClient>>;

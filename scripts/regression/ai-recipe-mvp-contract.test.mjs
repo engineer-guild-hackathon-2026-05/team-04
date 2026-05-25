@@ -213,7 +213,11 @@ if (/onSuggestRecipes|suggestion|ムード|気分/.test(listView) || suggestRout
 if (/onSubstituteRecipe|substitute|再提案|日本の食材/.test(recipeModal) || substituteRoute) {
   assert.match(recipeModal, /onSubstituteRecipe|handleSubstitute/i, 'RecipeModal must receive or invoke a substitute callback.');
   assert.match(recipeModal, /日本の食材で再提案/, 'RecipeModal substitute action must use approved Japanese copy.');
-  assert.match(recipeModal, /ログイン後の保存済みレシピで利用できます/, 'RecipeModal must explain disabled substitute for fallback/mock ids.');
+  assert.doesNotMatch(
+    recipeModal + substituteRoute,
+    /ログイン後の保存済みレシピで利用できます/,
+    'RecipeModal/substitute route must not show login-after-copy because recipes are not visible before login.',
+  );
   assert.match(recipeModal, /isUuid|uuid|[0-9a-f]\{8\}/i, 'RecipeModal must guard non-UUID fallback/mock recipe ids.');
   assert.match(recipeModal, /cultural_background|culturalBackground/, 'RecipeModal must render cultural background when present.');
 }
