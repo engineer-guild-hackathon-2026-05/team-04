@@ -154,18 +154,19 @@ Claudeへのプロンプト・期待するJSONの形例：
 | API | 用途 | 認証 | 備考 |
 |---|---|---|---|
 | `GET /api/recipes` | 表示可能な既存レシピ一覧を取得 | 任意 | DB取得に失敗した場合はフォールバックレシピを返す |
-| `POST /api/recipes` | AIレシピ生成・保存（追加時） | 任意または必要に応じて必須 | `source_type = 'ai'` の保存はサーバー側service roleで実行 |
+| `POST /api/recipes/suggest` | 保存済みレシピからAIが候補を選ぶ | 必須 | 読み取り専用。DBへレシピを保存しない |
+| `POST /api/recipes/[id]/substitute` | 既存食材カタログから代替食材を選ぶ | 必須 | 読み取り専用。表示中モーダルの置換案だけ返す |
 
-`POST /api/recipes` に明示的な制限を渡す場合：
+AI提案APIに明示的な制限を渡す場合：
 
 ```json
 {
-  "restrictedIngredients": ["ing-shrimp", "ing-milk"],
-  "locale": "ja"
+  "restrictedIngredients": ["ing-shrimp", "ing-milk", "diet-vegan", "prep-raw-fish"],
+  "mood": "さっぱりした料理"
 }
 ```
 
-AI生成APIを追加する場合、ログイン済みユーザーではリクエスト本文の指定がないときに `/api/me/profile` 相当の保存済み設定を使う。
+ログイン済みユーザーでは、リクエスト本文の指定に加えて `/api/me/profile` 相当の保存済み設定をサーバー側で統合する。
 
 ---
 
@@ -202,6 +203,6 @@ const { data: recipe } = await supabase
 ## 環境変数の使い分け
 
 - Client Componentから参照してよいのは `NEXT_PUBLIC_SUPABASE_URL` と `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` のみ
-- `SUPABASE_SECRET_KEY` はブラウザに出さない。`NEXT_PUBLIC_` プレフィックスも付けない
+- OpenRouterなどサーバー専用キーはRoute Handler内だけで読み、`NEXT_PUBLIC_` プレフィックスを付けない
 - `/api/me/profile` は本人のCookieセッションとRLSで更新するため、service roleを使わない
-- `/api/recipes` でAI/API由来レシピをDBへ保存する処理だけ、Route Handler内でservice roleを使う
+- 現在のAI提案/代替APIは読み取り専用で、AI/API由来レシピをDBへ保存しないためSupabase secret/service-role keyは不要

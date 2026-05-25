@@ -44,7 +44,6 @@ type SubstituteRecipeResponse = {
 const PROFILE_STORAGE_KEY = 'globalbites_profile';
 const DEMO_PROFILE_STORAGE_KEY = 'globalbites_demo_profile';
 const DEFAULT_USER_NAME = 'ゲスト愛好家';
-const LOGIN_REQUIRED_RECIPE_MESSAGE = 'ログイン後に保存済みレシピで利用できます。';
 
 class ProfileSaveValidationError extends Error {
   constructor(readonly unknownCodes: string[]) {
@@ -117,8 +116,8 @@ async function saveProfileToApi(profile: ProfilePayload) {
 
 function getAiRecipeErrorMessage(status: number, body: AiRecipeErrorResponse | null, fallback: string) {
   if (status === 401) return 'ログイン後にAIレシピ提案を利用できます。';
-  if (status === 404) return LOGIN_REQUIRED_RECIPE_MESSAGE;
   const rawMessage = body?.message ?? body?.error;
+  if (status === 404) return typeof rawMessage === 'string' && rawMessage.trim() ? rawMessage.trim() : fallback;
   return typeof rawMessage === 'string' && rawMessage.trim() ? rawMessage.trim() : fallback;
 }
 

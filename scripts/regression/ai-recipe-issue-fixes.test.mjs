@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 
 const read = (path) => readFileSync(path, 'utf8');
 const compact = (source) => source.replace(/\s+/g, ' ');
@@ -13,7 +13,26 @@ const listView = read('src/app/components/ListView.tsx');
 const page = read('src/app/page.tsx');
 const recipeModal = read('src/app/components/RecipeModal.tsx');
 const globalsCss = read('src/app/globals.css');
+const migrationFiles = readdirSync('supabase/migrations').filter((file) => file.endsWith('.sql'));
+const aiFieldsMigration = read('supabase/migrations/20260525134400_add_ai_recipe_mvp_fields.sql');
 const dropWriteRpcMigration = read('supabase/migrations/20260525143000_drop_ai_recipe_write_rpcs.sql');
+
+const migrationVersions = migrationFiles.map((file) => file.match(/^\d{14}/)?.[0]).filter(Boolean);
+assert.equal(
+  new Set(migrationVersions).size,
+  migrationVersions.length,
+  'Supabase migration timestamp prefixes must be unique.',
+);
+assert.doesNotMatch(
+  aiFieldsMigration,
+  /create\s+or\s+replace\s+function\s+public\.insert_ai_recipes?_mvp/i,
+  'AI MVP field migration must not create temporary privileged AI write RPCs.',
+);
+assert.doesNotMatch(
+  aiFieldsMigration,
+  /grant\s+execute\s+on\s+function\s+public\.insert_ai_recipes?_mvp/i,
+  'AI MVP field migration must not grant service-role access to AI write RPCs.',
+);
 
 assert.doesNotMatch(
   compact(suggestRoute),
@@ -67,6 +86,21 @@ assert.match(
   substituteRoute,
   /ingredients!recipe_ingredients_ingredient_id_fkey/i,
   'substitute route embeds must disambiguate the original ingredient FK after substituted_from_ingredient_id is added.',
+);
+assert.match(
+  substituteRoute,
+  /recipe_ingredients\s*\([\s\S]*display_name_ja[\s\S]*ingredients!recipe_ingredients_ingredient_id_fkey/s,
+  'substitute route must select recipe_ingredients.display_name_ja for custom rendered ingredient names.',
+);
+assert.match(
+  substituteRoute,
+  /row\.display_name_ja\?\.trim\(\)\s*\|\|\s*row\.ingredients\?\.name_ja\?\.trim\(\)/,
+  'substitute route must use display_name_ja before falling back to ingredients.name_ja.',
+);
+assert.match(
+  substituteRoute,
+  /MAX_SUBSTITUTE_CANDIDATES_FOR_AI[\s\S]*\.slice\(0,\s*MAX_SUBSTITUTE_CANDIDATES_FOR_AI\)[\s\S]*selectIngredientSubstitutionsWithOpenRouter/s,
+  'substitute route must cap replacement candidates before serializing them into the OpenRouter prompt.',
 );
 
 assert.match(

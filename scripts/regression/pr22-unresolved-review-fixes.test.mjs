@@ -10,6 +10,10 @@ const recipeAi = read('src/lib/recipeAi.ts');
 const routeUtils = read('src/lib/server/recipeRouteUtils.ts');
 const suggestRoute = read('src/app/api/recipes/suggest/route.ts');
 const substituteRoute = read('src/app/api/recipes/[id]/substitute/route.ts');
+const page = read('src/app/page.tsx');
+const frontendDocs = read('docs/frontend.md');
+const databaseDocs = read('docs/database.md');
+const authDocs = read('docs/auth.md');
 
 assert.match(
   middleware,
@@ -126,6 +130,39 @@ assert.match(
   suggestRoute,
   /violatesPreparationRestrictions[\s\S]*preparationRestrictions/,
   'AI recipe suggestions must filter candidates with selected prep-* restrictions before prompting OpenRouter.',
+);
+
+assert.doesNotMatch(
+  page,
+  /if\s*\(status\s*===\s*404\)\s*return\s+LOGIN_REQUIRED_RECIPE_MESSAGE/,
+  'AI recipe 404 errors must not be replaced with a generic login-required message.',
+);
+assert.match(
+  page,
+  /rawMessage[\s\S]*status\s*===\s*404[\s\S]*fallback/,
+  'AI recipe 404 errors must prefer the server-provided error/message body before falling back.',
+);
+
+for (const [path, source] of [
+  ['docs/frontend.md', frontendDocs],
+  ['docs/database.md', databaseDocs],
+  ['docs/auth.md', authDocs],
+]) {
+  assert.doesNotMatch(
+    source,
+    /SUPABASE_SECRET_KEY/,
+    `${path} must not require Supabase secret-key setup for the current read-only AI MVP.`,
+  );
+}
+assert.doesNotMatch(
+  frontendDocs + databaseDocs,
+  /AI\/API由来レシピをDBへ保存する処理だけ|AIレシピ生成・保存|source_type = 'ai'` および `'api'` のレシピはサーバーサイド（Next\.js API Route）からservice roleキーを使って書き込む/,
+  'docs must not claim current AI/API recipe persistence uses service role.',
+);
+assert.match(
+  frontendDocs + databaseDocs + authDocs,
+  /AI提案\/代替APIは読み取り専用|service role clientを使わない|Supabase secret\/service-role keyは不要/,
+  'docs must state the current AI MVP is read-only and does not require Supabase service-role setup.',
 );
 
 console.log('PR22 unresolved review regression checks passed');

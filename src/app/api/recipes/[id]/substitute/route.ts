@@ -7,7 +7,10 @@ import { getRecipeRouteUser, isUuid, mergedRestrictionContext } from '@/lib/serv
 import { createClient } from '@/lib/supabase/server';
 import { includesRestrictedIngredientText, isDietaryConflictIngredient } from '@/lib/recipeAi';
 
+const MAX_SUBSTITUTE_CANDIDATES_FOR_AI = 80;
+
 type RecipeIngredientRow = {
+  display_name_ja?: string | null;
   quantity?: string | null;
   ingredients?: {
     id?: string | null;
@@ -52,7 +55,7 @@ function mapIngredientCatalogRow(row: IngredientCatalogRow): IngredientMaster | 
 function originalIngredientsFromRecipe(recipe: RecipeRow): OriginalIngredient[] {
   return (recipe.recipe_ingredients ?? [])
     .map((row): OriginalIngredient | null => {
-      const name = row.ingredients?.name_ja?.trim();
+      const name = row.display_name_ja?.trim() || row.ingredients?.name_ja?.trim();
       if (!name) return null;
       const quantity = row.quantity?.trim();
       return {
@@ -96,6 +99,7 @@ export async function POST(
         title,
         recipe_ingredients (
           quantity,
+          display_name_ja,
           ingredients!recipe_ingredients_ingredient_id_fkey ( id, ingredient_code, name_ja, name_en )
         )
       `)
@@ -125,7 +129,8 @@ export async function POST(
     const { data: ingredientRows, error: ingredientError } = await supabase
       .from('ingredients')
       .select('ingredient_code, name_ja, name_en, category, dietary_tags')
-      .order('name_ja', { ascending: true });
+      .order('name_ja', { ascending: true })
+      .limit(MAX_SUBSTITUTE_CANDIDATES_FOR_AI);
 
     if (ingredientError) throw ingredientError;
 
@@ -134,7 +139,8 @@ export async function POST(
       .filter((ingredient): ingredient is IngredientMaster => Boolean(ingredient))
       .filter((ingredient) =>
         !includesRestrictedIngredientText([ingredient.id, ingredient.name_ja, ingredient.name_en], restrictionContext.restrictions))
-      .filter((ingredient) => !isDietaryConflictIngredient(ingredient, restrictionContext.dietaryConstraints));
+      .filter((ingredient) => !isDietaryConflictIngredient(ingredient, restrictionContext.dietaryConstraints))
+      .slice(0, MAX_SUBSTITUTE_CANDIDATES_FOR_AI);
 
     const originalIngredients = originalIngredientsFromRecipe(recipe);
     const selections = await selectIngredientSubstitutionsWithOpenRouter({
