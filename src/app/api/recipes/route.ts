@@ -28,6 +28,8 @@ export async function GET() {
         is_vegan,
         is_gluten_free,
         tags,
+        cultural_background,
+        parent_recipe_id,
         steps,
         recipe_ingredients (
           quantity,
@@ -44,7 +46,7 @@ export async function GET() {
           sort_order
         )
       `)
-      .eq('is_public', true)
+      .or('is_public.eq.true,created_by.eq.' + ((await supabase.auth.getUser()).data.user?.id ?? '00000000-0000-0000-0000-000000000000'))
       .order('created_at', { ascending: false });
 
     if (error) throw error;
