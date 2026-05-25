@@ -73,6 +73,21 @@ assert.match(
   'beef ingredient は dietary_tags meat/animal-product を持つため、UI はこの根拠で vegan 不可を説明できます。',
 );
 
+const margherita = dishes.find((dish) => dish.source_ref === 'curated:pizza-margherita');
+assert.ok(margherita, 'ピッツァ・マルゲリータ は curated:pizza-margherita として seed に保持してください。');
+assert.equal(margherita.title, 'ピッツァ・マルゲリータ', 'curated:pizza-margherita の表示名を保持してください。');
+assert.equal(margherita.is_gluten_free, false, 'ピッツァ・マルゲリータ は小麦粉を含むため gluten-free=false にしてください。');
+assert.ok(
+  margherita.ingredients.some((ingredient) => ingredient.name_ja === '小麦粉（ピッツァ生地用）' && ingredient.master_name_en === 'wheat'),
+  'ピッツァ・マルゲリータ の小麦粉（ピッツァ生地用）は DB の wheat ingredient_code へ紐づけてください。',
+);
+assert.ok(
+  migrationPayload
+    .find((dish) => dish.source_ref === 'curated:pizza-margherita')
+    ?.ingredients.some((ingredient) => ingredient.name_ja === '小麦粉（ピッツァ生地用）' && ingredient.master_name_en === 'wheat'),
+  'curated migration 埋め込み JSON でも ピッツァ・マルゲリータ の小麦粉は wheat へ紐づけてください。',
+);
+
 for (const dish of dishes) {
   assert.match(dish.source_ref, /^curated:[a-z0-9-]+$/, `${dish.title} は curated: の安定 source_ref を使ってください。`);
   assert.match(dish.title, /[ぁ-んァ-ン一-龥]/, `${dish.source_ref} の表示名は日本語にしてください。`);

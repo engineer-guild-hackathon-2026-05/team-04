@@ -48,6 +48,7 @@ const RELIGIOUS_RESTRICTION_LABELS: Record<string, string> = {
 };
 
 const ANIMAL_PRODUCT_DIETARY_TAG = 'animal-product';
+const GLUTEN_DIETARY_TAG = 'gluten';
 
 const getIngredientListKey = (
   recipeId: string,
@@ -130,6 +131,9 @@ export default function RecipeModal({
   const animalProductNames = getUniqueIngredientNames(
     recipe.ingredients.filter(ing => ing.dietary_tags?.includes(ANIMAL_PRODUCT_DIETARY_TAG)),
   );
+  const glutenIngredientNames = getUniqueIngredientNames(
+    recipe.ingredients.filter(ing => ing.dietary_tags?.includes(GLUTEN_DIETARY_TAG)),
+  );
   const dietaryRestrictionTags = selectedDietaryRestrictionIds.length > 0
     ? selectedDietaryRestrictionIds.map((restrictionId) => {
         const rule = DIETARY_RESTRICTION_RULES[restrictionId];
@@ -146,9 +150,14 @@ export default function RecipeModal({
             ? { label: '完全ヴィーガン対応', tone: 'safe' }
             : { label: '食事制限要確認', tone: 'caution' },
       ];
+  const glutenRestrictionTag = glutenIngredientNames.length > 0
+    ? { label: `グルテン含有: ${glutenIngredientNames.join(', ')}`, tone: 'danger' }
+    : recipe.is_gluten_free
+      ? { label: 'グルテンフリー対応', tone: 'safe' }
+      : { label: 'グルテン要確認', tone: 'caution' };
   const recipeRestrictionTags = [
     ...dietaryRestrictionTags,
-    recipe.is_gluten_free ? { label: 'グルテンフリー対応', tone: 'safe' } : { label: 'グルテン要確認', tone: 'caution' },
+    glutenRestrictionTag,
     ...matchedAllergens.map(ing => ({ label: `含有: ${getBaseIngredientName(ing.name_ja)}`, tone: 'danger' })),
     ...matchedReligiousLabels.map(label => ({ label, tone: 'caution' })),
   ];

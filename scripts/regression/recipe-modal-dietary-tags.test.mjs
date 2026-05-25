@@ -68,10 +68,28 @@ assert.match(
   'diet 未選択時は特定の vegan 種別ではなく、動物性含有として材料名を表示してください。',
 );
 
+assert.match(
+  modalSource,
+  /GLUTEN_DIETARY_TAG\s*=\s*['"]gluten['"][\s\S]*?recipe\.ingredients\.filter\([\s\S]*?dietary_tags\?\.includes\(GLUTEN_DIETARY_TAG\)/,
+  'RecipeModal のグルテン判定は recipe.is_gluten_free だけでなく材料の dietary_tags(gluten) を確認してください。',
+);
+
+assert.match(
+  modalSource,
+  /glutenIngredientNames\.length\s*>\s*0[\s\S]*?グルテン含有:\s*\$\{glutenIngredientNames\.join\(/,
+  'gluten 材料がある料理は グルテン要確認 ではなく、材料名付きの グルテン含有 タグを表示してください。',
+);
+
 assert.doesNotMatch(
   modalSource,
   /ヴィーガン不可:\s*\$\{animalProductNames\.join\(/,
   'RecipeModal は diet 種別を無視した汎用 ヴィーガン不可 ラベルを表示しないでください。',
+);
+
+assert.doesNotMatch(
+  modalSource,
+  /recipeRestrictionTags\s*=\s*\[[\s\S]*?recipe\.is_gluten_free\s*\?\s*\{\s*label:\s*['"]グルテンフリー対応['"][\s\S]*?:\s*\{\s*label:\s*['"]グルテン要確認['"]/,
+  'RecipeModal で recipe.is_gluten_free=false だけを根拠に グルテン要確認 を即表示しないでください。',
 );
 
 console.log('recipe modal dietary tag regression checks passed');
