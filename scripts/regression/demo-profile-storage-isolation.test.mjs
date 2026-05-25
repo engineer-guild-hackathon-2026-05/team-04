@@ -35,6 +35,11 @@ assert.match(
   /preserveLocalIngredientCodes[\s\S]*!id\.startsWith\('ing-'\)/,
   '通常DB mergeではlocal-only制限だけを足しつつ、demo sourceではlocal ing-* も保持してください。',
 );
+assert.match(
+  mergeProfileBlock,
+  /const\s+shouldUseLocalPreferences\s*=\s*fallbackFields\.has\('preferences'\)\s*\|\|\s*preserveLocalIngredientCodes/,
+  'demo API fallback では、demo専用localStorageの好み設定も保持してください。',
+);
 
 const remoteProfileStart = source.indexOf('const remoteProfile = await fetchProfileFromApi()');
 assert.notEqual(remoteProfileStart, -1, 'profile API fallback branch を検査できません。');
@@ -95,27 +100,49 @@ assert.match(
 
 const emulateMergeProfile = ({ localProfile, remoteProfile }) => {
   const preserveLocalIngredientCodes = remoteProfile?.source === 'demo';
+  const shouldUseLocalPreferences = preserveLocalIngredientCodes;
   return {
-    userName: remoteProfile?.userName || localProfile?.userName || 'デモユーザー',
+    userName: preserveLocalIngredientCodes
+      ? localProfile?.userName || remoteProfile?.userName || 'デモユーザー'
+      : remoteProfile?.userName || localProfile?.userName || 'デモユーザー',
     restrictedIngredients: Array.from(new Set([
       ...(remoteProfile?.restrictedIngredients ?? []),
       ...(localProfile?.restrictedIngredients ?? []).filter(
         (id) => preserveLocalIngredientCodes || !id.startsWith('ing-'),
       ),
     ])),
+    preferredDishes: shouldUseLocalPreferences
+      ? localProfile?.preferredDishes ?? []
+      : remoteProfile?.preferredDishes ?? localProfile?.preferredDishes ?? [],
+    preferredCuisines: shouldUseLocalPreferences
+      ? localProfile?.preferredCuisines ?? []
+      : remoteProfile?.preferredCuisines ?? localProfile?.preferredCuisines ?? [],
   };
 };
 
 assert.deepEqual(
   emulateMergeProfile({
-    localProfile: { restrictedIngredients: ['ing-shrimp', 'diet-vegan'] },
-    remoteProfile: { userName: 'デモユーザー', restrictedIngredients: [], source: 'demo' },
+    localProfile: {
+      userName: '保存済みデモ表示名',
+      restrictedIngredients: ['ing-shrimp', 'diet-vegan'],
+      preferredDishes: ['soup'],
+      preferredCuisines: ['india'],
+    },
+    remoteProfile: {
+      userName: 'デモユーザー',
+      restrictedIngredients: [],
+      preferredDishes: [],
+      preferredCuisines: [],
+      source: 'demo',
+    },
   }),
   {
-    userName: 'デモユーザー',
+    userName: '保存済みデモ表示名',
     restrictedIngredients: ['ing-shrimp', 'diet-vegan'],
+    preferredDishes: ['soup'],
+    preferredCuisines: ['india'],
   },
-  'demo API fallback では、demo専用localStorageに保存済みの ing-* 制限を破棄しません。',
+  'demo API fallback では、demo専用localStorageに保存済みの ing-* 制限・好み設定・表示名を破棄しません。',
 );
 
 assert.deepEqual(
@@ -126,6 +153,8 @@ assert.deepEqual(
   {
     userName: 'DBユーザー',
     restrictedIngredients: ['ing-egg', 'diet-vegan'],
+    preferredDishes: [],
+    preferredCuisines: [],
   },
   '通常DB profile mergeではDB由来の ing-* を優先し、local-only制限だけを追加します。',
 );

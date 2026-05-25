@@ -124,8 +124,9 @@ function buildRestrictionReasons(
 function mergeProfile(localProfile: StoredProfile | null, remoteProfile: ProfileResponse | null): ProfilePayload {
   const fallbackFields = getProfileFallbackFields(remoteProfile);
   const shouldUseLocalRestrictions = fallbackFields.has('restrictedIngredients');
-  const shouldUseLocalPreferences = fallbackFields.has('preferences');
   const preserveLocalIngredientCodes = remoteProfile?.source === 'demo';
+  const shouldUseLocalUserName = fallbackFields.has('userName') || preserveLocalIngredientCodes;
+  const shouldUseLocalPreferences = fallbackFields.has('preferences') || preserveLocalIngredientCodes;
   const restrictedIngredients = shouldUseLocalRestrictions
     ? localProfile?.restrictedIngredients ?? []
     : Array.from(new Set([
@@ -136,7 +137,7 @@ function mergeProfile(localProfile: StoredProfile | null, remoteProfile: Profile
     ]));
 
   return {
-    userName: fallbackFields.has('userName')
+    userName: shouldUseLocalUserName
       ? localProfile?.userName || remoteProfile?.userName || DEFAULT_USER_NAME
       : remoteProfile?.userName || localProfile?.userName || DEFAULT_USER_NAME,
     restrictedIngredients,
