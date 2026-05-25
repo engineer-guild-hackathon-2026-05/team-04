@@ -19,6 +19,24 @@ type RestrictedJoinRow = {
   } | null;
 };
 
+type ResolvedRestrictedIngredient = {
+  id: string;
+  ingredient_code?: string | null;
+  name_ja?: string | null;
+};
+
+type ResolvedRestrictedIngredientRequest = {
+  ingredientCodes: string[];
+  resolvedIngredients: ResolvedRestrictedIngredient[];
+};
+
+class UnknownRestrictedIngredientCodesError extends Error {
+  constructor(readonly codes: string[]) {
+    super(`Unknown restricted ingredient codes: ${codes.join(', ')}`);
+    this.name = 'UnknownRestrictedIngredientCodesError';
+  }
+}
+
 const DEMO_PROFILE_NAME = 'デモユーザー';
 
 const EMPTY_PROFILE: ProfilePayload = {
@@ -57,27 +75,12 @@ async function restoreRestrictedIngredientRows(
   }
 }
 
-async function replaceRestrictedIngredients(
+async function resolveRestrictedIngredients(
   supabase: Awaited<ReturnType<typeof createClient>>,
-  userId: string,
   requestedCodes: string[],
-) {
+): Promise<ResolvedRestrictedIngredientRequest> {
   const ingredientCodes = Array.from(new Set(requestedCodes.filter(isIngredientCodeFormat)));
-  if (ingredientCodes.length === 0) {
-    const { data: existingRows, error: existingError } = await supabase
-      .from('user_restricted_ingredients')
-      .select('ingredient_id, reason')
-      .eq('user_id', userId);
-    if (existingError) throw existingError;
-
-    const { error: deleteError } = await supabase
-      .from('user_restricted_ingredients')
-      .delete()
-      .eq('user_id', userId);
-    if (deleteError) throw deleteError;
-
-    return { savedCodes: [], existingRows: existingRows ?? [] };
-  }
+  if (ingredientCodes.length === 0) return { ingredientCodes: [], resolvedIngredients: [] };
 
   const { data: ingredients, error: lookupError } = await supabase
     .from('ingredients')
@@ -95,9 +98,18 @@ async function replaceRestrictedIngredients(
 
   const missingCodes = ingredientCodes.filter((code) => !resolvedCodes.has(code));
   if (missingCodes.length > 0) {
-    throw new Error(`Some restricted ingredients could not be resolved: ${missingCodes.join(', ')}`);
+    throw new UnknownRestrictedIngredientCodesError(missingCodes);
   }
 
+  return { ingredientCodes, resolvedIngredients };
+}
+
+async function replaceRestrictedIngredients(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  restrictionRequest: ResolvedRestrictedIngredientRequest,
+) {
+  const { ingredientCodes, resolvedIngredients } = restrictionRequest;
   const { data: existingRows, error: existingError } = await supabase
     .from('user_restricted_ingredients')
     .select('ingredient_id, reason')
@@ -244,6 +256,19 @@ export async function PUT(request: NextRequest) {
     ?? user.email?.split('@')[0]
     ?? EMPTY_PROFILE.userName;
 
+  let resolvedRestrictedIngredients: ResolvedRestrictedIngredientRequest;
+  try {
+    resolvedRestrictedIngredients = await resolveRestrictedIngredients(supabase, requestedRestrictedIngredients);
+  } catch (error) {
+    if (error instanceof UnknownRestrictedIngredientCodesError) {
+      return NextResponse.json({
+        error: 'Unknown restricted ingredient codes.',
+        unknownCodes: error.codes,
+      }, { status: 400 });
+    }
+    throw error;
+  }
+
   const { error: profileError } = await supabase
     .from('profiles')
     .upsert({ id: user.id, name: userName }, { onConflict: 'id' });
@@ -260,7 +285,7 @@ export async function PUT(request: NextRequest) {
 
   if (preferencesError) throw preferencesError;
 
-  const { savedCodes } = await replaceRestrictedIngredients(supabase, user.id, requestedRestrictedIngredients);
+  const { savedCodes } = await replaceRestrictedIngredients(supabase, user.id, resolvedRestrictedIngredients);
 
   const localOnlyRestrictions = requestedRestrictedIngredients.filter((code) => !code.startsWith('ing-'));
   const savedRestrictedIngredients = [

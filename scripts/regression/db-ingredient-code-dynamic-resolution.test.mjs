@@ -22,6 +22,12 @@ const toIngredientCodeFromDbRow = extractBetween(
   /export\s+function\s+normalizeIngredientOption\s*\(/,
   'toIngredientCodeFromDbRow',
 );
+const resolveRestrictedIngredients = extractBetween(
+  profileRouteSource,
+  /async\s+function\s+resolveRestrictedIngredients\s*\(/,
+  /async\s+function\s+replaceRestrictedIngredients\s*\(/,
+  'resolveRestrictedIngredients',
+);
 const replaceRestrictedIngredients = extractBetween(
   profileRouteSource,
   /async\s+function\s+replaceRestrictedIngredients\s*\(/,
@@ -48,13 +54,13 @@ assert.match(
 );
 
 assert.match(
-  replaceRestrictedIngredients,
+  resolveRestrictedIngredients,
   /\.from\('ingredients'\)[\s\S]*\.in\('ingredient_code',\s*ingredientCodes\)/,
   'profile PUT は候補 ingredient_code を ingredients DB で解決してください。',
 );
 
 assert.doesNotMatch(
-  replaceRestrictedIngredients,
+  `${resolveRestrictedIngredients}\n${replaceRestrictedIngredients}`,
   /filter\(isIngredientCode\)|INGREDIENT_CODE_SET\.has\(|isIngredientCode\(/,
   'profile PUT の保存対象判定は INGREDIENT_MASTER 静的 whitelist ではなく DB 解決結果で行ってください。',
 );

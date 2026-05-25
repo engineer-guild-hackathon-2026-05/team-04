@@ -21,9 +21,21 @@ type StoredProfile = {
   preferredCuisines?: string[];
 };
 
+type ProfileSaveErrorResponse = {
+  error?: string;
+  unknownCodes?: string[];
+};
+
 const PROFILE_STORAGE_KEY = 'globalbites_profile';
 const DEMO_PROFILE_STORAGE_KEY = 'globalbites_demo_profile';
 const DEFAULT_USER_NAME = 'ゲスト愛好家';
+
+class ProfileSaveValidationError extends Error {
+  constructor(readonly unknownCodes: string[]) {
+    super('Unknown restricted ingredient codes.');
+    this.name = 'ProfileSaveValidationError';
+  }
+}
 
 function readStoredProfile(storageKey: string, label: string) {
   const storedProfile = localStorage.getItem(storageKey);
@@ -77,7 +89,13 @@ async function saveProfileToApi(profile: ProfilePayload) {
   });
 
   if (response.status === 401) return null;
-  if (!response.ok) throw new Error(`Profile save API failed: ${response.status}`);
+  if (!response.ok) {
+    const body = await response.json().catch(() => null) as ProfileSaveErrorResponse | null;
+    if (response.status >= 400 && response.status < 500 && Array.isArray(body?.unknownCodes)) {
+      throw new ProfileSaveValidationError(body.unknownCodes);
+    }
+    throw new Error(`Profile save API failed: ${response.status}`);
+  }
   return (await response.json()) as ProfileResponse;
 }
 
@@ -257,6 +275,13 @@ export default function Home() {
   };
 
   const handleSaveProfile = async (profile: ProfilePayload) => {
+    const previousProfile: ProfilePayload = {
+      userName,
+      restrictedIngredients,
+      preferredDishes,
+      preferredCuisines,
+    };
+
     setUserName(profile.userName);
     setRestrictedIngredients(profile.restrictedIngredients);
     setPreferredDishes(profile.preferredDishes);
@@ -291,6 +316,15 @@ export default function Home() {
         writeStoredProfile(merged);
       }
     } catch (dbErr) {
+      if (dbErr instanceof ProfileSaveValidationError) {
+        setUserName(previousProfile.userName);
+        setRestrictedIngredients(previousProfile.restrictedIngredients);
+        setPreferredDishes(previousProfile.preferredDishes);
+        setPreferredCuisines(previousProfile.preferredCuisines);
+        setCurrentView('profile');
+        console.warn('Profile API rejected unknown restricted ingredient codes.', dbErr.unknownCodes);
+        return;
+      }
       if (demoSession !== 'failed') {
         saveToLocalStorage(profile);
       }
