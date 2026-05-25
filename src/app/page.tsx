@@ -188,14 +188,19 @@ export default function Home() {
           return;
         }
 
-        const merged = mergeProfile(parsed, remoteProfile);
+        const sourceProfile = remoteProfile.source === 'demo' ? readDemoProfile() : parsed;
+        const merged = mergeProfile(sourceProfile, remoteProfile);
         setIsLoggedIn(true);
         setCurrentView('list');
         setUserName(merged.userName);
         setRestrictedIngredients(merged.restrictedIngredients);
         setPreferredDishes(merged.preferredDishes);
         setPreferredCuisines(merged.preferredCuisines);
-        writeStoredProfile(merged);
+        if (remoteProfile.source === 'demo') {
+          writeDemoProfile(merged);
+        } else {
+          writeStoredProfile(merged);
+        }
         setAuthStatus('authenticated');
       } catch (error) {
         console.error('Auth/profile sync failed. Treating the user as signed out.', error);
@@ -265,21 +270,30 @@ export default function Home() {
       return;
     }
 
-    saveToLocalStorage(profile);
     if (demoSession === 'failed') {
       console.error('Demo session check failed while saving profile. Falling back to profile API.');
     }
 
     try {
       const savedProfile = await saveProfileToApi(profile);
-      if (!savedProfile) return;
+      if (!savedProfile) {
+        saveToLocalStorage(profile);
+        return;
+      }
       const merged = mergeProfile(profile, savedProfile);
       setUserName(merged.userName);
       setRestrictedIngredients(merged.restrictedIngredients);
       setPreferredDishes(merged.preferredDishes);
       setPreferredCuisines(merged.preferredCuisines);
-      writeStoredProfile(merged);
+      if (savedProfile.source === 'demo') {
+        writeDemoProfile(merged);
+      } else {
+        writeStoredProfile(merged);
+      }
     } catch (dbErr) {
+      if (demoSession !== 'failed') {
+        saveToLocalStorage(profile);
+      }
       console.warn('Profile API update failed. Synchronized locally.', dbErr);
     }
   };
