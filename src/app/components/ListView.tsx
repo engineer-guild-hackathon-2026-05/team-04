@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { Search, Compass, ShieldCheck, Clock, Eye, Sparkles } from 'lucide-react';
+import { Search, Compass, ShieldCheck, Clock, Eye, Sparkles, MessageCircle, Send } from 'lucide-react';
 import { Recipe } from '@/lib/mockData';
 import { violatesDietaryRestrictions } from '@/lib/dietaryRestrictions';
 import { violatesPreparationRestrictions } from '@/lib/preparationRestrictions';
@@ -13,6 +13,9 @@ interface ListViewProps {
   preferredCuisines: string[];
   onSelectRecipe: (recipe: Recipe) => void;
   setCurrentView: (view: 'landing' | 'list' | 'profile') => void;
+  onSuggestRecipes: (mood: string) => Promise<void>;
+  suggestStatus: 'idle' | 'loading' | 'success' | 'error';
+  suggestError: string | null;
 }
 
 const CUISINE_MATCH_TERMS: Record<string, string[]> = {
@@ -47,8 +50,13 @@ export default function ListView({
   preferredCuisines,
   onSelectRecipe,
   setCurrentView,
+  onSuggestRecipes,
+  suggestStatus,
+  suggestError,
 }: ListViewProps) {
   const [searchQuery, setSearchQuery] = useState('');
+  const [isMoodChatOpen, setIsMoodChatOpen] = useState(false);
+  const [moodInput, setMoodInput] = useState('');
 
   // リアルタイム検索ロジック（ユーザーが食べられない食材を含むレシピは推薦前に除外）
   const filteredRecipes = useMemo(() => {
@@ -121,6 +129,14 @@ export default function ListView({
   // 上位3枚をおすすめ（Featured）とし、それ以外、または全体を通常一覧とする
   const featuredRecipes = useMemo(() => sortedRecipes.slice(0, 3), [sortedRecipes]);
   const otherRecipes = useMemo(() => sortedRecipes.slice(3), [sortedRecipes]);
+
+  const handleMoodSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const mood = moodInput.trim();
+    if (!mood || suggestStatus === 'loading') return;
+
+    await onSuggestRecipes(mood);
+  };
 
   return (
     <div className="list-container">
@@ -315,6 +331,76 @@ export default function ListView({
           )}
         </>
       )}
+
+
+      <aside className={`mood-chat-widget ${isMoodChatOpen ? 'expanded' : ''}`} aria-label="気分からAIレシピを提案">
+        {!isMoodChatOpen ? (
+          <button
+            type="button"
+            className="mood-chat-toggle"
+            aria-expanded="false"
+            aria-controls="mood-chat-panel"
+            onClick={() => setIsMoodChatOpen(true)}
+          >
+            <MessageCircle size={20} />
+            <span>今の気分で提案</span>
+          </button>
+        ) : (
+          <div className="mood-chat-panel" id="mood-chat-panel">
+            <div className="mood-chat-header">
+              <div>
+                <p className="mood-chat-eyebrow">AIレシピ相談</p>
+                <h3>今の気分を教えてください</h3>
+              </div>
+              <button
+                type="button"
+                className="mood-chat-collapse"
+                aria-label="気分入力を閉じる"
+                onClick={() => setIsMoodChatOpen(false)}
+              >
+                ×
+              </button>
+            </div>
+
+            <form className="mood-chat-form" onSubmit={handleMoodSubmit}>
+              <label htmlFor="mood-chat-input">
+                例: 雨の日に温まる、辛さ控えめ、野菜たっぷり
+              </label>
+              <div className="mood-chat-input-row">
+                <input
+                  id="mood-chat-input"
+                  type="text"
+                  value={moodInput}
+                  onChange={(event) => setMoodInput(event.target.value)}
+                  placeholder="食べたい雰囲気を入力"
+                  disabled={suggestStatus === 'loading'}
+                />
+                <button
+                  type="submit"
+                  className="mood-chat-submit"
+                  disabled={!moodInput.trim() || suggestStatus === 'loading'}
+                >
+                  {suggestStatus === 'loading' ? '提案中...' : (
+                    <>
+                      <Send size={15} />
+                      <span>送信</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+
+            <p className="mood-chat-helper" role="status" aria-live="polite">
+              {suggestStatus === 'loading' && 'あなたの制限食材を避けてレシピを考えています。'}
+              {suggestStatus === 'success' && '新しいAIレシピを一覧に追加しました。'}
+              {suggestStatus === 'idle' && 'プロフィールの食材制限を反映して、日本語で提案します。'}
+            </p>
+            {suggestStatus === 'error' && suggestError && (
+              <p className="mood-chat-error" role="alert">{suggestError}</p>
+            )}
+          </div>
+        )}
+      </aside>
     </div>
   );
 }

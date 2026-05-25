@@ -12,6 +12,7 @@ import type { IngredientsResponse, ProfileFallbackField, ProfilePayload, Profile
 
 type CurrentView = 'landing' | 'list' | 'profile';
 type AuthStatus = 'checking' | 'authenticated' | 'unauthenticated';
+type AiRequestStatus = 'idle' | 'loading' | 'success' | 'error';
 
 type StoredProfile = {
   email?: string;
@@ -27,9 +28,23 @@ type ProfileSaveErrorResponse = {
   unknownCodes?: string[];
 };
 
+type AiRecipeErrorResponse = {
+  error?: string;
+  message?: string;
+};
+
+type SuggestRecipesResponse = {
+  recipes?: Recipe[];
+};
+
+type SubstituteRecipeResponse = {
+  recipe?: Recipe;
+};
+
 const PROFILE_STORAGE_KEY = 'globalbites_profile';
 const DEMO_PROFILE_STORAGE_KEY = 'globalbites_demo_profile';
 const DEFAULT_USER_NAME = 'ゲスト愛好家';
+const LOGIN_REQUIRED_RECIPE_MESSAGE = 'ログイン後に保存済みレシピで利用できます。';
 
 class ProfileSaveValidationError extends Error {
   constructor(readonly unknownCodes: string[]) {
@@ -98,6 +113,22 @@ async function saveProfileToApi(profile: ProfilePayload) {
     throw new Error(`Profile save API failed: ${response.status}`);
   }
   return (await response.json()) as ProfileResponse;
+}
+
+function getAiRecipeErrorMessage(status: number, body: AiRecipeErrorResponse | null, fallback: string) {
+  if (status === 401) return 'ログイン後にAIレシピ提案を利用できます。';
+  if (status === 404) return LOGIN_REQUIRED_RECIPE_MESSAGE;
+  const rawMessage = body?.message ?? body?.error;
+  return typeof rawMessage === 'string' && rawMessage.trim() ? rawMessage.trim() : fallback;
+}
+
+function mergeRecipesById(currentRecipes: Recipe[], incomingRecipes: Recipe[]) {
+  const seen = new Set<string>();
+  return [...incomingRecipes, ...currentRecipes].filter((recipe) => {
+    if (seen.has(recipe.id)) return false;
+    seen.add(recipe.id);
+    return true;
+  });
 }
 
 function getProfileFallbackFields(remoteProfile: ProfileResponse | null) {
@@ -170,6 +201,10 @@ export default function Home() {
   const [ingredientOptions, setIngredientOptions] = useState<IngredientMaster[]>(INGREDIENT_MASTER);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
+  const [suggestStatus, setSuggestStatus] = useState<AiRequestStatus>('idle');
+  const [suggestError, setSuggestError] = useState<string | null>(null);
+  const [substituteStatus, setSubstituteStatus] = useState<AiRequestStatus>('idle');
+  const [substituteError, setSubstituteError] = useState<string | null>(null);
 
   useEffect(() => {
     const parsed = readStoredProfile(PROFILE_STORAGE_KEY, 'local storage profile');
@@ -309,6 +344,83 @@ export default function Home() {
     router.push('/');
   };
 
+  const handleSuggestRecipes = async (mood: string) => {
+    const trimmedMood = mood.trim();
+    if (!trimmedMood) {
+      setSuggestStatus('error');
+      setSuggestError('気分や食べたい雰囲気を入力してください。');
+      return;
+    }
+
+    setSuggestStatus('loading');
+    setSuggestError(null);
+
+    try {
+      const response = await fetch('/api/recipes/suggest', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          mood: trimmedMood,
+          locale: 'ja',
+          restrictedIngredients,
+        }),
+      });
+      const body = await response.json().catch(() => null) as (SuggestRecipesResponse & AiRecipeErrorResponse) | null;
+
+      if (!response.ok) {
+        throw new Error(getAiRecipeErrorMessage(response.status, body, 'AIレシピ提案に失敗しました。時間をおいて再試行してください。'));
+      }
+
+      const suggestedRecipes = Array.isArray(body?.recipes) ? body.recipes : [];
+      if (suggestedRecipes.length === 0) {
+        throw new Error('提案できるレシピが見つかりませんでした。別の気分でお試しください。');
+      }
+
+      setRecipes((currentRecipes) => mergeRecipesById(currentRecipes, suggestedRecipes));
+      setSelectedRecipe((currentRecipe) => {
+        if (!currentRecipe) return currentRecipe;
+        return suggestedRecipes.find((recipe) => recipe.id === currentRecipe.id) ?? currentRecipe;
+      });
+      setSuggestStatus('success');
+    } catch (error) {
+      setSuggestStatus('error');
+      setSuggestError(error instanceof Error ? error.message : 'AIレシピ提案に失敗しました。');
+    }
+  };
+
+  const handleSubstituteRecipe = async (recipeId: string) => {
+    setSubstituteStatus('loading');
+    setSubstituteError(null);
+
+    try {
+      const response = await fetch(`/api/recipes/${recipeId}/substitute`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          locale: 'ja',
+          restrictedIngredients,
+        }),
+      });
+      const body = await response.json().catch(() => null) as (SubstituteRecipeResponse & AiRecipeErrorResponse) | null;
+
+      if (!response.ok) {
+        throw new Error(getAiRecipeErrorMessage(response.status, body, '日本の食材での再提案に失敗しました。時間をおいて再試行してください。'));
+      }
+
+      const substitutedRecipe = body?.recipe;
+      if (!substitutedRecipe) {
+        throw new Error('再提案されたレシピを取得できませんでした。');
+      }
+
+      setRecipes((currentRecipes) => mergeRecipesById(currentRecipes, [substitutedRecipe]));
+      setSelectedRecipe(substitutedRecipe);
+      setSubstituteStatus('success');
+    } catch (error) {
+      setSubstituteStatus('error');
+      setSubstituteError(error instanceof Error ? error.message : '日本の食材での再提案に失敗しました。');
+    }
+  };
+
   const handleSaveProfile = async (profile: ProfilePayload) => {
     const previousProfile: ProfilePayload = {
       userName,
@@ -409,6 +521,9 @@ export default function Home() {
             preferredCuisines={preferredCuisines}
             onSelectRecipe={setSelectedRecipe}
             setCurrentView={setCurrentView}
+            onSuggestRecipes={handleSuggestRecipes}
+            suggestStatus={suggestStatus}
+            suggestError={suggestError}
           />
         )}
 
@@ -431,6 +546,9 @@ export default function Home() {
         recipe={selectedRecipe}
         onClose={() => setSelectedRecipe(null)}
         restrictedIngredients={restrictedIngredients}
+        onSubstituteRecipe={handleSubstituteRecipe}
+        substituteStatus={substituteStatus}
+        substituteError={substituteError}
       />
     </div>
   );

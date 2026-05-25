@@ -1113,6 +1113,143 @@ button, input {
   font-weight: 600;
 }
 
+
+/* Mood Chat (AIレシピ相談) */
+.mood-chat-widget {
+  position: fixed;
+  left: 24px;
+  bottom: 24px;
+  z-index: 900;
+  max-width: min(380px, calc(100vw - 48px));
+}
+
+.mood-chat-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 18px;
+  border: none;
+  border-radius: 999px;
+  color: white;
+  background: linear-gradient(135deg, var(--forest-green), var(--accent-green));
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 0 16px 40px rgba(27, 67, 50, 0.24);
+}
+
+.mood-chat-panel {
+  width: 360px;
+  max-width: calc(100vw - 48px);
+  padding: 18px;
+  border: 1px solid #d1fae5;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 22px 70px rgba(15, 46, 34, 0.22);
+  backdrop-filter: blur(12px);
+}
+
+.mood-chat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.mood-chat-eyebrow {
+  margin-bottom: 4px;
+  color: var(--accent-green);
+  font-size: 0.74rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.mood-chat-header h3 {
+  color: var(--forest-green);
+  font-size: 1.05rem;
+  font-weight: 900;
+}
+
+.mood-chat-collapse {
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 50%;
+  color: var(--text-muted);
+  background: var(--bg-main);
+  cursor: pointer;
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+.mood-chat-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mood-chat-form label {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.mood-chat-input-row {
+  display: flex;
+  gap: 8px;
+}
+
+.mood-chat-input-row input {
+  min-width: 0;
+  flex: 1;
+  padding: 11px 12px;
+  border: 1.5px solid var(--border-light);
+  border-radius: 12px;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.mood-chat-input-row input:focus {
+  outline: 3px solid rgba(16, 185, 129, 0.18);
+  border-color: var(--accent-green);
+}
+
+.mood-chat-submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 12px;
+  color: white;
+  background-color: var(--forest-green);
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.mood-chat-submit:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+.mood-chat-helper,
+.mood-chat-error {
+  margin-top: 10px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.mood-chat-helper {
+  color: var(--text-muted);
+}
+
+.mood-chat-error {
+  color: #b91c1c;
+}
+
 /* =============================================
    Recipe Modal (詳細モーダル)
    ============================================= */
@@ -1545,13 +1682,94 @@ button, input {
   padding-top: 2px;
 }
 
+
+.modal-cultural-background {
+  padding: 18px 20px;
+  border: 1px solid #fed7aa;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #fff7ed 0%, #fffbeb 100%);
+  color: var(--text-primary);
+}
+
+.modal-cultural-eyebrow {
+  margin-bottom: 6px;
+  color: var(--copper);
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.modal-cultural-background h2 {
+  margin-bottom: 8px;
+  color: var(--forest-green);
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.modal-cultural-background p:last-child {
+  color: var(--text-muted);
+  font-size: 0.92rem;
+  line-height: 1.7;
+}
+
+.modal-substitute-area {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  min-width: 0;
+}
+
+.modal-substitute-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 18px;
+  border: none;
+  border-radius: 14px;
+  color: white;
+  background: linear-gradient(135deg, var(--copper), var(--gold));
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 0 8px 22px rgba(180, 83, 9, 0.18);
+}
+
+.modal-substitute-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+  box-shadow: none;
+}
+
+.modal-substitute-note,
+.modal-substitute-success,
+.modal-substitute-error {
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.modal-substitute-note {
+  color: var(--text-light);
+}
+
+.modal-substitute-success {
+  color: #15803d;
+}
+
+.modal-substitute-error {
+  color: #b91c1c;
+}
+
 /* モーダルフッター */
 .modal-footer {
   padding: 20px 36px;
   border-top: 1px solid var(--border-light);
   background-color: var(--bg-main);
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
   flex-shrink: 0;
 }
 
@@ -1829,7 +2047,9 @@ button, input {
 .profile-submit-row {
   margin-top: 16px;
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
 }
 
 .profile-save-btn {
