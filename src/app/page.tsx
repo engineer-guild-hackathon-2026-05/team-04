@@ -112,6 +112,7 @@ function mergeProfile(localProfile: StoredProfile | null, remoteProfile: Profile
   const fallbackFields = getProfileFallbackFields(remoteProfile);
   const shouldUseLocalRestrictions = fallbackFields.has('restrictedIngredients');
   const shouldUseLocalPreferences = fallbackFields.has('preferences');
+  const preserveLocalIngredientCodes = remoteProfile?.source === 'demo';
 
   return {
     userName: fallbackFields.has('userName')
@@ -121,7 +122,9 @@ function mergeProfile(localProfile: StoredProfile | null, remoteProfile: Profile
       ? localProfile?.restrictedIngredients ?? []
       : Array.from(new Set([
         ...(remoteProfile?.restrictedIngredients ?? []),
-        ...(localProfile?.restrictedIngredients ?? []).filter((id) => !id.startsWith('ing-')),
+        ...(localProfile?.restrictedIngredients ?? []).filter(
+          (id) => preserveLocalIngredientCodes || !id.startsWith('ing-'),
+        ),
       ])),
     preferredDishes: shouldUseLocalPreferences
       ? localProfile?.preferredDishes ?? []

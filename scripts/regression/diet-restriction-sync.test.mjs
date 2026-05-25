@@ -6,7 +6,7 @@ const profileSource = readFileSync('src/app/components/ProfileView.tsx', 'utf8')
 const apiSource = readFileSync('src/app/api/me/profile/route.ts', 'utf8');
 
 assert.match(profileSource, /id:\s*'diet-vegan'/, '再現対象として diet-vegan option が必要です。');
-assert.match(pageSource, /filter\(\(id\)\s*=>\s*!id\.startsWith\('ing-'\)\)/, 'DBに保存しない diet option を local profile 上は保持してください。');
+assert.match(pageSource, /preserveLocalIngredientCodes[\s\S]*!id\.startsWith\('ing-'\)/, 'DBに保存しない diet option を local profile 上は保持してください。');
 assert.doesNotMatch(apiSource, /requestedRestrictedIngredients\.filter\(isIngredientCode\)|!isIngredientCode\(|INGREDIENT_CODE_SET\.has\(/, 'API保存時は INGREDIENT_MASTER 静的 whitelist ではなく DB 解決で制限食材を同期してください。');
 assert.match(apiSource, /localOnlyRestrictions\s*=\s*requestedRestrictedIngredients\.filter\(\(code\)\s*=>\s*!code\.startsWith\('ing-'\)\)/, 'diet-vegan など DB ingredient_code 候補ではない restriction ID はレスポンスで保持してください。');
 

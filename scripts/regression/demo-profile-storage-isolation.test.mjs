@@ -22,6 +22,20 @@ assert.match(
   'demo session の mergeProfile は demoProfile または null をlocal sourceにしてください。',
 );
 
+const mergeProfileBlockStart = source.indexOf('function mergeProfile');
+assert.notEqual(mergeProfileBlockStart, -1, 'mergeProfile を検査できません。');
+const mergeProfileBlock = source.slice(mergeProfileBlockStart, source.indexOf('export default function Home', mergeProfileBlockStart));
+assert.match(
+  mergeProfileBlock,
+  /const\s+preserveLocalIngredientCodes\s*=\s*remoteProfile\?\.source\s*===\s*'demo'/,
+  'demo API fallback では、demo専用localStorageの ing-* 制限も保持できるようにしてください。',
+);
+assert.match(
+  mergeProfileBlock,
+  /preserveLocalIngredientCodes[\s\S]*!id\.startsWith\('ing-'\)/,
+  '通常DB mergeではlocal-only制限だけを足しつつ、demo sourceではlocal ing-* も保持してください。',
+);
+
 const remoteProfileStart = source.indexOf('const remoteProfile = await fetchProfileFromApi()');
 assert.notEqual(remoteProfileStart, -1, 'profile API fallback branch を検査できません。');
 const remoteProfileBlock = source.slice(remoteProfileStart, source.indexOf('} catch (error)', remoteProfileStart));
@@ -79,29 +93,41 @@ assert.match(
   'demo確認がfailedかつAPI失敗のときはdemo/通常を判定できないため、通常localStorage汚染を避けてください。',
 );
 
-const emulateDemoMerge = ({ regularProfile, demoProfile }) => {
-  const localProfile = demoProfile ?? null;
+const emulateMergeProfile = ({ localProfile, remoteProfile }) => {
+  const preserveLocalIngredientCodes = remoteProfile?.source === 'demo';
   return {
-    userName: demoProfile?.userName || demoProfile?.email?.split('@')[0] || 'デモユーザー',
-    restrictedIngredients: [
-      ...(demoProfile?.restrictedIngredients ?? []),
-      ...(localProfile?.restrictedIngredients ?? []).filter((id) => !id.startsWith('ing-')),
-    ],
-    ignoredRegularRestrictions: regularProfile?.restrictedIngredients ?? [],
+    userName: remoteProfile?.userName || localProfile?.userName || 'デモユーザー',
+    restrictedIngredients: Array.from(new Set([
+      ...(remoteProfile?.restrictedIngredients ?? []),
+      ...(localProfile?.restrictedIngredients ?? []).filter(
+        (id) => preserveLocalIngredientCodes || !id.startsWith('ing-'),
+      ),
+    ])),
   };
 };
 
 assert.deepEqual(
-  emulateDemoMerge({
-    regularProfile: { restrictedIngredients: ['diet-vegan'] },
-    demoProfile: { restrictedIngredients: ['ing-shrimp'] },
+  emulateMergeProfile({
+    localProfile: { restrictedIngredients: ['ing-shrimp', 'diet-vegan'] },
+    remoteProfile: { userName: 'デモユーザー', restrictedIngredients: [], source: 'demo' },
   }),
   {
     userName: 'デモユーザー',
-    restrictedIngredients: ['ing-shrimp'],
-    ignoredRegularRestrictions: ['diet-vegan'],
+    restrictedIngredients: ['ing-shrimp', 'diet-vegan'],
   },
-  '通常プロフィールの local-only 制限は demo session に混入させません。',
+  'demo API fallback では、demo専用localStorageに保存済みの ing-* 制限を破棄しません。',
+);
+
+assert.deepEqual(
+  emulateMergeProfile({
+    localProfile: { restrictedIngredients: ['ing-shrimp', 'diet-vegan'] },
+    remoteProfile: { userName: 'DBユーザー', restrictedIngredients: ['ing-egg'], source: 'database' },
+  }),
+  {
+    userName: 'DBユーザー',
+    restrictedIngredients: ['ing-egg', 'diet-vegan'],
+  },
+  '通常DB profile mergeではDB由来の ing-* を優先し、local-only制限だけを追加します。',
 );
 
 console.log('demo profile storage isolation regression checks passed');
