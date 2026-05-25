@@ -9,6 +9,7 @@ const apiRoutePath = 'src/app/api/recipes/route.ts';
 const mappingPath = 'src/lib/recipeMapping.ts';
 const displayBackfillMigrationPath = 'supabase/migrations/20260525093000_backfill_curated_ingredient_display_names.sql';
 const mockCleanupMigrationPath = 'supabase/migrations/20260525094500_remove_mock_recipe_ingredients.sql';
+const cevicheFishBackfillMigrationPath = 'supabase/migrations/20260525124500_tag_ceviche_fish_ingredient.sql';
 
 const dishes = JSON.parse(readFileSync(seedPath, 'utf8'));
 const migrationSource = readFileSync(migrationPath, 'utf8');
@@ -19,6 +20,7 @@ const apiRouteSource = readFileSync(apiRoutePath, 'utf8');
 const mappingSource = readFileSync(mappingPath, 'utf8');
 const displayBackfillMigrationSource = readFileSync(displayBackfillMigrationPath, 'utf8');
 const mockCleanupMigrationSource = readFileSync(mockCleanupMigrationPath, 'utf8');
+const cevicheFishBackfillMigrationSource = readFileSync(cevicheFishBackfillMigrationPath, 'utf8');
 const migrationPayload = JSON.parse(migrationSource.match(/\$curated_dishes\$([\s\S]+?)\$curated_dishes\$::jsonb/)?.[1] ?? '[]');
 const forbiddenTags = new Set(['実データ', 'Web調査']);
 
@@ -71,6 +73,35 @@ assert.match(
   dietarySupportMigrationSource,
   /name_en\s*=\s*'beef'[\s\S]*\{"meat","animal-product"\}|\{"meat","animal-product"\}[\s\S]*name_en\s*=\s*'beef'/,
   'beef ingredient は dietary_tags meat/animal-product を持つため、UI はこの根拠で vegan 不可を説明できます。',
+);
+
+const ceviche = dishes.find((dish) => dish.source_ref === 'curated:ceviche');
+assert.ok(ceviche, 'ペルー風セビーチェ は curated:ceviche として seed に保持してください。');
+const cevicheFish = ceviche.ingredients.find((ingredient) => ingredient.name_ja === '刺身用白身魚');
+assert.ok(cevicheFish, 'ペルー風セビーチェ は 刺身用白身魚 を材料として保持してください。');
+assert.deepEqual(
+  cevicheFish.dietary_tags,
+  ['fish', 'animal-product'],
+  '刺身用白身魚 は custom ingredient のままでも vegan フィルタ用の fish/animal-product dietary_tags を持つ必要があります。',
+);
+assert.equal(cevicheFish.category, '魚介類', '刺身用白身魚 は魚介類カテゴリとして seed してください。');
+const migrationCevicheFish = migrationPayload
+  .find((dish) => dish.source_ref === 'curated:ceviche')
+  ?.ingredients.find((ingredient) => ingredient.name_ja === '刺身用白身魚');
+assert.deepEqual(
+  migrationCevicheFish?.dietary_tags,
+  ['fish', 'animal-product'],
+  'curated migration 埋め込み JSON でも 刺身用白身魚 は fish/animal-product dietary_tags を保持してください。',
+);
+assert.match(
+  migrationSource,
+  /insert into public\.ingredients \(name_ja, name_en, category, dietary_tags\)[\s\S]*coalesce\(s\.dietary_tags, array\[\]::text\[\]\)/i,
+  'fresh DB の custom curated ingredients は JSON の dietary_tags を ingredients.dietary_tags へ保存してください。',
+);
+assert.match(
+  cevicheFishBackfillMigrationSource,
+  /array\['fish', 'animal-product'\]::text\[\][\s\S]*name_en\s*=\s*'curated:ceviche:ingredient:01'|name_en\s*=\s*'curated:ceviche:ingredient:01'[\s\S]*array\['fish', 'animal-product'\]::text\[\]/i,
+  '既存 remote DB 用に ceviche の custom fish ingredient へ fish/animal-product dietary_tags を backfill してください。',
 );
 
 const margherita = dishes.find((dish) => dish.source_ref === 'curated:pizza-margherita');

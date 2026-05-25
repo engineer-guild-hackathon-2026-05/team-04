@@ -2360,7 +2360,12 @@
         "name_en": "white fish",
         "quantity": "300g",
         "master_name_en": null,
-        "is_optional": false
+        "is_optional": false,
+        "dietary_tags": [
+          "fish",
+          "animal-product"
+        ],
+        "category": "魚介類"
       },
       {
         "name_ja": "ライム果汁",
