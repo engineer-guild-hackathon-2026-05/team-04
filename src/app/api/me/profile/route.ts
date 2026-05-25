@@ -19,6 +19,8 @@ type RestrictedJoinRow = {
   } | null;
 };
 
+const DEMO_PROFILE_NAME = 'デモユーザー';
+
 const EMPTY_PROFILE: ProfilePayload = {
   userName: '旅するグルメ',
   restrictedIngredients: [],
@@ -127,7 +129,7 @@ async function replaceRestrictedIngredients(
 
 export async function GET() {
   if (await isDemoAuthenticated()) {
-    return NextResponse.json({ ...EMPTY_PROFILE, userName: 'デモユーザー', source: 'demo' } satisfies ProfileResponse);
+    return NextResponse.json({ ...EMPTY_PROFILE, userName: DEMO_PROFILE_NAME, source: 'demo' } satisfies ProfileResponse);
   }
 
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
@@ -202,16 +204,30 @@ export async function GET() {
 }
 
 export async function PUT(request: NextRequest) {
+  const payload = await request.json().catch(() => null) as Partial<ProfilePayload> | null;
+  if (!payload) return NextResponse.json({ error: 'Invalid JSON payload.' }, { status: 400 });
+
+  const submittedUserName = typeof payload.userName === 'string' && payload.userName.trim()
+    ? payload.userName.trim()
+    : null;
+  const requestedUserName = submittedUserName ?? DEMO_PROFILE_NAME;
+  const preferredDishes = normalizeStringArray(payload.preferredDishes);
+  const preferredCuisines = normalizeStringArray(payload.preferredCuisines);
+  const requestedRestrictedIngredients = normalizeStringArray(payload.restrictedIngredients);
+
   if (await isDemoAuthenticated()) {
-    return NextResponse.json({ ...EMPTY_PROFILE, source: 'demo' } satisfies ProfileResponse);
+    return NextResponse.json({
+      userName: requestedUserName,
+      restrictedIngredients: requestedRestrictedIngredients,
+      preferredDishes,
+      preferredCuisines,
+      source: 'demo',
+    } satisfies ProfileResponse);
   }
 
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
     return NextResponse.json({ error: 'Supabase is not configured.' }, { status: 503 });
   }
-
-  const payload = await request.json().catch(() => null) as Partial<ProfilePayload> | null;
-  if (!payload) return NextResponse.json({ error: 'Invalid JSON payload.' }, { status: 400 });
 
   const supabase = await createClient();
   const {
@@ -223,12 +239,10 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
   }
 
-  const userName = typeof payload.userName === 'string' && payload.userName.trim()
-    ? payload.userName.trim()
-    : user.user_metadata?.name || user.email?.split('@')[0] || EMPTY_PROFILE.userName;
-  const preferredDishes = normalizeStringArray(payload.preferredDishes);
-  const preferredCuisines = normalizeStringArray(payload.preferredCuisines);
-  const requestedRestrictedIngredients = normalizeStringArray(payload.restrictedIngredients);
+  const userName = submittedUserName
+    ?? user.user_metadata?.name
+    ?? user.email?.split('@')[0]
+    ?? EMPTY_PROFILE.userName;
 
   const { error: profileError } = await supabase
     .from('profiles')
