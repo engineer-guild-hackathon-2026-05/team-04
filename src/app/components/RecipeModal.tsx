@@ -49,10 +49,17 @@ const RELIGIOUS_RESTRICTION_LABELS: Record<string, string> = {
   'ing-gelatin': '宗教上注意: ゼラチン',
 };
 
+const ANIMAL_PRODUCT_DIETARY_TAG = 'animal-product';
+
 const getIngredientListKey = (
   recipeId: string,
   ingredient: Recipe['ingredients'][number],
 ) => `${recipeId}:${ingredient.id}:${ingredient.name_ja}:${ingredient.quantity}`;
+
+const getBaseIngredientName = (name: string) => name.split('（')[0].trim();
+
+const getUniqueIngredientNames = (ingredients: Recipe['ingredients']) =>
+  Array.from(new Set(ingredients.map(ing => getBaseIngredientName(ing.name_ja)).filter(Boolean)));
 
 const normalizeRecipeStep = (step: RecipeStep, index: number) => {
   if (typeof step === 'string') {
@@ -124,10 +131,18 @@ export default function RecipeModal({
   const matchedReligiousLabels = recipe.ingredients
     .filter(ing => restrictedIngredients.includes(ing.id) && RELIGIOUS_RESTRICTION_LABELS[ing.id])
     .map(ing => RELIGIOUS_RESTRICTION_LABELS[ing.id]);
+  const animalProductNames = getUniqueIngredientNames(
+    recipe.ingredients.filter(ing => ing.dietary_tags?.includes(ANIMAL_PRODUCT_DIETARY_TAG)),
+  );
+  const veganRestrictionTag = animalProductNames.length > 0
+    ? { label: `ヴィーガン不可: ${animalProductNames.join(', ')}`, tone: 'danger' }
+    : recipe.is_vegan
+      ? { label: 'ヴィーガン対応', tone: 'safe' }
+      : { label: 'ヴィーガン要確認', tone: 'caution' };
   const recipeRestrictionTags = [
-    recipe.is_vegan ? { label: 'ヴィーガン対応', tone: 'safe' } : { label: 'ヴィーガン要確認', tone: 'caution' },
+    veganRestrictionTag,
     recipe.is_gluten_free ? { label: 'グルテンフリー対応', tone: 'safe' } : { label: 'グルテン要確認', tone: 'caution' },
-    ...matchedAllergens.map(ing => ({ label: `含有: ${ing.name_ja.split('（')[0].trim()}`, tone: 'danger' })),
+    ...matchedAllergens.map(ing => ({ label: `含有: ${getBaseIngredientName(ing.name_ja)}`, tone: 'danger' })),
     ...matchedReligiousLabels.map(label => ({ label, tone: 'caution' })),
     ...selectedDietLabels.map(label => ({ label, tone: 'neutral' })),
   ];

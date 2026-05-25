@@ -26,6 +26,9 @@ export interface RecipeIngredient {
   name_ja: string;      // 材料名(日本語)
   quantity: string;     // 分量
   is_optional: boolean; // オプション（省略可能）か
+  category?: string;    // DB ingredients.category（制限表示の根拠）
+  is_allergen?: boolean; // DB ingredients.is_allergen（特定原材料判定の根拠）
+  dietary_tags?: string[]; // DB ingredients.dietary_tags（ヴィーガン等の判定根拠）
 }
 
 export interface Recipe {

@@ -13,6 +13,7 @@ const mockCleanupMigrationPath = 'supabase/migrations/20260525094500_remove_mock
 const dishes = JSON.parse(readFileSync(seedPath, 'utf8'));
 const migrationSource = readFileSync(migrationPath, 'utf8');
 const researchMigrationSource = readFileSync(researchMigrationPath, 'utf8');
+const dietarySupportMigrationSource = readFileSync('supabase/migrations/20260524000003_add_dietary_support.sql', 'utf8');
 const displayMigrationSource = readFileSync(displayMigrationPath, 'utf8');
 const apiRouteSource = readFileSync(apiRoutePath, 'utf8');
 const mappingSource = readFileSync(mappingPath, 'utf8');
@@ -51,6 +52,26 @@ assert.equal(dishes.length, 20, 'curated seed は production 品質の 20 件に
 assert.equal(new Set(dishes.map((dish) => dish.source_ref)).size, dishes.length, 'source_ref は重複させないでください。');
 assert.equal(new Set(dishes.map((dish) => dish.title)).size, dishes.length, '料理名は重複させないでください。');
 assert.deepEqual(migrationPayload, dishes, 'curated-dishes.json と migration 埋め込み JSON を同期してください。');
+
+const rendang = dishes.find((dish) => dish.source_ref === 'curated:rendang');
+assert.ok(rendang, 'ルンダン は curated:rendang として seed に保持してください。');
+assert.equal(rendang.title, 'ルンダン', 'curated:rendang の表示名は ルンダン を保持してください。');
+assert.equal(rendang.is_vegan, false, 'ルンダン は牛肉を含むため vegan=false にしてください。');
+assert.ok(
+  rendang.ingredients.some((ingredient) => ingredient.name_ja === '牛肉' && ingredient.master_name_en === 'beef'),
+  'ルンダン の牛肉は DB の beef ingredient_code へ紐づけてください。',
+);
+assert.ok(
+  migrationPayload
+    .find((dish) => dish.source_ref === 'curated:rendang')
+    ?.ingredients.some((ingredient) => ingredient.name_ja === '牛肉' && ingredient.master_name_en === 'beef'),
+  'curated migration 埋め込み JSON でも ルンダン の牛肉は beef へ紐づけてください。',
+);
+assert.match(
+  dietarySupportMigrationSource,
+  /name_en\s*=\s*'beef'[\s\S]*\{"meat","animal-product"\}|\{"meat","animal-product"\}[\s\S]*name_en\s*=\s*'beef'/,
+  'beef ingredient は dietary_tags meat/animal-product を持つため、UI はこの根拠で vegan 不可を説明できます。',
+);
 
 for (const dish of dishes) {
   assert.match(dish.source_ref, /^curated:[a-z0-9-]+$/, `${dish.title} は curated: の安定 source_ref を使ってください。`);

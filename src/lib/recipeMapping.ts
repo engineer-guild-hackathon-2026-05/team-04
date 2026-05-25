@@ -15,10 +15,16 @@ type RecipeIngredientJoinRow = {
     ingredient_code?: string | null;
     name_ja?: string | null;
     name_en?: string | null;
+    category?: string | null;
+    is_allergen?: boolean | null;
+    dietary_tags?: string[] | null;
   } | {
     ingredient_code?: string | null;
     name_ja?: string | null;
     name_en?: string | null;
+    category?: string | null;
+    is_allergen?: boolean | null;
+    dietary_tags?: string[] | null;
   }[] | null;
 };
 
@@ -104,6 +110,9 @@ function normalizeRecipeIngredients(rows: RecipeIngredientJoinRow[] | null | und
         name_ja: row.display_name_ja?.trim() || ingredient.name_ja,
         quantity: row.quantity ?? '',
         is_optional: row.is_optional ?? false,
+        category: ingredient.category ?? undefined,
+        is_allergen: ingredient.is_allergen ?? false,
+        dietary_tags: ingredient.dietary_tags ?? [],
       };
     })
     .filter((ingredient): ingredient is RecipeIngredient => Boolean(ingredient));
