@@ -113,8 +113,8 @@ WHERE r.id NOT IN (
 
 ```
 # .env.local（リポジトリにコミットしない）
-SUPABASE_URL=https://<project>.supabase.co
-SUPABASE_ANON_KEY=<anon key>          # クライアント用
+NEXT_PUBLIC_SUPABASE_URL=https://<project>.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon key>  # クライアント用
 SUPABASE_SERVICE_ROLE_KEY=<service role key>  # サーバーサイド専用・絶対に公開しない
 ```
 

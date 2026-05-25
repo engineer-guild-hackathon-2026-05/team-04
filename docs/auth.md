@@ -32,7 +32,7 @@ const { data, error } = await supabase.auth.signUp({
   email,
   password,
   options: {
-    data: { display_name: displayName },
+    data: { name: displayName },
   },
 });
 

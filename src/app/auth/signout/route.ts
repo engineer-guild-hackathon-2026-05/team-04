@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { DEMO_AUTH_COOKIE, hasDemoAuthCookie } from "@/lib/demoMode";
 
-// ログアウト用エンドポイント。フロントは POST /auth/signout を叩くだけでよい。
+// サーバー側でセッション cookie を失効させるためのログアウト用エンドポイント。
 // GET は CSRF 経由で意図しないログアウトを誘発できるため受け付けない。
 export async function POST(request: NextRequest) {
   const { origin } = new URL(request.url);

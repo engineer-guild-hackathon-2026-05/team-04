@@ -131,7 +131,14 @@ export default function ListView({
             id="recipe-search-input"
           />
           {searchQuery && (
-            <button className="clear-search-btn" onClick={() => setSearchQuery('')}>×</button>
+            <button
+              type="button"
+              className="clear-search-btn"
+              aria-label="検索をクリア"
+              onClick={() => setSearchQuery('')}
+            >
+              ×
+            </button>
           )}
         </div>
 
