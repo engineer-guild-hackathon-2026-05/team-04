@@ -134,7 +134,7 @@ assert.doesNotMatch(envExample + openRouter + substituteRoute + suggestRoute, /S
 
 if (suggestRoute) {
   const route = compact(suggestRoute);
-  const authIndex = route.search(/getUser\(|auth\.getUser|isDemoAuthenticated/);
+  const authIndex = route.search(/getUser\(|auth\.getUser|isDemoAuthenticated|getRecipeRouteUser/);
   const openRouterIndex = route.search(/selectRecipeIdsWithOpenRouter\s*\(/);
   const serviceRoleIndex = route.search(/persistAiRecipe\s*\(|createServiceRoleClient\s*\(|rpc\(/);
 
@@ -154,7 +154,7 @@ if (suggestRoute) {
 
 if (substituteRoute) {
   const route = compact(substituteRoute);
-  const authIndex = route.search(/getUser\(|auth\.getUser|isDemoAuthenticated/);
+  const authIndex = route.search(/getUser\(|auth\.getUser|isDemoAuthenticated|getRecipeRouteUser/);
   const openRouterIndex = route.search(/selectIngredientSubstitutionsWithOpenRouter\s*\(/);
   const serviceRoleIndex = route.search(/persistAiRecipe\s*\(|persistAiRecipes\s*\(|createServiceRoleClient\s*\(|rpc\(/);
 

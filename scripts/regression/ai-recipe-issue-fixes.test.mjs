@@ -96,7 +96,7 @@ assert.match(
 );
 assert.match(
   substituteRoute,
-  /violatesDietaryConstraints[\s\S]*diet-vegan[\s\S]*diet-lacto-vegetarian[\s\S]*diet-ovo-vegetarian[\s\S]*diet-pescatarian/,
+  /isDietaryConflictIngredient/,
   'substitute route must filter replacement ingredient candidates by diet before sending them to AI.',
 );
 assert.match(

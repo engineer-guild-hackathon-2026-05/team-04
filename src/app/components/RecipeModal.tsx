@@ -245,6 +245,7 @@ export default function RecipeModal({
   const hasActiveSubstitutions = substituteStatus === 'success' && substituteSuggestions.length > 0;
   const canSubstituteRecipe = isUuidBackedRecipeId(recipe.id);
   const isSubstituteLoading = substituteStatus === 'loading';
+  const primaryRecipeTag = recipe.tags[0] ?? '未分類';
 
   const handleSubstituteClick = async () => {
     if (!canSubstituteRecipe || isSubstituteLoading) return;
@@ -364,7 +365,7 @@ export default function RecipeModal({
                   </div>
                   <div className="meta-item">
                     <ChefHat size={16} />
-                    <span>カテゴリ: <strong>{recipe.tags[0]}</strong></span>
+                    <span>カテゴリ: <strong>{primaryRecipeTag}</strong></span>
                   </div>
                 </div>
 

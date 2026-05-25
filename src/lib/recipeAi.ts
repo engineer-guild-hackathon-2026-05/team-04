@@ -67,8 +67,128 @@ const OTHER_ANIMAL_PRODUCT_PATTERNS = [
   /gelatin|honey|lard|bouillon|consomme|stock/i,
 ];
 
+const RESTRICTION_ALIASES: Record<string, string[]> = {
+  'ing-shrimp': ['えび', '海老', 'エビ', 'shrimp', 'prawn'],
+  'ing-crab': ['かに', '蟹', 'カニ', 'crab'],
+  'ing-egg': ['卵', '玉子', 'たまご', 'エッグ', 'egg'],
+  'ing-milk': ['乳', '牛乳', 'ミルク', 'チーズ', 'バター', 'ヨーグルト', 'milk', 'dairy', 'cheese', 'butter', 'yogurt'],
+  'ing-wheat': ['小麦', '小麦粉', 'wheat', 'flour'],
+  'ing-pork': ['豚肉', 'ポーク', 'pork'],
+  'ing-beef': ['牛肉', 'ビーフ', 'beef'],
+  'ing-chicken': ['鶏肉', 'チキン', 'chicken'],
+  'ing-gelatin': ['ゼラチン', 'gelatin'],
+};
+
+const ANIMAL_INGREDIENT_PATTERNS = {
+  meat: ['牛肉', '豚肉', '鶏肉', '羊肉', '肉', 'ハム', 'ベーコン', 'ソーセージ', '鴨', 'ラム', 'beef', 'pork', 'chicken', 'meat', 'ham', 'bacon', 'sausage', 'duck', 'lamb', 'mutton'],
+  seafood: ['魚', 'さけ', '鮭', 'さば', '鯖', 'まぐろ', 'ツナ', 'えび', '海老', 'かに', '蟹', 'いか', 'イカ', 'たこ', 'タコ', 'あわび', 'いくら', '貝', '牡蠣', 'ホタテ', 'ナンプラー', 'fish', 'fish sauce', 'salmon', 'mackerel', 'tuna', 'shrimp', 'prawn', 'crab', 'squid', 'octopus', 'abalone', 'roe', 'shellfish', 'oyster', 'scallop'],
+  egg: ['卵', '玉子', 'たまご', 'エッグ', 'egg'],
+  dairy: ['乳', '牛乳', 'バター', 'チーズ', 'ヨーグルト', 'クリーム', 'ミルク', 'milk', 'butter', 'cheese', 'yogurt', 'cream', 'dairy'],
+  otherAnimalProduct: ['ゼラチン', 'はちみつ', '蜂蜜', 'ラード', 'ブイヨン', 'コンソメ', 'gelatin', 'honey', 'lard', 'bouillon', 'consomme', 'stock'],
+};
+
 function asObject(value: unknown): Record<string, unknown> | null {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : null;
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function normalizeSearchText(value: string) {
+  return value.trim().normalize('NFKC').toLowerCase();
+}
+
+function normalizeIngredientKey(value: string) {
+  return normalizeSearchText(value).replace(/\s+/g, ' ');
+}
+
+function uniqueStrings(values: Array<string | null | undefined>) {
+  return Array.from(new Set(values.map((value) => value?.trim()).filter((value): value is string => Boolean(value))));
+}
+
+function textMatchesToken(haystack: string, needle: string) {
+  const normalizedNeedle = normalizeSearchText(needle);
+  if (!normalizedNeedle) return false;
+
+  if (/[a-z0-9]/i.test(normalizedNeedle)) {
+    return new RegExp(`(^|[^\\p{L}\\p{N}])${escapeRegExp(normalizedNeedle)}(?=$|[^\\p{L}\\p{N}])`, 'iu')
+      .test(haystack);
+  }
+
+  return haystack.includes(normalizedNeedle);
+}
+
+function restrictionNeedles(restriction: RestrictionFact) {
+  return uniqueStrings([
+    restriction.id,
+    restriction.name_ja,
+    restriction.name_en,
+    ...(RESTRICTION_ALIASES[restriction.id] ?? []),
+  ]);
+}
+
+export function includesRestrictedIngredientText(
+  values: Array<string | null | undefined>,
+  restrictions: RestrictionFact[],
+) {
+  if (restrictions.length === 0) return false;
+  const haystack = normalizeSearchText(uniqueStrings(values).join('\n'));
+  return restrictions.some((restriction) =>
+    restrictionNeedles(restriction).some((needle) => textMatchesToken(haystack, needle)),
+  );
+}
+
+type IngredientDietLike = {
+  id?: string | null;
+  name_ja?: string | null;
+  name_en?: string | null;
+  category?: string | null;
+  dietary_tags?: string[] | null;
+};
+
+function ingredientText(ingredient: IngredientDietLike) {
+  return normalizeSearchText(uniqueStrings([
+    ingredient.id,
+    ingredient.name_ja,
+    ingredient.name_en,
+    ingredient.category,
+  ]).join('\n'));
+}
+
+function ingredientMatchesAnyTerm(ingredient: IngredientDietLike, terms: string[]) {
+  const haystack = ingredientText(ingredient);
+  return terms.some((term) => textMatchesToken(haystack, term));
+}
+
+export function isDietaryConflictIngredient(
+  ingredient: IngredientDietLike,
+  dietaryConstraints: string[],
+) {
+  if (dietaryConstraints.length === 0) return false;
+
+  const tags = new Set(ingredient.dietary_tags ?? []);
+  const isMeat = tags.has('meat') || tags.has('pork') || ingredientMatchesAnyTerm(ingredient, ANIMAL_INGREDIENT_PATTERNS.meat);
+  const isSeafood = tags.has('fish') || tags.has('shellfish') || ingredientMatchesAnyTerm(ingredient, ANIMAL_INGREDIENT_PATTERNS.seafood);
+  const isEgg = tags.has('egg') || ingredientMatchesAnyTerm(ingredient, ANIMAL_INGREDIENT_PATTERNS.egg);
+  const isDairy = tags.has('dairy') || ingredientMatchesAnyTerm(ingredient, ANIMAL_INGREDIENT_PATTERNS.dairy);
+  const isOtherAnimalProduct =
+    (tags.has('animal-product') && !isMeat && !isSeafood && !isEgg && !isDairy) ||
+    ingredientMatchesAnyTerm(ingredient, ANIMAL_INGREDIENT_PATTERNS.otherAnimalProduct);
+
+  if (dietaryConstraints.includes('diet-vegan')) {
+    return isMeat || isSeafood || isEgg || isDairy || isOtherAnimalProduct;
+  }
+  if (dietaryConstraints.includes('diet-lacto-vegetarian')) {
+    return isMeat || isSeafood || isEgg || isOtherAnimalProduct;
+  }
+  if (dietaryConstraints.includes('diet-ovo-vegetarian')) {
+    return isMeat || isSeafood || isDairy || isOtherAnimalProduct;
+  }
+  if (dietaryConstraints.includes('diet-pescatarian')) {
+    return isMeat || isOtherAnimalProduct;
+  }
+  return false;
 }
 
 function boundedString(value: unknown, maxLength: number) {
@@ -125,7 +245,7 @@ function normalizeIngredients(value: unknown) {
     const quantity = boundedString(object?.quantity, 80);
     if (!nameJa || !nameEn || !quantity) return null;
 
-    const key = `${nameJa.toLowerCase()}::${nameEn.toLowerCase()}`;
+    const key = normalizeIngredientKey(nameEn);
     if (seen.has(key)) continue;
     seen.add(key);
     ingredients.push({
@@ -189,16 +309,10 @@ export function validateKnownRestrictionCodes(codes: string[]) {
 }
 
 function includesUnsafeRestriction(recipe: AiGeneratedRecipe, restrictions: RestrictionFact[]) {
-  if (restrictions.length === 0) return false;
-  const haystack = recipe.ingredients
-    .flatMap((ingredient) => [ingredient.name_ja, ingredient.name_en])
-    .join('\n')
-    .toLowerCase();
-
-  return restrictions.some((restriction) => {
-    const names = [restriction.id, restriction.name_ja, restriction.name_en].filter(Boolean);
-    return names.some((name) => haystack.includes(name.toLowerCase()));
-  });
+  return includesRestrictedIngredientText(
+    recipe.ingredients.flatMap((ingredient) => [ingredient.name_ja, ingredient.name_en]),
+    restrictions,
+  );
 }
 
 function ingredientHaystack(recipe: AiGeneratedRecipe) {
@@ -234,6 +348,36 @@ function violatesDiet(recipe: AiGeneratedRecipe, dietaryConstraints: string[]) {
     return true;
   }
   return false;
+}
+
+function canonicalIngredientForAiIngredient(ingredient: AiGeneratedIngredient) {
+  const normalizedNameEn = normalizeIngredientKey(ingredient.name_en);
+  const normalizedNameJa = normalizeIngredientKey(ingredient.name_ja);
+
+  return INGREDIENT_MASTER.find((masterIngredient) => {
+    const restrictionLike = {
+      id: masterIngredient.id,
+      name_ja: masterIngredient.name_ja,
+      name_en: masterIngredient.name_en,
+      dietary_tags: masterIngredient.dietary_tags,
+    };
+    return normalizeIngredientKey(masterIngredient.name_en) === normalizedNameEn ||
+      normalizeIngredientKey(masterIngredient.name_ja) === normalizedNameJa ||
+      restrictionNeedles(restrictionLike).some((needle) =>
+        normalizeIngredientKey(needle) === normalizedNameEn ||
+        normalizeIngredientKey(needle) === normalizedNameJa,
+      );
+  });
+}
+
+function canonicalIngredientIdForAiIngredient(ingredient: AiGeneratedIngredient) {
+  const canonicalIngredient = canonicalIngredientForAiIngredient(ingredient);
+  if (canonicalIngredient) return canonicalIngredient.id;
+
+  const fallbackSlug = normalizeIngredientKey(ingredient.name_en)
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+  return `none-${fallbackSlug || ingredient.name_ja}`;
 }
 
 function normalizeAiRecipeCandidate(
@@ -313,12 +457,17 @@ export function aiRecipeToRecipe(aiRecipe: AiGeneratedRecipe, id: string, parent
     tags: aiRecipe.tags,
     cultural_background: aiRecipe.cultural_background,
     parent_recipe_id: parentRecipeId ?? null,
-    ingredients: aiRecipe.ingredients.map((ingredient): RecipeIngredient => ({
-      id: `none-${ingredient.name_en.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || ingredient.name_ja}`,
-      name_ja: ingredient.name_ja,
-      quantity: ingredient.quantity,
-      is_optional: ingredient.is_optional,
-    })),
+    ingredients: aiRecipe.ingredients.map((ingredient): RecipeIngredient => {
+      const canonicalIngredient = canonicalIngredientForAiIngredient(ingredient);
+      return {
+        id: canonicalIngredient?.id ?? canonicalIngredientIdForAiIngredient(ingredient),
+        name_ja: ingredient.name_ja,
+        quantity: ingredient.quantity,
+        is_optional: ingredient.is_optional,
+        category: canonicalIngredient?.category,
+        dietary_tags: canonicalIngredient?.dietary_tags ?? [],
+      };
+    }),
     steps: aiRecipe.steps.map((step): RecipeStep => ({ order: step.order, text: step.text })),
     culture_sections: [],
   };

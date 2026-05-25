@@ -4,9 +4,11 @@ import { mapRecipeRowToRecipe } from '@/lib/recipeMapping';
 import type { Recipe } from '@/lib/mockData';
 import { OpenRouterConfigError, OpenRouterResponseError, selectRecipeIdsWithOpenRouter } from '@/lib/server/openRouter';
 import { apiError } from '@/lib/server/apiErrors';
-import { mergedRestrictionContext } from '@/lib/server/recipeRouteUtils';
+import { getRecipeRouteUser, mergedRestrictionContext } from '@/lib/server/recipeRouteUtils';
 import { createClient } from '@/lib/supabase/server';
-import type { RestrictionFact } from '@/lib/recipeAi';
+import { includesRestrictedIngredientText, isDietaryConflictIngredient, type RestrictionFact } from '@/lib/recipeAi';
+
+const MAX_RECIPE_CANDIDATES_FOR_AI = 40;
 
 function normalizeMood(value: unknown) {
   if (typeof value !== 'string') return null;
@@ -16,10 +18,15 @@ function normalizeMood(value: unknown) {
 }
 
 type RecipeIngredientJoinRow = {
+  display_name_ja?: string | null;
+  preparation_tags?: string[] | null;
   ingredients?: {
     ingredient_code?: string | null;
     name_ja?: string | null;
     name_en?: string | null;
+    category?: string | null;
+    is_allergen?: boolean | null;
+    dietary_tags?: string[] | null;
   } | null;
 };
 
@@ -28,64 +35,37 @@ type RecipeCandidateRow = {
   is_vegan?: boolean | null;
 };
 
-const MEAT_PATTERNS = [
-  /牛肉|豚肉|鶏肉|羊肉|肉|ハム|ベーコン|ソーセージ|鴨|ラム/,
-  /beef|pork|chicken|meat|ham|bacon|sausage|duck|lamb|mutton/i,
-];
-
-const SEAFOOD_PATTERNS = [
-  /魚|さけ|鮭|さば|鯖|まぐろ|ツナ|えび|海老|かに|蟹|いか|イカ|たこ|タコ|あわび|いくら|貝|牡蠣|ホタテ/,
-  /fish|salmon|mackerel|tuna|shrimp|prawn|crab|squid|octopus|abalone|roe|shellfish|oyster|scallop/i,
-];
-
-const EGG_PATTERNS = [/卵|玉子|たまご|エッグ/, /egg/i];
-const DAIRY_PATTERNS = [/乳|牛乳|バター|チーズ|ヨーグルト|クリーム|ミルク/, /milk|butter|cheese|yogurt|cream|dairy/i];
-const OTHER_ANIMAL_PRODUCT_PATTERNS = [/ゼラチン|はちみつ|蜂蜜|ラード|ブイヨン|コンソメ/, /gelatin|honey|lard|bouillon|consomme|stock/i];
-
-function includesAnyPattern(haystack: string, patterns: RegExp[]) {
-  return patterns.some((pattern) => pattern.test(haystack));
-}
-
 function ingredientNames(row: RecipeCandidateRow) {
   return (row.recipe_ingredients ?? [])
     .flatMap((item) => {
       const ingredient = item.ingredients;
-      return [ingredient?.ingredient_code, ingredient?.name_ja, ingredient?.name_en].filter(Boolean);
+      return [
+        ingredient?.ingredient_code,
+        item.display_name_ja,
+        ingredient?.name_ja,
+        ingredient?.name_en,
+      ].filter(Boolean);
     });
 }
 
 function includesRestrictedIngredient(row: RecipeCandidateRow, restrictions: RestrictionFact[]) {
-  if (restrictions.length === 0) return false;
-  const haystack = ingredientNames(row).join('\n').toLowerCase();
-  return restrictions.some((restriction) =>
-    [restriction.id, restriction.name_ja, restriction.name_en]
-      .filter(Boolean)
-      .some((name) => haystack.includes(name.toLowerCase())),
-  );
+  return includesRestrictedIngredientText(ingredientNames(row), restrictions);
 }
 
 function violatesDietaryConstraints(row: RecipeCandidateRow, dietaryConstraints: string[]) {
   if (dietaryConstraints.length === 0) return false;
-  const haystack = ingredientNames(row).join('\n');
-  const hasMeat = includesAnyPattern(haystack, MEAT_PATTERNS);
-  const hasSeafood = includesAnyPattern(haystack, SEAFOOD_PATTERNS);
-  const hasEgg = includesAnyPattern(haystack, EGG_PATTERNS);
-  const hasDairy = includesAnyPattern(haystack, DAIRY_PATTERNS);
-  const hasOtherAnimal = includesAnyPattern(haystack, OTHER_ANIMAL_PRODUCT_PATTERNS);
+  if (dietaryConstraints.includes('diet-vegan') && row.is_vegan !== true) return true;
 
-  if (dietaryConstraints.includes('diet-vegan')) {
-    return row.is_vegan !== true || hasMeat || hasSeafood || hasEgg || hasDairy || hasOtherAnimal;
-  }
-  if (dietaryConstraints.includes('diet-lacto-vegetarian') && (hasMeat || hasSeafood || hasEgg || hasOtherAnimal)) {
-    return true;
-  }
-  if (dietaryConstraints.includes('diet-ovo-vegetarian') && (hasMeat || hasSeafood || hasDairy || hasOtherAnimal)) {
-    return true;
-  }
-  if (dietaryConstraints.includes('diet-pescatarian') && (hasMeat || hasOtherAnimal)) {
-    return true;
-  }
-  return false;
+  return (row.recipe_ingredients ?? []).some((item) => {
+    const ingredient = item.ingredients;
+    return isDietaryConflictIngredient({
+      id: ingredient?.ingredient_code,
+      name_ja: item.display_name_ja ?? ingredient?.name_ja,
+      name_en: ingredient?.name_en,
+      category: ingredient?.category,
+      dietary_tags: ingredient?.dietary_tags,
+    }, dietaryConstraints);
+  });
 }
 
 async function fetchEdibleRecipeCandidates(input: {
@@ -114,17 +94,21 @@ async function fetchEdibleRecipeCandidates(input: {
       recipe_ingredients (
         quantity,
         is_optional,
-        ingredients!recipe_ingredients_ingredient_id_fkey ( ingredient_code, name_ja, name_en )
+        display_name_ja,
+        preparation_tags,
+        ingredients!recipe_ingredients_ingredient_id_fkey ( ingredient_code, name_ja, name_en, category, is_allergen, dietary_tags )
       )
     `)
     .or(`is_public.eq.true,created_by.eq.${input.userId}`)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .limit(200);
 
   if (error) throw error;
 
   return ((data ?? []) as RecipeCandidateRow[])
     .filter((row) => !includesRestrictedIngredient(row, input.restrictions))
     .filter((row) => !violatesDietaryConstraints(row, input.dietaryConstraints))
+    .slice(0, MAX_RECIPE_CANDIDATES_FOR_AI)
     .map((row) => mapRecipeRowToRecipe(row))
     .filter((recipe): recipe is Recipe => Boolean(recipe));
 }
@@ -137,8 +121,8 @@ export async function POST(request: NextRequest) {
     return apiError(503, 'supabase_not_configured', 'Supabaseの設定が不足しています。');
   }
 
-  const { data: { user }, error: userError } = await supabase.auth.getUser();
-  if (userError || !user) {
+  const user = await getRecipeRouteUser(supabase);
+  if (!user) {
     return apiError(401, 'authentication_required', 'ログイン後にAIレシピ提案を利用できます。');
   }
 

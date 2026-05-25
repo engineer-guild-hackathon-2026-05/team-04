@@ -3,9 +3,9 @@ import { RecipeSubstituteRequest, RecipeSubstituteResponse } from '@/lib/apiType
 import type { IngredientMaster } from '@/lib/mockData';
 import { OpenRouterConfigError, OpenRouterResponseError, selectIngredientSubstitutionsWithOpenRouter } from '@/lib/server/openRouter';
 import { apiError } from '@/lib/server/apiErrors';
-import { isUuid, mergedRestrictionContext } from '@/lib/server/recipeRouteUtils';
+import { getRecipeRouteUser, isUuid, mergedRestrictionContext } from '@/lib/server/recipeRouteUtils';
 import { createClient } from '@/lib/supabase/server';
-import type { RestrictionFact } from '@/lib/recipeAi';
+import { includesRestrictedIngredientText, isDietaryConflictIngredient } from '@/lib/recipeAi';
 
 type RecipeIngredientRow = {
   quantity?: string | null;
@@ -49,32 +49,6 @@ function mapIngredientCatalogRow(row: IngredientCatalogRow): IngredientMaster | 
   };
 }
 
-function includesRestrictedIngredient(ingredient: IngredientMaster, restrictions: RestrictionFact[]) {
-  if (restrictions.length === 0) return false;
-  const haystack = [ingredient.id, ingredient.name_ja, ingredient.name_en].join('\n').toLowerCase();
-  return restrictions.some((restriction) =>
-    [restriction.id, restriction.name_ja, restriction.name_en]
-      .filter(Boolean)
-      .some((name) => haystack.includes(name.toLowerCase())),
-  );
-}
-
-function violatesDietaryConstraints(ingredient: IngredientMaster, dietaryConstraints: string[]) {
-  if (dietaryConstraints.length === 0) return false;
-  const tags = new Set(ingredient.dietary_tags);
-  const isMeat = tags.has('meat') || tags.has('pork');
-  const isSeafood = tags.has('fish') || tags.has('shellfish');
-  const isEgg = tags.has('egg');
-  const isDairy = tags.has('dairy');
-  const isAnimalProduct = tags.has('animal-product');
-
-  if (dietaryConstraints.includes('diet-vegan')) return isAnimalProduct;
-  if (dietaryConstraints.includes('diet-lacto-vegetarian')) return isMeat || isSeafood || isEgg || (isAnimalProduct && !isDairy);
-  if (dietaryConstraints.includes('diet-ovo-vegetarian')) return isMeat || isSeafood || isDairy || (isAnimalProduct && !isEgg);
-  if (dietaryConstraints.includes('diet-pescatarian')) return isMeat || (isAnimalProduct && !isSeafood && !isEgg && !isDairy);
-  return false;
-}
-
 function originalIngredientsFromRecipe(recipe: RecipeRow): OriginalIngredient[] {
   return (recipe.recipe_ingredients ?? [])
     .map((row): OriginalIngredient | null => {
@@ -105,8 +79,8 @@ export async function POST(
     return apiError(503, 'supabase_not_configured', 'Supabaseの設定が不足しています。');
   }
 
-  const { data: { user }, error: userError } = await supabase.auth.getUser();
-  if (userError || !user) {
+  const user = await getRecipeRouteUser(supabase);
+  if (!user) {
     return apiError(401, 'authentication_required', 'ログイン後に日本の食材で再提案できます。');
   }
 
@@ -134,7 +108,7 @@ export async function POST(
     }
 
     const recipe = recipeRow as RecipeRow;
-    const isAuthorizedRecipe = recipe.is_public === true || recipe.created_by === user.id;
+    const isAuthorizedRecipe = recipe.is_public === true || (user.source === 'supabase' && recipe.created_by === user.id);
     if (!isAuthorizedRecipe) {
       return apiError(404, 'recipe_not_found', '対象レシピを確認できませんでした。');
     }
@@ -158,8 +132,9 @@ export async function POST(
     const candidateIngredients = ((ingredientRows ?? []) as IngredientCatalogRow[])
       .map(mapIngredientCatalogRow)
       .filter((ingredient): ingredient is IngredientMaster => Boolean(ingredient))
-      .filter((ingredient) => !includesRestrictedIngredient(ingredient, restrictionContext.restrictions))
-      .filter((ingredient) => !violatesDietaryConstraints(ingredient, restrictionContext.dietaryConstraints));
+      .filter((ingredient) =>
+        !includesRestrictedIngredientText([ingredient.id, ingredient.name_ja, ingredient.name_en], restrictionContext.restrictions))
+      .filter((ingredient) => !isDietaryConflictIngredient(ingredient, restrictionContext.dietaryConstraints));
 
     const originalIngredients = originalIngredientsFromRecipe(recipe);
     const selections = await selectIngredientSubstitutionsWithOpenRouter({
