@@ -62,7 +62,7 @@ const presetIngredientCodes = ingredients
 
 ### API連携
 
-フロントはSupabaseの内部UUIDではなく、DBの `ingredient_code` に対応する安定コード（APIレスポンスでは `id`）を扱う。
+フロントはSupabaseの内部UUIDではなく、DBの `ingredient_code` に対応する安定コード（APIレスポンスでは `id`）を扱う。APIは将来DBに追加される `ing-*` コードも受け入れるため、フロント側も `INGREDIENT_MASTER` の静的一覧だけを唯一の正としない。
 
 | API | 用途 | 認証 | フロントで使う主なフィールド |
 |---|---|---|---|

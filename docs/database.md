@@ -83,7 +83,7 @@ erDiagram
 | `is_allergen` | `true` のものだけユーザーのNG材料選択UIに表示される。初期28品目は `true`、AIが追加する材料は `false` |
 | `dietary_tags` | `vegan` / `gluten-free` 等のプリセット除外に使うタグ配列。例: `{meat, animal-product}` |
 
-`ingredient_code` は既存28品目などUIで選択する材料に必ず付与し、nullable + partial unique indexで管理する。AI/APIが後から追加する非選択材料は `ingredient_code` を持たない場合がある。
+`ingredient_code` は既存28品目などUIで選択する材料に必ず付与し、nullable + partial unique indexで管理する。AI/APIが後から追加する非選択材料は `ingredient_code` を持たない場合がある。APIはDBから返る `ing-*` 形式の `ingredient_code` を静的mock一覧で絞り込まず、そのままフロントへ返す。
 UUIDの `id` はDB内部のFK用途に限定する。
 
 ### user_restricted_ingredients

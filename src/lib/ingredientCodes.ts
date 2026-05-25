@@ -17,12 +17,12 @@ export const INGREDIENT_CODE_SEED_ROWS = INGREDIENT_MASTER.map((ingredient) => (
   dietary_tags: ingredient.dietary_tags,
 }));
 
-export function isIngredientCode(value: string) {
-  return INGREDIENT_CODE_SET.has(value);
+export function isIngredientCodeFormat(value: string) {
+  return /^ing-[a-z0-9-]+$/.test(value);
 }
 
 export function toIngredientCodeFromDbRow(row: { ingredient_code?: string | null; name_ja?: string | null }) {
-  if (row.ingredient_code && INGREDIENT_CODE_SET.has(row.ingredient_code)) return row.ingredient_code;
+  if (row.ingredient_code) return row.ingredient_code;
   if (row.name_ja) return INGREDIENT_CODE_BY_NAME_JA.get(row.name_ja) ?? null;
   return null;
 }

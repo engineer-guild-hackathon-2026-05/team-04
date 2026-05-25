@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { cookies } from 'next/headers';
 import { DEMO_AUTH_COOKIE, hasDemoAuthCookie } from '@/lib/demoMode';
-import { INGREDIENT_CODE_SET, isIngredientCode, toIngredientCodeFromDbRow } from '@/lib/ingredientCodes';
+import { isIngredientCodeFormat, toIngredientCodeFromDbRow } from '@/lib/ingredientCodes';
 import { createClient } from '@/lib/supabase/server';
 import type { ProfileFallbackField, ProfilePayload, ProfileResponse } from '@/lib/apiTypes';
 
@@ -60,7 +60,7 @@ async function replaceRestrictedIngredients(
   userId: string,
   requestedCodes: string[],
 ) {
-  const ingredientCodes = Array.from(new Set(requestedCodes.filter(isIngredientCode)));
+  const ingredientCodes = Array.from(new Set(requestedCodes.filter(isIngredientCodeFormat)));
   if (ingredientCodes.length === 0) {
     const { data: existingRows, error: existingError } = await supabase
       .from('user_restricted_ingredients')
@@ -88,7 +88,7 @@ async function replaceRestrictedIngredients(
   const resolvedCodes = new Set(
     resolvedIngredients
       .map((ingredient) => ingredient.ingredient_code)
-      .filter((code): code is string => Boolean(code) && INGREDIENT_CODE_SET.has(code)),
+      .filter((code): code is string => Boolean(code)),
   );
 
   const missingCodes = ingredientCodes.filter((code) => !resolvedCodes.has(code));
@@ -246,11 +246,11 @@ export async function PUT(request: NextRequest) {
 
   if (preferencesError) throw preferencesError;
 
-  await replaceRestrictedIngredients(supabase, user.id, requestedRestrictedIngredients);
+  const { savedCodes } = await replaceRestrictedIngredients(supabase, user.id, requestedRestrictedIngredients);
 
-  const localOnlyRestrictions = requestedRestrictedIngredients.filter((code) => !isIngredientCode(code));
+  const localOnlyRestrictions = requestedRestrictedIngredients.filter((code) => !code.startsWith('ing-'));
   const savedRestrictedIngredients = [
-    ...requestedRestrictedIngredients.filter(isIngredientCode),
+    ...savedCodes,
     ...localOnlyRestrictions,
   ];
 
