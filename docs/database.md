@@ -151,8 +151,8 @@ WHERE r.id NOT IN (
 ```
 # .env.local（リポジトリにコミットしない）
 NEXT_PUBLIC_SUPABASE_URL=https://<project>.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon key>      # ブラウザにも公開される。RLS前提の通常操作用
-SUPABASE_SERVICE_ROLE_KEY=<service role key>  # サーバーサイド専用・NEXT_PUBLIC_禁止
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon key>      # ブラウザにも公開される。RLS前提のクライアント/通常操作用
+SUPABASE_SERVICE_ROLE_KEY=<service role key>  # サーバーサイド専用・NEXT_PUBLIC_禁止・絶対に公開しない
 ```
 
 service role keyはSupabaseダッシュボードの `Settings > API` から取得できる。

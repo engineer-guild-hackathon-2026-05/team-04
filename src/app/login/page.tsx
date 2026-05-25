@@ -58,13 +58,11 @@ function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState(initialError);
-  const [noticeMessage, setNoticeMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setErrorMessage('');
-    setNoticeMessage('');
     setIsSubmitting(true);
 
     if (mode === 'signup' && !new RegExp(PASSWORD_PATTERN).test(password)) {
@@ -83,8 +81,7 @@ function LoginForm() {
         }
 
         if (demoSignInResult === 'failed') {
-          setErrorMessage('デモログインに失敗しました。時間をおいてもう一度お試しください。');
-          return;
+          console.warn('Demo login probe failed. Falling back to Supabase password auth.');
         }
 
         const supabase = createClient();
@@ -103,7 +100,6 @@ function LoginForm() {
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/confirm?next=${encodeURIComponent(redirectTo)}`,
           data: { name },
         },
       });
@@ -119,7 +115,7 @@ function LoginForm() {
         return;
       }
 
-      setNoticeMessage('確認メールを送信しました。メール内のリンクから認証を完了してください。');
+      setErrorMessage('メール確認が必要な Supabase Auth 設定になっています。メール送信なしで使うため、管理者に Confirm email をOFFにしてもらってください。');
     } finally {
       setIsSubmitting(false);
     }
@@ -201,7 +197,6 @@ function LoginForm() {
           </label>
 
           {errorMessage && <p className="auth-message error" role="alert">{errorMessage}</p>}
-          {noticeMessage && <p className="auth-message success" role="status">{noticeMessage}</p>}
 
           <button className="auth-submit-btn" type="submit" disabled={isSubmitting}>
             {isSubmitting ? <Loader2 size={18} className="auth-spin" /> : mode === 'signin' ? <LogIn size={18} /> : <UserPlus size={18} />}

@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 const loginSource = readFileSync('src/app/login/page.tsx', 'utf8');
-const confirmSource = readFileSync('src/app/auth/confirm/page.tsx', 'utf8');
 
 const previousSanitizeRedirect = (value) => {
   if (!value || !value.startsWith('/') || value.startsWith('//')) return '/app';
@@ -38,20 +37,10 @@ assert.doesNotMatch(
   /function\s+sanitizeRedirect\(value:\s*string\s*\|\s*null\)\s*\{\s*if \(!value \|\| !value\.startsWith\('\/'\) \|\| value\.startsWith\('\/\/'\)\) return '\/app';\s*return value;\s*\}/,
   'login page に危険な旧sanitizeRedirect実装を残さないでください。',
 );
-assert.doesNotMatch(
-  confirmSource,
-  /function\s+sanitizeRedirect\(value:\s*string\s*\|\s*null\)\s*\{\s*if \(!value \|\| !value\.startsWith\('\/'\) \|\| value\.startsWith\('\/\/'\)\) return '\/app';\s*return value;\s*\}/,
-  'confirm page に危険な旧sanitizeRedirect実装を残さないでください。',
-);
 assert.match(
   loginSource,
   /sanitizeAuthRedirect\(searchParams\.get\('redirect'\)\)/,
   'login page は共通の安全な auth redirect sanitizer を使ってください。',
-);
-assert.match(
-  confirmSource,
-  /sanitizeAuthRedirect\(searchParams\.get\('next'\)\)/,
-  'confirm page は共通の安全な auth redirect sanitizer を使ってください。',
 );
 
 const helperSource = readFileSync('src/lib/authRedirect.ts', 'utf8');

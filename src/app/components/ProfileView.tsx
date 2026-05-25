@@ -4,16 +4,20 @@ import React, { useState } from 'react';
 import { User, ShieldAlert, Sparkles, Save, ArrowLeft, Check, Search, X } from 'lucide-react';
 import type { IngredientMaster, Recipe } from '@/lib/mockData';
 
+type RestrictionReason = 'allergy' | 'dislike' | 'religious';
+
 interface ProfileViewProps {
   ingredientOptions: IngredientMaster[];
   recipeOptions: Recipe[];
   initialUserName: string;
   initialRestrictedIngredients: string[];
+  initialRestrictedIngredientReasons: Record<string, RestrictionReason>;
   initialPreferredDishes: string[];
   initialPreferredCuisines: string[];
   onSaveProfile: (profile: {
     userName: string;
     restrictedIngredients: string[];
+    restrictedIngredientReasons: Record<string, RestrictionReason>;
     preferredDishes: string[];
     preferredCuisines: string[];
   }) => void;
@@ -89,6 +93,7 @@ export default function ProfileView({
   recipeOptions,
   initialUserName,
   initialRestrictedIngredients,
+  initialRestrictedIngredientReasons,
   initialPreferredDishes,
   initialPreferredCuisines,
   onSaveProfile,
@@ -96,6 +101,9 @@ export default function ProfileView({
 }: ProfileViewProps) {
   const [userName, setUserName] = useState(initialUserName);
   const [selectedRestricted, setSelectedRestricted] = useState<string[]>(initialRestrictedIngredients);
+  const [selectedRestrictionReasons, setSelectedRestrictionReasons] = useState<Record<string, RestrictionReason>>(
+    initialRestrictedIngredientReasons,
+  );
   const [selectedDishes, setSelectedDishes] = useState<string[]>(initialPreferredDishes);
   const [selectedCuisines, setSelectedCuisines] = useState<string[]>(initialPreferredCuisines);
   const [allergyQuery, setAllergyQuery] = useState('');
@@ -132,10 +140,24 @@ export default function ProfileView({
     : PREFERRED_CUISINES
   );
 
-  const toggleRestricted = (id: string) => {
-    setSelectedRestricted(prev => 
-      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
-    );
+  const toggleRestricted = (id: string, reason?: RestrictionReason) => {
+    setSelectedRestricted(prev => {
+      const isSelected = prev.includes(id);
+      if (isSelected) {
+        setSelectedRestrictionReasons(current => {
+          const next = { ...current };
+          delete next[id];
+          return next;
+        });
+        return prev.filter(x => x !== id);
+      }
+
+      setSelectedRestrictionReasons(current => ({
+        ...current,
+        [id]: reason ?? 'allergy',
+      }));
+      return [...prev, id];
+    });
   };
 
   const getSelectedOptions = (options: SelectableOption[]) => (
@@ -148,6 +170,7 @@ export default function ProfileView({
     setQuery,
     options,
     selectedOptions,
+    reason,
     placeholder,
     emptyText,
     chipClassName,
@@ -157,6 +180,7 @@ export default function ProfileView({
     setQuery: (value: string) => void;
     options: SelectableOption[];
     selectedOptions: SelectableOption[];
+    reason: RestrictionReason;
     placeholder: string;
     emptyText: string;
     chipClassName: string;
@@ -182,7 +206,7 @@ export default function ProfileView({
               key={`${inputId}-${option.id}`}
               type="button"
               className={`toggle-chip restrict ${active ? 'active' : ''}`}
-              onClick={() => toggleRestricted(option.id)}
+              onClick={() => toggleRestricted(option.id, reason)}
               aria-pressed={active}
             >
               <span className="chip-indicator"></span>
@@ -201,7 +225,7 @@ export default function ProfileView({
               key={`selected-${inputId}-${option.id}`}
               type="button"
               className={`selected-tag ${chipClassName}`}
-              onClick={() => toggleRestricted(option.id)}
+              onClick={() => toggleRestricted(option.id, reason)}
               aria-label={`${option.label}を解除`}
             >
               <span>{option.label}</span>
@@ -233,6 +257,9 @@ export default function ProfileView({
     onSaveProfile({
       userName,
       restrictedIngredients: selectedRestricted,
+      restrictedIngredientReasons: Object.fromEntries(
+        selectedRestricted.map((id) => [id, selectedRestrictionReasons[id] ?? 'allergy']),
+      ) as Record<string, RestrictionReason>,
       preferredDishes: selectedDishes,
       preferredCuisines: selectedCuisines
     });
@@ -309,6 +336,7 @@ export default function ProfileView({
                   setQuery: setAllergyQuery,
                   options: visibleAllergyOptions,
                   selectedOptions: getSelectedOptions(allergyOptions),
+                  reason: 'allergy',
                   placeholder: '小麦、卵、えびなどを検索...',
                   emptyText: '該当するアレルギー要素が見つかりません。',
                   chipClassName: 'danger',
@@ -323,6 +351,7 @@ export default function ProfileView({
                   setQuery: setVeganQuery,
                   options: visibleVeganOptions,
                   selectedOptions: getSelectedOptions(VEGAN_LEVEL_OPTIONS),
+                  reason: 'dislike',
                   placeholder: '完全ヴィーガン、ベジタリアンなどを検索...',
                   emptyText: '該当するヴィーガンレベルが見つかりません。',
                   chipClassName: 'green',
@@ -337,6 +366,7 @@ export default function ProfileView({
                   setQuery: setReligiousQuery,
                   options: visibleReligiousOptions,
                   selectedOptions: getSelectedOptions(RELIGIOUS_RESTRICTION_OPTIONS),
+                  reason: 'religious',
                   placeholder: '豚肉、牛肉、甲殻類などを検索...',
                   emptyText: '該当する宗教上の制限項目が見つかりません。',
                   chipClassName: 'amber',

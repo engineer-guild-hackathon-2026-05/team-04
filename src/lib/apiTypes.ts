@@ -1,8 +1,11 @@
 import type { IngredientMaster, Recipe } from './mockData';
 
+export type RestrictionReason = 'allergy' | 'dislike' | 'religious';
+
 export type ProfilePayload = {
   userName: string;
   restrictedIngredients: string[];
+  restrictedIngredientReasons: Record<string, RestrictionReason>;
   preferredDishes: string[];
   preferredCuisines: string[];
 };

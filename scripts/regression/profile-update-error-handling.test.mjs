@@ -15,7 +15,10 @@ assert.match(
   'profile name 更新に失敗した場合は後続の好み/制限食材保存へ進まないでください。',
 );
 assert.match(routeSource, /await\s+resolveRestrictedIngredients\(supabase,\s*requestedRestrictedIngredients\);/);
-assert.match(routeSource, /await\s+replaceRestrictedIngredients\(supabase,\s*user\.id,\s*resolvedRestrictedIngredients\);/);
+assert.match(
+  routeSource,
+  /await\s+replaceRestrictedIngredients\(\s*supabase,\s*user\.id,\s*resolvedRestrictedIngredients,\s*requestedRestrictionReasons,\s*\);/,
+);
 
 assert.match(
   routeSource,

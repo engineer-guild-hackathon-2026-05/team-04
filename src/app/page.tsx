@@ -8,7 +8,7 @@ import ListView from './components/ListView';
 import ProfileView from './components/ProfileView';
 import RecipeModal from './components/RecipeModal';
 import { INGREDIENT_MASTER, MOCK_RECIPES, type IngredientMaster, type Recipe } from '@/lib/mockData';
-import type { IngredientsResponse, ProfileFallbackField, ProfilePayload, ProfileResponse, RecipesResponse } from '@/lib/apiTypes';
+import type { IngredientsResponse, ProfileFallbackField, ProfilePayload, ProfileResponse, RecipesResponse, RestrictionReason } from '@/lib/apiTypes';
 
 type CurrentView = 'landing' | 'list' | 'profile';
 type AuthStatus = 'checking' | 'authenticated' | 'unauthenticated';
@@ -17,6 +17,7 @@ type StoredProfile = {
   email?: string;
   userName?: string;
   restrictedIngredients?: string[];
+  restrictedIngredientReasons?: Record<string, RestrictionReason>;
   preferredDishes?: string[];
   preferredCuisines?: string[];
 };
@@ -108,24 +109,44 @@ function getProfileFallbackFields(remoteProfile: ProfileResponse | null) {
   return new Set<ProfileFallbackField>();
 }
 
+function buildRestrictionReasons(
+  restrictedIngredients: string[],
+  ...reasonMaps: Array<Record<string, RestrictionReason> | undefined>
+) {
+  return Object.fromEntries(
+    restrictedIngredients.flatMap((id) => {
+      const reason = reasonMaps.find((map) => map?.[id])?.[id];
+      return reason ? [[id, reason] as const] : [];
+    }),
+  ) as Record<string, RestrictionReason>;
+}
+
 function mergeProfile(localProfile: StoredProfile | null, remoteProfile: ProfileResponse | null): ProfilePayload {
   const fallbackFields = getProfileFallbackFields(remoteProfile);
   const shouldUseLocalRestrictions = fallbackFields.has('restrictedIngredients');
   const shouldUseLocalPreferences = fallbackFields.has('preferences');
   const preserveLocalIngredientCodes = remoteProfile?.source === 'demo';
+  const restrictedIngredients = shouldUseLocalRestrictions
+    ? localProfile?.restrictedIngredients ?? []
+    : Array.from(new Set([
+      ...(remoteProfile?.restrictedIngredients ?? []),
+      ...(localProfile?.restrictedIngredients ?? []).filter(
+        (id) => preserveLocalIngredientCodes || !id.startsWith('ing-'),
+      ),
+    ]));
 
   return {
     userName: fallbackFields.has('userName')
       ? localProfile?.userName || remoteProfile?.userName || DEFAULT_USER_NAME
       : remoteProfile?.userName || localProfile?.userName || DEFAULT_USER_NAME,
-    restrictedIngredients: shouldUseLocalRestrictions
-      ? localProfile?.restrictedIngredients ?? []
-      : Array.from(new Set([
-        ...(remoteProfile?.restrictedIngredients ?? []),
-        ...(localProfile?.restrictedIngredients ?? []).filter(
-          (id) => preserveLocalIngredientCodes || !id.startsWith('ing-'),
-        ),
-      ])),
+    restrictedIngredients,
+    restrictedIngredientReasons: shouldUseLocalRestrictions
+      ? buildRestrictionReasons(restrictedIngredients, localProfile?.restrictedIngredientReasons)
+      : buildRestrictionReasons(
+        restrictedIngredients,
+        remoteProfile?.restrictedIngredientReasons,
+        localProfile?.restrictedIngredientReasons,
+      ),
     preferredDishes: shouldUseLocalPreferences
       ? localProfile?.preferredDishes ?? []
       : remoteProfile?.preferredDishes ?? localProfile?.preferredDishes ?? [],
@@ -142,6 +163,7 @@ export default function Home() {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
   const [userName, setUserName] = useState<string>(DEFAULT_USER_NAME);
   const [restrictedIngredients, setRestrictedIngredients] = useState<string[]>([]);
+  const [restrictedIngredientReasons, setRestrictedIngredientReasons] = useState<Record<string, RestrictionReason>>({});
   const [preferredDishes, setPreferredDishes] = useState<string[]>([]);
   const [preferredCuisines, setPreferredCuisines] = useState<string[]>([]);
   const [ingredientOptions, setIngredientOptions] = useState<IngredientMaster[]>(INGREDIENT_MASTER);
@@ -153,6 +175,7 @@ export default function Home() {
 
     if (parsed?.userName) setUserName(parsed.userName);
     if (parsed?.restrictedIngredients) setRestrictedIngredients(parsed.restrictedIngredients);
+    if (parsed?.restrictedIngredientReasons) setRestrictedIngredientReasons(parsed.restrictedIngredientReasons);
     if (parsed?.preferredDishes) setPreferredDishes(parsed.preferredDishes);
     if (parsed?.preferredCuisines) setPreferredCuisines(parsed.preferredCuisines);
 
@@ -183,6 +206,7 @@ export default function Home() {
           const merged = mergeProfile(demoProfile ?? null, {
             userName: demoProfile?.userName || demoProfile?.email?.split('@')[0] || 'デモユーザー',
             restrictedIngredients: demoProfile?.restrictedIngredients ?? [],
+            restrictedIngredientReasons: demoProfile?.restrictedIngredientReasons ?? {},
             preferredDishes: demoProfile?.preferredDishes ?? [],
             preferredCuisines: demoProfile?.preferredCuisines ?? [],
             source: 'demo',
@@ -191,6 +215,7 @@ export default function Home() {
           setCurrentView('list');
           setUserName(merged.userName);
           setRestrictedIngredients(merged.restrictedIngredients);
+          setRestrictedIngredientReasons(merged.restrictedIngredientReasons);
           setPreferredDishes(merged.preferredDishes);
           setPreferredCuisines(merged.preferredCuisines);
           setAuthStatus('authenticated');
@@ -215,6 +240,7 @@ export default function Home() {
         setCurrentView('list');
         setUserName(merged.userName);
         setRestrictedIngredients(merged.restrictedIngredients);
+        setRestrictedIngredientReasons(merged.restrictedIngredientReasons);
         setPreferredDishes(merged.preferredDishes);
         setPreferredCuisines(merged.preferredCuisines);
         if (remoteProfile.source === 'demo') {
@@ -241,6 +267,10 @@ export default function Home() {
         updates.restrictedIngredients !== undefined
           ? updates.restrictedIngredients
           : restrictedIngredients,
+      restrictedIngredientReasons:
+        updates.restrictedIngredientReasons !== undefined
+          ? updates.restrictedIngredientReasons
+          : restrictedIngredientReasons,
       preferredDishes: updates.preferredDishes !== undefined ? updates.preferredDishes : preferredDishes,
       preferredCuisines:
         updates.preferredCuisines !== undefined ? updates.preferredCuisines : preferredCuisines,
@@ -268,6 +298,7 @@ export default function Home() {
     setIsLoggedIn(false);
     setUserName(DEFAULT_USER_NAME);
     setRestrictedIngredients([]);
+    setRestrictedIngredientReasons({});
     setPreferredDishes([]);
     setPreferredCuisines([]);
     localStorage.removeItem(PROFILE_STORAGE_KEY);
@@ -281,12 +312,14 @@ export default function Home() {
     const previousProfile: ProfilePayload = {
       userName,
       restrictedIngredients,
+      restrictedIngredientReasons,
       preferredDishes,
       preferredCuisines,
     };
 
     setUserName(profile.userName);
     setRestrictedIngredients(profile.restrictedIngredients);
+    setRestrictedIngredientReasons(profile.restrictedIngredientReasons);
     setPreferredDishes(profile.preferredDishes);
     setPreferredCuisines(profile.preferredCuisines);
 
@@ -311,6 +344,7 @@ export default function Home() {
       const merged = mergeProfile(profile, savedProfile);
       setUserName(merged.userName);
       setRestrictedIngredients(merged.restrictedIngredients);
+      setRestrictedIngredientReasons(merged.restrictedIngredientReasons);
       setPreferredDishes(merged.preferredDishes);
       setPreferredCuisines(merged.preferredCuisines);
       if (savedProfile.source === 'demo') {
@@ -322,6 +356,7 @@ export default function Home() {
       if (dbErr instanceof ProfileSaveValidationError) {
         setUserName(previousProfile.userName);
         setRestrictedIngredients(previousProfile.restrictedIngredients);
+        setRestrictedIngredientReasons(previousProfile.restrictedIngredientReasons);
         setPreferredDishes(previousProfile.preferredDishes);
         setPreferredCuisines(previousProfile.preferredCuisines);
         setCurrentView('profile');
@@ -382,6 +417,7 @@ export default function Home() {
             recipeOptions={recipes}
             initialUserName={userName}
             initialRestrictedIngredients={restrictedIngredients}
+            initialRestrictedIngredientReasons={restrictedIngredientReasons}
             initialPreferredDishes={preferredDishes}
             initialPreferredCuisines={preferredCuisines}
             onSaveProfile={handleSaveProfile}

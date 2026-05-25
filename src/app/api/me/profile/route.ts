@@ -3,7 +3,7 @@ import { cookies } from 'next/headers';
 import { DEMO_AUTH_COOKIE, hasDemoAuthCookie } from '@/lib/demoMode';
 import { isIngredientCodeFormat, toIngredientCodeFromDbRow } from '@/lib/ingredientCodes';
 import { createClient } from '@/lib/supabase/server';
-import type { ProfileFallbackField, ProfilePayload, ProfileResponse } from '@/lib/apiTypes';
+import type { ProfileFallbackField, ProfilePayload, ProfileResponse, RestrictionReason } from '@/lib/apiTypes';
 
 type PreferenceRow = {
   preferred_dishes?: string[] | null;
@@ -42,12 +42,36 @@ const DEMO_PROFILE_NAME = 'デモユーザー';
 const EMPTY_PROFILE: ProfilePayload = {
   userName: '旅するグルメ',
   restrictedIngredients: [],
+  restrictedIngredientReasons: {},
   preferredDishes: [],
   preferredCuisines: [],
 };
 
+const RELIGIOUS_RESTRICTION_CODES = new Set(['ing-pork', 'ing-beef', 'ing-shrimp', 'ing-crab', 'ing-gelatin']);
+
 function normalizeStringArray(value: unknown) {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
+}
+
+function isRestrictionReason(value: unknown): value is RestrictionReason {
+  return value === 'allergy' || value === 'dislike' || value === 'religious';
+}
+
+function normalizeRestrictionReasonMap(value: unknown) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+
+  return Object.fromEntries(
+    Object.entries(value).filter(
+      (entry): entry is [string, RestrictionReason] =>
+        typeof entry[0] === 'string' && isRestrictionReason(entry[1]),
+    ),
+  );
+}
+
+function inferRestrictionReason(code: string): RestrictionReason {
+  if (RELIGIOUS_RESTRICTION_CODES.has(code)) return 'religious';
+  if (!code.startsWith('ing-')) return 'dislike';
+  return 'allergy';
 }
 
 async function isDemoAuthenticated() {
@@ -108,6 +132,7 @@ async function replaceRestrictedIngredients(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string,
   restrictionRequest: ResolvedRestrictedIngredientRequest,
+  restrictionReasons: Record<string, RestrictionReason>,
 ) {
   const { ingredientCodes, resolvedIngredients } = restrictionRequest;
   const { data: existingRows, error: existingError } = await supabase
@@ -122,11 +147,24 @@ async function replaceRestrictedIngredients(
     .eq('user_id', userId);
   if (deleteError) throw deleteError;
 
-  const inserts = resolvedIngredients.map((ingredient) => ({
-    user_id: userId,
-    ingredient_id: ingredient.id,
-    reason: 'allergy',
-  }));
+  const existingReasonByIngredientId = new Map(
+    ((existingRows ?? []) as RestrictedJoinRow[]).map((row) => [row.ingredient_id, row.reason] as const),
+  );
+  const savedReasons: Record<string, RestrictionReason> = {};
+  const inserts = resolvedIngredients.map((ingredient) => {
+    const code = ingredient.ingredient_code ?? null;
+    const existingReason = existingReasonByIngredientId.get(ingredient.id);
+    const reason = code
+      ? restrictionReasons[code] ?? (isRestrictionReason(existingReason) ? existingReason : inferRestrictionReason(code))
+      : 'allergy';
+    if (code) savedReasons[code] = reason;
+
+    return {
+      user_id: userId,
+      ingredient_id: ingredient.id,
+      reason,
+    };
+  });
 
   if (inserts.length > 0) {
     const { error: insertError } = await supabase.from('user_restricted_ingredients').insert(inserts);
@@ -136,7 +174,7 @@ async function replaceRestrictedIngredients(
     }
   }
 
-  return { savedCodes: ingredientCodes, existingRows: existingRows ?? [] };
+  return { savedCodes: ingredientCodes, savedReasons, existingRows: existingRows ?? [] };
 }
 
 export async function GET() {
@@ -203,11 +241,23 @@ export async function GET() {
     : ((restrictedRows ?? []) as RestrictedJoinRow[])
       .map((row) => toIngredientCodeFromDbRow(row.ingredients ?? {}))
       .filter((code): code is string => Boolean(code));
+  const restrictedIngredientReasons = restrictedError
+    ? {}
+    : Object.fromEntries(
+      ((restrictedRows ?? []) as RestrictedJoinRow[])
+        .map((row) => {
+          const code = toIngredientCodeFromDbRow(row.ingredients ?? {});
+          if (!code) return null;
+          return [code, isRestrictionReason(row.reason) ? row.reason : inferRestrictionReason(code)] as const;
+        })
+        .filter((entry): entry is readonly [string, RestrictionReason] => Boolean(entry)),
+    );
   const preferenceRow = preferencesError ? {} as PreferenceRow : (preferences ?? {}) as PreferenceRow;
 
   return NextResponse.json({
     userName: profile?.name || fallbackName,
     restrictedIngredients,
+    restrictedIngredientReasons,
     preferredDishes: preferenceRow.preferred_dishes ?? [],
     preferredCuisines: preferenceRow.preferred_cuisines ?? [],
     source,
@@ -226,11 +276,13 @@ export async function PUT(request: NextRequest) {
   const preferredDishes = normalizeStringArray(payload.preferredDishes);
   const preferredCuisines = normalizeStringArray(payload.preferredCuisines);
   const requestedRestrictedIngredients = normalizeStringArray(payload.restrictedIngredients);
+  const requestedRestrictionReasons = normalizeRestrictionReasonMap(payload.restrictedIngredientReasons);
 
   if (await isDemoAuthenticated()) {
     return NextResponse.json({
       userName: requestedUserName,
       restrictedIngredients: requestedRestrictedIngredients,
+      restrictedIngredientReasons: requestedRestrictionReasons,
       preferredDishes,
       preferredCuisines,
       source: 'demo',
@@ -285,17 +337,30 @@ export async function PUT(request: NextRequest) {
 
   if (preferencesError) throw preferencesError;
 
-  const { savedCodes } = await replaceRestrictedIngredients(supabase, user.id, resolvedRestrictedIngredients);
+  const { savedCodes, savedReasons } = await replaceRestrictedIngredients(
+    supabase,
+    user.id,
+    resolvedRestrictedIngredients,
+    requestedRestrictionReasons,
+  );
 
   const localOnlyRestrictions = requestedRestrictedIngredients.filter((code) => !code.startsWith('ing-'));
+  const localOnlyRestrictionReasons = Object.fromEntries(
+    localOnlyRestrictions.map((code) => [code, requestedRestrictionReasons[code] ?? inferRestrictionReason(code)]),
+  ) as Record<string, RestrictionReason>;
   const savedRestrictedIngredients = [
     ...savedCodes,
     ...localOnlyRestrictions,
   ];
+  const savedRestrictedIngredientReasons = {
+    ...savedReasons,
+    ...localOnlyRestrictionReasons,
+  };
 
   return NextResponse.json({
     userName,
     restrictedIngredients: savedRestrictedIngredients,
+    restrictedIngredientReasons: savedRestrictedIngredientReasons,
     preferredDishes,
     preferredCuisines,
     source: 'database',
