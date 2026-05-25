@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { hasSupabaseConfig } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
 
 function normalizeOrigin(value?: string) {
@@ -82,6 +83,10 @@ export async function GET(request: Request) {
   const next = getSafeNextPath(searchParams.get("next"));
 
   if (code) {
+    if (!hasSupabaseConfig()) {
+      return NextResponse.redirect(new URL("/login?error=supabase_not_configured", redirectOrigin));
+    }
+
     const supabase = await createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {

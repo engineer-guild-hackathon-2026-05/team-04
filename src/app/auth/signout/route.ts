@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { hasSupabaseConfig } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
 import { DEMO_AUTH_COOKIE, hasDemoAuthCookie } from "@/lib/demoMode";
 
@@ -15,6 +16,10 @@ export async function POST(request: NextRequest) {
   });
 
   if (hasDemoAuthCookie(request.cookies.get(DEMO_AUTH_COOKIE)?.value)) {
+    return response;
+  }
+
+  if (!hasSupabaseConfig()) {
     return response;
   }
 

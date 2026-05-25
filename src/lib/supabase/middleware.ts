@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import type { User } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
 import { DEMO_AUTH_COOKIE, hasDemoAuthCookie, isDemoModeEnabled } from "@/lib/demoMode";
+import { getSupabaseConfig } from "@/lib/supabase/config";
 
 // Next.js middleware から呼ばれ、リクエストごとにセッション Cookie を更新する。
 // この処理を怠ると Server Component 側で getUser() がスタンプの古いセッションを返す。
@@ -25,7 +26,10 @@ export async function updateSession(request: NextRequest) {
 
   if (pathname === "/auth/demo") {
     const response = NextResponse.next({ request });
-    return shouldClearDemoCookie ? clearDemoCookie(response) : response;
+    // POST は route handler が有効な demo cookie を発行するため、middleware では削除 cookie を重ねない。
+    const shouldClearAuthDemoCookie =
+      shouldClearDemoCookie || (request.method !== "POST" && shouldClearInvalidDemoCookie);
+    return shouldClearAuthDemoCookie ? clearDemoCookie(response) : response;
   }
 
   if (isDemoAuthenticated) {
@@ -42,14 +46,12 @@ export async function updateSession(request: NextRequest) {
 
   let supabaseResponse = NextResponse.next({ request });
   let user: User | null = null;
-  const hasSupabaseConfig = Boolean(
-    process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-  );
+  const supabaseConfig = getSupabaseConfig();
 
-  if (hasSupabaseConfig) {
+  if (supabaseConfig) {
     const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      supabaseConfig.supabaseUrl,
+      supabaseConfig.supabaseAnonKey,
       {
         cookies: {
           getAll() {

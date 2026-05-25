@@ -1,14 +1,16 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { requireSupabaseConfig } from "@/lib/supabase/config";
 
 // Server Component / Server Action / Route Handler から呼び出す Supabase クライアント。
 // Next.js の Cookie ストアを介してセッションを読み書きする。
 export async function createClient() {
+  const { supabaseUrl, supabaseAnonKey } = requireSupabaseConfig();
   const cookieStore = await cookies();
 
   return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    supabaseUrl,
+    supabaseAnonKey,
     {
       cookies: {
         getAll() {
