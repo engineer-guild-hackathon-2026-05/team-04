@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect } from 'react';
-import { X, Clock, Users, ShieldAlert, Sparkles, ChefHat, Info } from 'lucide-react';
+import { X, Clock, Users, ShieldAlert, ChefHat } from 'lucide-react';
 import { Recipe } from '@/lib/mockData';
 
 interface RecipeModalProps {
@@ -24,6 +24,11 @@ const RELIGIOUS_RESTRICTION_LABELS: Record<string, string> = {
   'ing-crab': '宗教上注意: かに',
   'ing-gelatin': '宗教上注意: ゼラチン',
 };
+
+const getIngredientListKey = (
+  recipeId: string,
+  ingredient: Recipe['ingredients'][number],
+) => `${recipeId}:${ingredient.id}:${ingredient.name_ja}:${ingredient.quantity}`;
 
 export default function RecipeModal({
   recipe,
@@ -155,34 +160,18 @@ export default function RecipeModal({
               <h2 id="section-ingredients-title">材料リスト (Ingredients)</h2>
             </div>
 
-            {/* 日本のスーパー代替に関するアドバイスバナー */}
-            {recipe.ingredients.some(ing => ing.is_replacement) && (
-              <div className="replacement-tips-banner">
-                <Info size={16} className="text-orange" />
-                <span>
-                  💡 <strong>日本のスーパー再現対応:</strong> オレンジ色のバッジが付いている材料は、日本で入手しやすい代替食材に置き換えています！
-                </span>
-              </div>
-            )}
-
             <ul className="modal-ingredient-list">
-              {recipe.ingredients.map((ing, index) => {
+              {recipe.ingredients.map((ing) => {
                 const isAllergen = restrictedIngredients.includes(ing.id);
                 return (
                   <li 
-                    key={index} 
-                    className={`ingredient-item ${ing.is_replacement ? 'replacement' : ''} ${isAllergen ? 'has-allergy' : ''}`}
+                    key={getIngredientListKey(recipe.id, ing)} 
+                    className={`ingredient-item ${isAllergen ? 'has-allergy' : ''}`}
                   >
                     <div className="ingredient-left">
                       <span className="bullet">•</span>
                       <span className="ingredient-name">{ing.name_ja}</span>
                       
-                      {ing.is_replacement && (
-                        <span className="replacement-badge" title={`本来の食材: ${ing.original_name}`}>
-                          <Sparkles size={10} />
-                          <span>代用 ({ing.original_name})</span>
-                        </span>
-                      )}
                       {isAllergen && (
                         <span className="allergen-badge-tag">NG食材</span>
                       )}

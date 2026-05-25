@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "node scripts/regression/auth-db-sync.test.mjs"
+    "test": "node scripts/run-regression-tests.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.3",

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { Search, Compass, AlertTriangle, ShieldCheck, Clock, Eye, Sparkles } from 'lucide-react';
+import { Search, Compass, ShieldCheck, Clock, Eye, Sparkles } from 'lucide-react';
 import { MOCK_RECIPES, Recipe } from '@/lib/mockData';
 
 interface ListViewProps {
@@ -31,6 +31,12 @@ const CUISINE_MATCH_TERMS: Record<string, string[]> = {
   ethiopia: ['エチオピア', 'ethiopia'],
 };
 
+function isCuisinePreferenceMatch(preferredCuisine: string, recipeCuisine: string) {
+  const cuisineKey = recipeCuisine.toLowerCase();
+  const terms = CUISINE_MATCH_TERMS[preferredCuisine] ?? [preferredCuisine];
+  return terms.some((term) => cuisineKey === term.toLowerCase());
+}
+
 export default function ListView({
   restrictedIngredients,
   preferredDishes,
@@ -40,25 +46,32 @@ export default function ListView({
 }: ListViewProps) {
   const [searchQuery, setSearchQuery] = useState('');
 
-  // リアルタイム検索ロジック
+  // リアルタイム検索ロジック（ユーザーが食べられない食材を含むレシピは推薦前に除外）
   const filteredRecipes = useMemo(() => {
-    return MOCK_RECIPES.filter(recipe => {
-      const matchesQuery = 
-        recipe.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        recipe.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        recipe.cuisine.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        recipe.ingredients.some(ing => ing.name_ja.toLowerCase().includes(searchQuery.toLowerCase()));
+    const normalizedQuery = searchQuery.toLowerCase();
 
-      return matchesQuery;
+    return MOCK_RECIPES.filter((recipe) => {
+      const matchesQuery =
+        recipe.title.toLowerCase().includes(normalizedQuery) ||
+        recipe.description.toLowerCase().includes(normalizedQuery) ||
+        recipe.cuisine.toLowerCase().includes(normalizedQuery) ||
+        recipe.ingredients.some((ingredient) =>
+          ingredient.name_ja.toLowerCase().includes(normalizedQuery),
+        );
+
+      const containsRestrictedIngredient = recipe.ingredients.some((ingredient) =>
+        restrictedIngredients.includes(ingredient.id),
+      );
+
+      return matchesQuery && !containsRestrictedIngredient;
     });
-  }, [searchQuery]);
+  }, [searchQuery, restrictedIngredients]);
 
-  // レシピにアレルギー食材（ユーザーのNG材料）が含まれているかチェックするヘルパー
-  const getAllergenWarnings = (recipe: Recipe) => {
-    const matched = recipe.ingredients.filter(ing => 
-      restrictedIngredients.includes(ing.id)
-    );
-    return matched.map(ing => ing.name_ja.split('（')[0].trim()); // 「卵 (半分カット)」などの表記から「卵」を抽出
+  const handleRecipeCardKeyDown = (event: React.KeyboardEvent<HTMLElement>, recipe: Recipe) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      onSelectRecipe(recipe);
+    }
   };
 
   // おすすめ優先度の判定（ユーザーの好みの国や料理タイプにマッチするか）
@@ -70,12 +83,8 @@ export default function ListView({
       score += 4;
     }
     
-    // 好みの国にマッチ
-    const cuisineKey = recipe.cuisine.toLowerCase();
-    if (preferredCuisines.some(c => {
-      const terms = CUISINE_MATCH_TERMS[c] ?? [c];
-      return terms.some(term => cuisineKey.includes(term.toLowerCase()));
-    })) {
+    // 好みの国にマッチ（インドとインドネシアなどの部分一致を避ける）
+    if (preferredCuisines.some((cuisine) => isCuisinePreferenceMatch(cuisine, recipe.cuisine))) {
       score += 2;
     }
 
@@ -163,14 +172,17 @@ export default function ListView({
               </div>
               <div className="recipe-grid featured">
                 {featuredRecipes.map((recipe) => {
-                  const warnings = getAllergenWarnings(recipe);
                   const isRecommended = getRecommendationScore(recipe) > 0;
                   
                   return (
                     <article 
                       key={recipe.id} 
-                      className={`recipe-card ${warnings.length > 0 ? 'has-allergen-warning' : ''} ${isRecommended ? 'recommended-highlight' : ''}`}
+                      className={`recipe-card ${isRecommended ? 'recommended-highlight' : ''}`}
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`${recipe.title}のレシピ詳細を開く`}
                       onClick={() => onSelectRecipe(recipe)}
+                      onKeyDown={(event) => handleRecipeCardKeyDown(event, recipe)}
                     >
                       {/* カード上部 */}
                       <div className="card-header">
@@ -211,19 +223,12 @@ export default function ListView({
                         <p className="food-description">{recipe.description}</p>
                       </div>
 
-                      {/* カードフッターと警告 */}
+                      {/* カードフッター */}
                       <div className="card-footer">
-                        {warnings.length > 0 ? (
-                          <div className="allergen-warning-alert">
-                            <AlertTriangle size={14} />
-                            <span>⚠️ {warnings.join(', ')} が含まれています</span>
-                          </div>
-                        ) : (
-                          <div className="allergen-safe-badge">
-                            <ShieldCheck size={14} />
-                            <span>アレルギーチェック済</span>
-                          </div>
-                        )}
+                        <div className="allergen-safe-badge">
+                          <ShieldCheck size={14} />
+                          <span>設定条件で確認済</span>
+                        </div>
 
                         <div className="tags-container">
                           {recipe.tags.map((tag) => (
@@ -245,13 +250,15 @@ export default function ListView({
             <section className="recipes-more-section" aria-labelledby="more-section-title">
               <h2 id="more-section-title" className="section-subtitle">こちらのレシピもチェック</h2>
               <div className="recipe-grid secondary">
-                {otherRecipes.map((recipe) => {
-                  const warnings = getAllergenWarnings(recipe);
-                  return (
+                {otherRecipes.map((recipe) => (
                     <article 
                       key={recipe.id} 
-                      className={`recipe-card secondary ${warnings.length > 0 ? 'has-allergen-warning' : ''}`}
+                      className="recipe-card secondary"
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`${recipe.title}のレシピ詳細を開く`}
                       onClick={() => onSelectRecipe(recipe)}
+                      onKeyDown={(event) => handleRecipeCardKeyDown(event, recipe)}
                     >
                       <div className="card-header">
                         <span className="food-name">{recipe.title.split('(')[0].trim()}</span>
@@ -280,12 +287,6 @@ export default function ListView({
                         <p className="food-description">{recipe.description}</p>
                       </div>
                       <div className="card-footer">
-                        {warnings.length > 0 && (
-                          <div className="allergen-warning-alert">
-                            <AlertTriangle size={14} />
-                            <span>⚠️ {warnings.join(', ')} 含有</span>
-                          </div>
-                        )}
                         <div className="tags-container">
                           {recipe.tags.slice(0, 2).map((tag) => (
                             <span key={tag} className="recipe-tag">
@@ -295,8 +296,7 @@ export default function ListView({
                         </div>
                       </div>
                     </article>
-                  );
-                })}
+                  ))}
               </div>
             </section>
           )}
