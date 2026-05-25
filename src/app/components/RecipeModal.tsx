@@ -330,9 +330,10 @@ export default function RecipeModal({
             <div
               key={`inactive-panel-${tab.key}`}
               id={TAB_PANEL_IDS[tab.key]}
-              className={`modal-content modal-tab-panel modal-tab-panel--${tab.key}`}
+              className="modal-tab-panel-placeholder"
               role="tabpanel"
               aria-labelledby={`recipe-modal-tab-${tab.key}`}
+              aria-hidden="true"
               hidden={activeTab !== tab.key}
             />
           ))}

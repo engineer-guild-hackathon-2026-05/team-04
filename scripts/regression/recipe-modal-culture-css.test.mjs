@@ -32,6 +32,11 @@ assert.match(
 );
 assert.match(
   source,
+  /\.modal-tab-panel\[hidden\],[\s\S]*?\.modal-tab-panel-placeholder\[hidden\][\s\S]*?display:\s*none\s*!important/,
+  '非active tabpanel は .modal-content の flex 表示で可視領域を消費しないよう display:none を明示してください。',
+);
+assert.match(
+  source,
   /@media\s*\([^)]*max-width[\s\S]*?\.modal-bookmark-tabs[\s\S]*?(?:flex-direction|position|overflow|grid-template|flex-wrap)/,
   'small screen media block で bookmark tabs が横はみ出ししない responsive layout を定義してください。',
 );

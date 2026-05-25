@@ -56,6 +56,16 @@ assert.match(
 );
 assert.match(
   source,
+  /className=\"modal-tab-panel-placeholder\"/,
+  '非active tabpanel は空の .modal-content として配置せず、placeholder としてレイアウトから除外してください。',
+);
+assert.doesNotMatch(
+  source,
+  /key=\{`inactive-panel-[\s\S]*?className=\{`modal-content/,
+  '非active tabpanel に .modal-content を付けると hidden が flex 表示に負けて余白を作るため禁止します。',
+);
+assert.match(
+  source,
   /id=\{[\s\S]*?tabpanel[\s\S]*?\}|role=\{?['"]tabpanel['"]\}?/,
   'tab content には tabpanel/id を付与して aria-controls の参照先を用意してください。',
 );
