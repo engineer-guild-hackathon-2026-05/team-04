@@ -62,7 +62,7 @@ export async function POST(
         cuisine,
         recipe_ingredients (
           quantity,
-          ingredients ( id, ingredient_code, name_ja, name_en )
+          ingredients!recipe_ingredients_ingredient_id_fkey ( id, ingredient_code, name_ja, name_en )
         )
       `)
       .eq('id', id)

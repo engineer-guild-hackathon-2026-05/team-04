@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 const read = (path) => readFileSync(path, 'utf8');
 const compact = (source) => source.replace(/\s+/g, ' ');
 
+const recipesRoute = read('src/app/api/recipes/route.ts');
 const suggestRoute = read('src/app/api/recipes/suggest/route.ts');
 const substituteRoute = read('src/app/api/recipes/[id]/substitute/route.ts');
 const persistence = read('src/lib/server/recipePersistence.ts');
@@ -56,6 +57,16 @@ assert.doesNotMatch(
   /grant\s+execute\s+on\s+function\s+public\.insert_ai_recipes_mvp\(uuid,\s*jsonb\)\s+to\s+(?:anon|authenticated)/i,
   'batch RPC must not be executable by anon/authenticated roles.',
 );
+assert.match(
+  recipesRoute,
+  /ingredients!recipe_ingredients_ingredient_id_fkey/i,
+  'recipe list embeds must disambiguate the original ingredient FK after substituted_from_ingredient_id is added.',
+);
+assert.match(
+  substituteRoute,
+  /ingredients!recipe_ingredients_ingredient_id_fkey/i,
+  'substitute route embeds must disambiguate the original ingredient FK after substituted_from_ingredient_id is added.',
+);
 
 assert.match(
   recipeAi,
@@ -78,9 +89,24 @@ assert.match(
   'diet-pescatarian must deterministically reject meat and non-fish animal byproducts.',
 );
 assert.match(
+  recipeAi,
+  /normalizeAiRecipeCandidate[\s\S]*filter\(\(recipe\): recipe is AiGeneratedRecipe => Boolean\(recipe\)\)/,
+  'AI response validation must keep safe candidates instead of failing the whole request because one candidate is unusable.',
+);
+assert.match(
   openRouter,
   /ラクト・ベジタリアン[\s\S]*オボ・ベジタリアン[\s\S]*ペスカタリアン/,
   'OpenRouter prompt facts must describe every accepted diet constraint in Japanese instead of sending opaque ids only.',
+);
+assert.match(
+  openRouter,
+  /気分・要望が日本語以外でも意味を解釈/i,
+  'OpenRouter prompt must handle non-Japanese mood input while still returning Japanese recipes.',
+);
+assert.match(
+  openRouter,
+  /requestRecipesFromOpenRouter[\s\S]*catch[\s\S]*OpenRouterResponseError[\s\S]*requestRecipesFromOpenRouter\(input,\s*error\.message\)/,
+  'OpenRouter recipe generation must retry once when the first AI response fails validation.',
 );
 
 const substituteCompact = compact(substituteRoute);

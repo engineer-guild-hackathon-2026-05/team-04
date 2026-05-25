@@ -79,10 +79,14 @@ function restrictionPromptFacts(restrictions: RestrictionFact[], dietaryConstrai
   return `避ける材料: ${ingredientFacts}\n食事制約: ${dietFacts}`;
 }
 
-function buildPrompt(input: GenerateRecipeInput) {
+function buildPrompt(input: GenerateRecipeInput, retryReason?: string) {
   const count = Math.max(1, Math.min(input.count ?? 1, 3));
+  const retryInstruction = retryReason
+    ? `\n前回の応答は ${retryReason} により利用できませんでした。禁止材料・食事制約・JSON schema を再確認し、条件に合う別材料で作り直してください。`
+    : '';
   const sharedRules = [
     '日本語で返答すること。',
+    '気分・要望が日本語以外でも意味を解釈し、返答は必ず日本語にすること。',
     'JSON以外の文章を返さないこと。',
     '材料は1〜12件、手順は1〜10件にすること。',
     '避ける材料や食事制約に違反する材料を絶対に含めないこと。',
@@ -91,13 +95,13 @@ function buildPrompt(input: GenerateRecipeInput) {
   ].join('\n- ');
 
   if (input.purpose === 'substitute' && input.originalRecipe) {
-    return `あなたは世界料理を日本で安全に作れるよう再提案する料理家です。\n- ${sharedRules}\n${restrictionPromptFacts(input.restrictions, input.dietaryConstraints)}\n元レシピ: ${input.originalRecipe.title}\n説明: ${input.originalRecipe.description}\n地域: ${input.originalRecipe.cuisine}\n元材料: ${input.originalRecipe.ingredients.join('、')}\n日本で入手しやすい代替材料を使った派生レシピを1件だけ作ってください。\nJSON形式: {"recipes":[{"title":"...","description":"...","cuisine":"...","flag":"🌍","image_url":"","cook_time_min":20,"servings":2,"is_vegan":false,"is_gluten_free":false,"tags":["..."],"cultural_background":"...","ingredients":[{"name_ja":"...","name_en":"...","quantity":"...","is_optional":false}],"steps":[{"order":1,"text":"..."}]}]}`;
+    return `あなたは世界料理を日本で安全に作れるよう再提案する料理家です。\n- ${sharedRules}\n${restrictionPromptFacts(input.restrictions, input.dietaryConstraints)}${retryInstruction}\n元レシピ: ${input.originalRecipe.title}\n説明: ${input.originalRecipe.description}\n地域: ${input.originalRecipe.cuisine}\n元材料: ${input.originalRecipe.ingredients.join('、')}\n日本で入手しやすい代替材料を使った派生レシピを1件だけ作ってください。\nJSON形式: {"recipes":[{"title":"...","description":"...","cuisine":"...","flag":"🌍","image_url":"","cook_time_min":20,"servings":2,"is_vegan":false,"is_gluten_free":false,"tags":["..."],"cultural_background":"...","ingredients":[{"name_ja":"...","name_en":"...","quantity":"...","is_optional":false}],"steps":[{"order":1,"text":"..."}]}]}`;
   }
 
-  return `あなたは気分に合う世界料理を安全に提案する料理家です。\n- ${sharedRules}\n${restrictionPromptFacts(input.restrictions, input.dietaryConstraints)}\n気分・要望: ${input.mood ?? ''}\n条件に合う世界料理レシピを${count}件作ってください。\nJSON形式: {"recipes":[{"title":"...","description":"...","cuisine":"...","flag":"🌍","image_url":"","cook_time_min":20,"servings":2,"is_vegan":false,"is_gluten_free":false,"tags":["..."],"cultural_background":"...","ingredients":[{"name_ja":"...","name_en":"...","quantity":"...","is_optional":false}],"steps":[{"order":1,"text":"..."}]}]}`;
+  return `あなたは気分に合う世界料理を安全に提案する料理家です。\n- ${sharedRules}\n${restrictionPromptFacts(input.restrictions, input.dietaryConstraints)}${retryInstruction}\n気分・要望: ${input.mood ?? ''}\n条件に合う世界料理レシピを${count}件作ってください。\nJSON形式: {"recipes":[{"title":"...","description":"...","cuisine":"...","flag":"🌍","image_url":"","cook_time_min":20,"servings":2,"is_vegan":false,"is_gluten_free":false,"tags":["..."],"cultural_background":"...","ingredients":[{"name_ja":"...","name_en":"...","quantity":"...","is_optional":false}],"steps":[{"order":1,"text":"..."}]}]}`;
 }
 
-export async function generateRecipesWithOpenRouter(input: GenerateRecipeInput): Promise<AiGeneratedRecipe[]> {
+async function requestRecipesFromOpenRouter(input: GenerateRecipeInput, retryReason?: string): Promise<AiGeneratedRecipe[]> {
   const { apiKey, model } = getOpenRouterConfig();
   const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
@@ -110,7 +114,7 @@ export async function generateRecipesWithOpenRouter(input: GenerateRecipeInput):
       response_format: { type: 'json_object' },
       messages: [
         { role: 'system', content: 'You generate safe, structured recipe JSON only.' },
-        { role: 'user', content: buildPrompt(input) },
+        { role: 'user', content: buildPrompt(input, retryReason) },
       ],
       temperature: 0.7,
     }),
@@ -141,5 +145,14 @@ export async function generateRecipesWithOpenRouter(input: GenerateRecipeInput):
     });
   } catch (error) {
     throw new OpenRouterResponseError(error instanceof Error ? error.message : 'OpenRouter response failed validation.');
+  }
+}
+
+export async function generateRecipesWithOpenRouter(input: GenerateRecipeInput): Promise<AiGeneratedRecipe[]> {
+  try {
+    return await requestRecipesFromOpenRouter(input);
+  } catch (error) {
+    if (!(error instanceof OpenRouterResponseError)) throw error;
+    return requestRecipesFromOpenRouter(input, error.message);
   }
 }

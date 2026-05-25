@@ -236,52 +236,66 @@ function violatesDiet(recipe: AiGeneratedRecipe, dietaryConstraints: string[]) {
   return false;
 }
 
+function normalizeAiRecipeCandidate(
+  item: unknown,
+  options: { restrictions: RestrictionFact[]; dietaryConstraints: string[] },
+): AiGeneratedRecipe | null {
+  const recipe = asObject(item);
+  const ingredients = normalizeIngredients(recipe?.ingredients);
+  const steps = normalizeSteps(recipe?.steps);
+  const tags = boundedStringArray(recipe?.tags ?? [], 8, 40);
+  const title = boundedString(recipe?.title, 120);
+  const description = boundedString(recipe?.description, 500);
+  const cuisine = boundedString(recipe?.cuisine, 80);
+  const culturalBackground = boundedString(recipe?.cultural_background, 500);
+
+  if (!recipe || !title || !description || !cuisine || !ingredients || !steps || !tags || !culturalBackground) {
+    return null;
+  }
+
+  const normalized: AiGeneratedRecipe = {
+    title,
+    description,
+    cuisine,
+    flag: boundedString(recipe.flag, 8) ?? '🌍',
+    image_url: typeof recipe.image_url === 'string' ? recipe.image_url.trim().slice(0, 500) : '',
+    cook_time_min: boundedInteger(recipe.cook_time_min, 1, 240, 30),
+    servings: boundedInteger(recipe.servings, 1, 12, 2),
+    is_vegan: boundedBoolean(recipe.is_vegan),
+    is_gluten_free: boundedBoolean(recipe.is_gluten_free),
+    tags,
+    cultural_background: culturalBackground,
+    ingredients,
+    steps,
+  };
+
+  if (includesUnsafeRestriction(normalized, options.restrictions) || violatesDiet(normalized, options.dietaryConstraints)) {
+    return null;
+  }
+
+  return normalized;
+}
+
 export function validateAiRecipeCollection(
   payload: unknown,
   options: { maxRecipes: number; restrictions: RestrictionFact[]; dietaryConstraints: string[] },
 ): AiGeneratedRecipe[] {
   const object = asObject(payload);
   const recipesValue = object?.recipes;
-  if (!Array.isArray(recipesValue) || recipesValue.length < 1 || recipesValue.length > options.maxRecipes) {
+  if (!Array.isArray(recipesValue) || recipesValue.length < 1) {
     throw new Error('AI response did not include a valid recipes array.');
   }
 
-  return recipesValue.map((item) => {
-    const recipe = asObject(item);
-    const ingredients = normalizeIngredients(recipe?.ingredients);
-    const steps = normalizeSteps(recipe?.steps);
-    const tags = boundedStringArray(recipe?.tags ?? [], 8, 40);
-    const title = boundedString(recipe?.title, 120);
-    const description = boundedString(recipe?.description, 500);
-    const cuisine = boundedString(recipe?.cuisine, 80);
-    const culturalBackground = boundedString(recipe?.cultural_background, 500);
+  const validRecipes = recipesValue
+    .slice(0, options.maxRecipes)
+    .map((item) => normalizeAiRecipeCandidate(item, options))
+    .filter((recipe): recipe is AiGeneratedRecipe => Boolean(recipe));
 
-    if (!recipe || !title || !description || !cuisine || !ingredients || !steps || !tags || !culturalBackground) {
-      throw new Error('AI response recipe failed schema validation.');
-    }
+  if (validRecipes.length === 0) {
+    throw new Error('AI response did not include any safe usable recipes.');
+  }
 
-    const normalized: AiGeneratedRecipe = {
-      title,
-      description,
-      cuisine,
-      flag: boundedString(recipe.flag, 8) ?? '🌍',
-      image_url: typeof recipe.image_url === 'string' ? recipe.image_url.trim().slice(0, 500) : '',
-      cook_time_min: boundedInteger(recipe.cook_time_min, 1, 240, 30),
-      servings: boundedInteger(recipe.servings, 1, 12, 2),
-      is_vegan: boundedBoolean(recipe.is_vegan),
-      is_gluten_free: boundedBoolean(recipe.is_gluten_free),
-      tags,
-      cultural_background: culturalBackground,
-      ingredients,
-      steps,
-    };
-
-    if (includesUnsafeRestriction(normalized, options.restrictions) || violatesDiet(normalized, options.dietaryConstraints)) {
-      throw new Error('AI response violates selected restrictions.');
-    }
-
-    return normalized;
-  });
+  return validRecipes;
 }
 
 export function aiRecipeToRecipe(aiRecipe: AiGeneratedRecipe, id: string, parentRecipeId?: string | null): Recipe {
