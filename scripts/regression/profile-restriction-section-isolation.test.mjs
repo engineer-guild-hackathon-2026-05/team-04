@@ -48,6 +48,11 @@ assert.match(
 );
 assert.match(
   profileSource,
+  /selectedRestricted\.map\(\(id\) => \[id,\s*getVisibleRestrictionReason\(id\)\]\)/,
+  'ProfileView の保存 payload は diet-* / prep-* の既定 reason を allergy ではなく dislike として保存してください。',
+);
+assert.match(
+  profileSource,
   /selectedOptions:\s*getSelectedOptions\(allergyOptions,\s*['"]allergy['"]\)/,
   'アレルギー要素の selectedOptions は allergy reason だけを渡してください。',
 );

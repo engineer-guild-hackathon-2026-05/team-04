@@ -406,7 +406,7 @@ export default function ProfileView({
       userName,
       restrictedIngredients: selectedRestricted,
       restrictedIngredientReasons: Object.fromEntries(
-        selectedRestricted.map((id) => [id, selectedRestrictionReasons[id] ?? 'allergy']),
+        selectedRestricted.map((id) => [id, getVisibleRestrictionReason(id)]),
       ) as Record<string, RestrictionReason>,
       preferredDishes: selectedDishes,
       preferredCuisines: selectedCuisines

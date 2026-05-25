@@ -26,10 +26,8 @@ const SEAFOOD_PREPARATION_TAG = 'seafood';
 
 const getPreparationTagSet = (ingredient: RecipeIngredient) => new Set(ingredient.preparation_tags ?? []);
 const hasRawTag = (tags: Set<string>) => tags.has(RAW_PREPARATION_TAG);
-const hasFishTag = (tags: Set<string>) =>
-  tags.has(FISH_PREPARATION_TAG) || tags.has(SEAFOOD_PREPARATION_TAG);
-const hasShellfishTag = (tags: Set<string>) =>
-  tags.has(SHELLFISH_PREPARATION_TAG) || tags.has(SEAFOOD_PREPARATION_TAG);
+const hasFishTag = (tags: Set<string>) => tags.has(FISH_PREPARATION_TAG);
+const hasShellfishTag = (tags: Set<string>) => tags.has(SHELLFISH_PREPARATION_TAG);
 const hasRawFishConflict = (ingredient: RecipeIngredient) => {
   const tags = getPreparationTagSet(ingredient);
   return hasRawTag(tags) && hasFishTag(tags);
@@ -40,7 +38,11 @@ const hasRawShellfishConflict = (ingredient: RecipeIngredient) => {
 };
 const hasRawSeafoodConflict = (ingredient: RecipeIngredient) => {
   const tags = getPreparationTagSet(ingredient);
-  return hasRawTag(tags) && (hasFishTag(tags) || hasShellfishTag(tags));
+  return hasRawTag(tags) && (
+    tags.has(FISH_PREPARATION_TAG) ||
+    tags.has(SHELLFISH_PREPARATION_TAG) ||
+    tags.has(SEAFOOD_PREPARATION_TAG)
+  );
 };
 const hasRawIngredientConflict = (ingredientCode: string) => (ingredient: RecipeIngredient) =>
   ingredient.id === ingredientCode && hasRawSeafoodConflict(ingredient);
