@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Globe, LogIn, LogOut, Settings, User } from 'lucide-react';
+import { Globe, LogIn, LogOut, Settings, User, UserPlus } from 'lucide-react';
 
 interface NavbarProps {
   setCurrentView: (view: 'landing' | 'list' | 'profile') => void;
@@ -9,6 +9,7 @@ interface NavbarProps {
   userName: string;
   isLoggedIn: boolean;
   onSignIn: () => void;
+  onSignUp: () => void;
   onSignOut: () => void;
 }
 
@@ -24,6 +25,7 @@ export default function Navbar({
   userName,
   isLoggedIn,
   onSignIn,
+  onSignUp,
   onSignOut,
 }: NavbarProps) {
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
@@ -238,16 +240,28 @@ export default function Navbar({
               )}
             </div>
           ) : (
-            <button
-              type="button"
-              className="signin-btn"
-              onClick={onSignIn}
-              title="サインイン"
-              id="signin-nav-btn"
-            >
-              <LogIn size={16} />
-              <span>サインイン</span>
-            </button>
+            <div className="navbar-auth-btns">
+              <button
+                type="button"
+                className="signup-btn"
+                onClick={onSignUp}
+                title="新規登録"
+                id="signup-nav-btn"
+              >
+                <UserPlus size={16} />
+                <span>新規登録</span>
+              </button>
+              <button
+                type="button"
+                className="signin-btn"
+                onClick={onSignIn}
+                title="サインイン"
+                id="signin-nav-btn"
+              >
+                <LogIn size={16} />
+                <span>サインイン</span>
+              </button>
+            </div>
           )}
         </div>
       </div>
