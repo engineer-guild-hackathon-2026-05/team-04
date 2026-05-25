@@ -1,0 +1,2451 @@
+[
+  {
+    "slug": "pizza-margherita",
+    "wiki_page": "Pizza Margherita",
+    "source_ref": "curated:pizza-margherita",
+    "title": "ピッツァ・マルゲリータ",
+    "description": "ナポリを代表する薄焼きピッツァ。発酵させた小麦生地にトマト、モッツァレラ、バジル、オリーブオイルを重ね、非常に高温の窯で短時間に焼き上げます。",
+    "cuisine": "イタリア",
+    "flag": "🇮🇹",
+    "cook_time_min": 90,
+    "servings": 2,
+    "is_vegan": false,
+    "is_gluten_free": false,
+    "tags": [
+      "ナポリ料理",
+      "窯焼き",
+      "トマト",
+      "チーズ"
+    ],
+    "ingredients": [
+      {
+        "name_ja": "小麦粉（ピッツァ生地用）",
+        "name_en": "wheat flour",
+        "quantity": "250g",
+        "master_name_en": "wheat",
+        "is_optional": false
+      },
+      {
+        "name_ja": "水",
+        "name_en": "water",
+        "quantity": "160ml",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "塩",
+        "name_en": "salt",
+        "quantity": "5g",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "ドライイースト",
+        "name_en": "dry yeast",
+        "quantity": "1g",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "サンマルツァーノ種トマトまたはトマト缶",
+        "name_en": "tomato",
+        "quantity": "200g",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "モッツァレラ",
+        "name_en": "mozzarella",
+        "quantity": "125g",
+        "master_name_en": "milk",
+        "is_optional": false
+      },
+      {
+        "name_ja": "バジル",
+        "name_en": "basil",
+        "quantity": "6〜8枚",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "エクストラバージンオリーブオイル",
+        "name_en": "extra virgin olive oil",
+        "quantity": "大さじ1",
+        "master_name_en": null,
+        "is_optional": false
+      }
+    ],
+    "steps": [
+      {
+        "order": 1,
+        "text": "小麦粉、水、塩、イーストを混ぜ、なめらかになるまでこねてから丸め、乾燥しないように覆ってゆっくり発酵させます。"
+      },
+      {
+        "order": 2,
+        "text": "発酵した生地を2等分し、中心から外へ押し広げ、縁に空気を残して直径約25cmの円形に伸ばします。"
+      },
+      {
+        "order": 3,
+        "text": "トマトは手で軽くつぶし、塩少々で味を整え、水分が多すぎる場合は軽く切っておきます。"
+      },
+      {
+        "order": 4,
+        "text": "生地にトマトを薄く広げ、ちぎったモッツァレラとバジルを散らし、オリーブオイルを回しかけます。"
+      },
+      {
+        "order": 5,
+        "text": "家庭用オーブンは最高温度で天板またはピザストーンを十分に予熱し、生地を短時間で一気に焼きます。"
+      },
+      {
+        "order": 6,
+        "text": "縁がふくらみ、底が香ばしく、チーズが溶けたら取り出し、必要なら仕上げのバジルとオイルを足します。"
+      }
+    ],
+    "source_urls": [
+      "https://www.pizzanapoletana.org/en/ricetta_pizza_napoletana",
+      "https://www.britannica.com/topic/How-Was-Pizza-Invented",
+      "https://en.wikipedia.org/wiki/Pizza_Margherita"
+    ],
+    "image_url": "/recipe-images/pizza-margherita.webp",
+    "photo_source_url": "https://en.wikipedia.org/wiki/Pizza_Margherita",
+    "origin_title": "ピッツァ・マルゲリータの由来",
+    "culture_title": "イタリアの食文化とピッツァ・マルゲリータ",
+    "origin_body": "王妃マルゲリータの名と結びつく物語で知られますが、ナポリではそれ以前からトマトをのせたピッツァが庶民の食事として根づいていました。赤いトマト、白いモッツァレラ、緑のバジルがイタリア国旗の色に重なるため、19世紀末のナポリ王室訪問の逸話とともに象徴性が強まりました。\n\n現在のナポリピッツァは、生地の発酵、手で伸ばす成形、高温短時間焼成という技術体系で語られます。具材を増やしすぎず、生地・トマト・乳製品・香草の均衡を見せる点がマルゲリータの核です。観光料理であると同時に、街角の窯と職人技を通じてナポリの都市文化を伝える料理でもあります。\n\n料理としての輪郭は、単一の発明者だけでなく、イタリアの市場、家庭、外食の場で繰り返し作られる中で固まりました。材料の選び方や火入れの順序には、保存、季節、共同で食べる習慣が反映されています。",
+    "culture_body": "南イタリアの食文化では、小麦、トマト、オリーブオイル、乳製品が地域の気候と交易の歴史を映します。カトリック圏の祝祭日や家族の集まりでは、切り分けて共有できるピッツァが日常と外食の間にある料理として親しまれてきました。\n\n宗教上の制限が少ない地域料理ですが、乳を使うためヴィーガンではなく、小麦生地のためグルテンを含みます。一方で肉を使わないため、菜食寄りの食卓にも置きやすく、都市の移民や観光を通じて世界各地で現地化されました。シンプルな構成ほど素材の品質が味に直結する、イタリア料理らしい一皿です。\n\n現在のピッツァ・マルゲリータは観光向けの名物であると同時に、家庭で調整される日常料理でもあります。宗教・アレルギー・菜食の条件に合わせるには、中心食材と調味料の由来を確認し、伝統的な味の軸を保ったまま置き換えることが重要です。"
+  },
+  {
+    "slug": "paella-valenciana",
+    "wiki_page": "Paella",
+    "source_ref": "curated:paella-valenciana",
+    "title": "パエリア・バレンシアーナ",
+    "description": "バレンシア地方の米料理。浅いパエリア鍋で鶏肉、ウサギ肉、平さやいんげん、白いんげん、サフランを炊き込み、底に香ばしいおこげを作ります。",
+    "cuisine": "スペイン",
+    "flag": "🇪🇸",
+    "cook_time_min": 65,
+    "servings": 4,
+    "is_vegan": false,
+    "is_gluten_free": true,
+    "tags": [
+      "バレンシア料理",
+      "米料理",
+      "サフラン",
+      "鍋料理"
+    ],
+    "ingredients": [
+      {
+        "name_ja": "短粒米",
+        "name_en": "short grain rice",
+        "quantity": "320g",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "鶏肉",
+        "name_en": "chicken",
+        "quantity": "300g",
+        "master_name_en": "chicken",
+        "is_optional": false
+      },
+      {
+        "name_ja": "ウサギ肉",
+        "name_en": "rabbit",
+        "quantity": "250g",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "平さやいんげん",
+        "name_en": "flat green beans",
+        "quantity": "150g",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "白いんげん豆（ガロフォン）",
+        "name_en": "lima beans",
+        "quantity": "120g",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "トマト",
+        "name_en": "tomato",
+        "quantity": "1個",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "サフラン",
+        "name_en": "saffron",
+        "quantity": "ひとつまみ",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "オリーブオイル",
+        "name_en": "olive oil",
+        "quantity": "大さじ3",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "パプリカパウダー",
+        "name_en": "paprika",
+        "quantity": "小さじ1",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "水またはだし",
+        "name_en": "water",
+        "quantity": "900ml",
+        "master_name_en": null,
+        "is_optional": false
+      }
+    ],
+    "steps": [
+      {
+        "order": 1,
+        "text": "パエリア鍋にオリーブオイルを熱し、塩をした鶏肉とウサギ肉をしっかり焼き色がつくまで炒めます。"
+      },
+      {
+        "order": 2,
+        "text": "平さやいんげんと白いんげん豆を加えて炒め、中央に寄せたトマトを軽く煮詰め、パプリカを焦がさないよう混ぜます。"
+      },
+      {
+        "order": 3,
+        "text": "水を加えて沸かし、肉と豆から味が出るまで中火で煮て、サフランと塩でスープの味を整えます。"
+      },
+      {
+        "order": 4,
+        "text": "米を鍋全体に均一に散らし、以後は混ぜずに強めの火で数分炊いて米に勢いよく水分を吸わせます。"
+      },
+      {
+        "order": 5,
+        "text": "火を中弱火に落として水分がほぼなくなるまで炊き、最後に少し火を強めて底にソカラットと呼ばれる香ばしい層を作ります。"
+      },
+      {
+        "order": 6,
+        "text": "火を止めて布をかけ、5分ほど休ませてからレモンを添え、鍋から直接取り分けます。"
+      }
+    ],
+    "source_urls": [
+      "https://www.comunitatvalenciana.com/en/gastronomic-tourism/recipes/paella-valenciana",
+      "https://en.wikipedia.org/wiki/Paella"
+    ],
+    "image_url": "/recipe-images/paella-valenciana.webp",
+    "photo_source_url": "https://en.wikipedia.org/wiki/Paella",
+    "origin_title": "パエリア・バレンシアーナの由来",
+    "culture_title": "スペインの食文化とパエリア・バレンシアーナ",
+    "origin_body": "パエリアはバレンシアの湿地帯と稲作文化から生まれた料理です。名称は料理そのものだけでなく、浅く広い鍋を指す言葉とも関係し、農作業の場で手に入りやすい米、肉、豆、野菜を一つの鍋で炊く実用的な食事として発達しました。\n\n海鮮を使うパエリアが世界的に有名ですが、バレンシアーナの基本は鶏肉、ウサギ肉、平さやいんげん、ガロフォン、サフランなどです。地域や季節で差はあるものの、米を混ぜずに炊き、底に香ばしい層を作る技術は共通します。休日の昼食に大鍋を囲む形式が、家庭料理であり祝祭料理でもある性格を強めました。\n\n料理としての輪郭は、単一の発明者だけでなく、スペインの市場、家庭、外食の場で繰り返し作られる中で固まりました。材料の選び方や火入れの順序には、保存、季節、共同で食べる習慣が反映されています。",
+    "culture_body": "スペインの食卓では、米料理は土地の農業、灌漑、家族の時間と結びつきます。バレンシアのパエリアは昼にゆっくり食べる料理で、鍋を中心に人が集まるため、個食よりも共同体を意識させる食文化を持っています。\n\nキリスト教圏の祝祭や日曜の家族食に登場しやすい一方、豚肉を必須としないため宗教上の調整は比較的しやすい料理です。ただし伝統形は鶏やウサギを使うためヴィーガンではありません。小麦を使わない米料理なのでグルテンフリーとして扱いやすく、アレルギー配慮の観点でも主食の選択肢になります。\n\n現在のパエリア・バレンシアーナは観光向けの名物であると同時に、家庭で調整される日常料理でもあります。宗教・アレルギー・菜食の条件に合わせるには、中心食材と調味料の由来を確認し、伝統的な味の軸を保ったまま置き換えることが重要です。"
+  },
+  {
+    "slug": "bouillabaisse",
+    "wiki_page": "Bouillabaisse",
+    "source_ref": "curated:bouillabaisse",
+    "title": "ブイヤベース",
+    "description": "マルセイユの魚介スープ。岩礁魚、トマト、フェンネル、サフランを煮出した濃いスープに魚を合わせ、ルイユやパンとともに楽しみます。",
+    "cuisine": "フランス",
+    "flag": "🇫🇷",
+    "cook_time_min": 90,
+    "servings": 4,
+    "is_vegan": false,
+    "is_gluten_free": false,
+    "tags": [
+      "プロヴァンス料理",
+      "魚介",
+      "スープ",
+      "サフラン"
+    ],
+    "ingredients": [
+      {
+        "name_ja": "白身魚・岩礁魚",
+        "name_en": "white fish",
+        "quantity": "600g",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "ムール貝または貝類",
+        "name_en": "shellfish",
+        "quantity": "300g",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "えび",
+        "name_en": "shrimp",
+        "quantity": "150g",
+        "master_name_en": "shrimp",
+        "is_optional": false
+      },
+      {
+        "name_ja": "玉ねぎ",
+        "name_en": "onion",
+        "quantity": "1個",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "にんにく",
+        "name_en": "garlic",
+        "quantity": "3片",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "トマト",
+        "name_en": "tomato",
+        "quantity": "2個",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "フェンネル",
+        "name_en": "fennel",
+        "quantity": "1/2株",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "サフラン",
+        "name_en": "saffron",
+        "quantity": "ひとつまみ",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "オリーブオイル",
+        "name_en": "olive oil",
+        "quantity": "大さじ3",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "じゃがいも",
+        "name_en": "potato",
+        "quantity": "2個",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "バゲット",
+        "name_en": "baguette",
+        "quantity": "適量",
+        "master_name_en": "wheat",
+        "is_optional": false
+      }
+    ],
+    "steps": [
+      {
+        "order": 1,
+        "text": "魚は種類ごとに扱いやすい大きさに切り、貝は砂抜きして洗い、骨やあらがあればスープ用に分けます。"
+      },
+      {
+        "order": 2,
+        "text": "鍋で玉ねぎ、にんにく、フェンネルをオリーブオイルで炒め、トマト、ハーブ、サフランを加えて香りを出します。"
+      },
+      {
+        "order": 3,
+        "text": "魚のあらと水を加えて煮出し、旨味が出たら濾して、濃い魚介スープの土台を作ります。"
+      },
+      {
+        "order": 4,
+        "text": "スープにじゃがいもを入れて煮始め、火の通りにくい魚から順に加え、身を崩さないよう煮ます。"
+      },
+      {
+        "order": 5,
+        "text": "貝類を加え、口が開いたら味を調え、魚とじゃがいもを器に分けます。"
+      },
+      {
+        "order": 6,
+        "text": "スープを注ぎ、好みでルイユを塗ったバゲットを添え、魚とスープを交互に味わいます。"
+      }
+    ],
+    "source_urls": [
+      "https://www.marseille-tourisme.com/en/discover-marseille/gastronomy-in-marseille/culinary-specialities-of-marseille/bouillabaisse/",
+      "https://en.wikipedia.org/wiki/Bouillabaisse"
+    ],
+    "image_url": "/recipe-images/bouillabaisse.webp",
+    "photo_source_url": "https://en.wikipedia.org/wiki/Bouillabaisse",
+    "origin_title": "ブイヤベースの由来",
+    "culture_title": "フランスの食文化とブイヤベース",
+    "origin_body": "ブイヤベースはマルセイユ港の魚介文化から育った料理です。売れ残りや市場に出しにくい岩礁魚を漁師が煮込んだ実用的なスープに、トマト、フェンネル、サフラン、オリーブオイルなど地中海の香りが重なり、都市の名物料理へ変化しました。\n\n名前は「沸いたら火を弱める」という調理動作に由来すると説明されることが多く、強火で香味を出し、魚を壊さないよう火加減を下げる作法を象徴しています。現在は観光料理として高級化していますが、複数の魚を使い、スープと魚を分けて味わう点に、港町の実用と祝祭の両面が残っています。\n\n料理としての輪郭は、単一の発明者だけでなく、フランスの市場、家庭、外食の場で繰り返し作られる中で固まりました。材料の選び方や火入れの順序には、保存、季節、共同で食べる習慣が反映されています。",
+    "culture_body": "プロヴァンスの食文化では、海、オリーブ、ハーブ、にんにくが料理の核になります。ブイヤベースは地中海交易で広まった香辛料やトマトを取り込み、漁業の生活と都市マルセイユの多文化性を一皿にまとめます。\n\nカトリック圏では魚料理が断食日や金曜日の食事と結びつくことがあり、肉を避ける食卓で魚介が重要な役割を果たしました。ただし魚介を多く使うため甲殻類・軟体類アレルギーには注意が必要で、バゲットを添える伝統的な食べ方では小麦も含まれます。\n\n現在のブイヤベースは観光向けの名物であると同時に、家庭で調整される日常料理でもあります。宗教・アレルギー・菜食の条件に合わせるには、中心食材と調味料の由来を確認し、伝統的な味の軸を保ったまま置き換えることが重要です。"
+  },
+  {
+    "slug": "moussaka",
+    "wiki_page": "Moussaka",
+    "source_ref": "curated:moussaka",
+    "title": "ムサカ",
+    "description": "ナス、肉のトマト煮、ベシャメルを層にして焼くギリシャの代表料理。オスマン圏の野菜料理に近代ギリシャ料理の構成が重なった一皿です。",
+    "cuisine": "ギリシャ",
+    "flag": "🇬🇷",
+    "cook_time_min": 100,
+    "servings": 4,
+    "is_vegan": false,
+    "is_gluten_free": false,
+    "tags": [
+      "ギリシャ料理",
+      "オーブン料理",
+      "ナス",
+      "ひき肉"
+    ],
+    "ingredients": [
+      {
+        "name_ja": "ナス",
+        "name_en": "eggplant",
+        "quantity": "3本",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "牛ひき肉または羊ひき肉",
+        "name_en": "ground beef",
+        "quantity": "350g",
+        "master_name_en": "beef",
+        "is_optional": false
+      },
+      {
+        "name_ja": "玉ねぎ",
+        "name_en": "onion",
+        "quantity": "1個",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "トマト",
+        "name_en": "tomato",
+        "quantity": "300g",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "赤ワイン",
+        "name_en": "red wine",
+        "quantity": "100ml",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "シナモン",
+        "name_en": "cinnamon",
+        "quantity": "少々",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "牛乳",
+        "name_en": "milk",
+        "quantity": "400ml",
+        "master_name_en": "milk",
+        "is_optional": false
+      },
+      {
+        "name_ja": "小麦粉",
+        "name_en": "wheat flour",
+        "quantity": "40g",
+        "master_name_en": "wheat",
+        "is_optional": false
+      },
+      {
+        "name_ja": "卵",
+        "name_en": "egg",
+        "quantity": "1個",
+        "master_name_en": "egg",
+        "is_optional": false
+      },
+      {
+        "name_ja": "チーズ",
+        "name_en": "cheese",
+        "quantity": "50g",
+        "master_name_en": null,
+        "is_optional": false
+      }
+    ],
+    "steps": [
+      {
+        "order": 1,
+        "text": "ナスを輪切りまたは縦切りにし、塩をして水分を抜き、拭いてから油で焼くかオーブンで柔らかくします。"
+      },
+      {
+        "order": 2,
+        "text": "玉ねぎを炒め、ひき肉を加えて色が変わるまで炒め、トマト、赤ワイン、シナモンを入れて水分が少なくなるまで煮ます。"
+      },
+      {
+        "order": 3,
+        "text": "別鍋でバターまたは油と小麦粉を炒め、牛乳を少しずつ加えてなめらかなベシャメルを作ります。"
+      },
+      {
+        "order": 4,
+        "text": "ベシャメルを少し冷まし、卵とチーズを混ぜて濃度と焼き色が出るように整えます。"
+      },
+      {
+        "order": 5,
+        "text": "耐熱皿にナス、肉ソース、ナスを重ね、上からベシャメルを広げて表面を平らにします。"
+      },
+      {
+        "order": 6,
+        "text": "オーブンで表面がきつね色になるまで焼き、切り分けやすいよう10〜15分休ませてから提供します。"
+      }
+    ],
+    "source_urls": [
+      "https://www.britannica.com/topic/moussaka",
+      "https://www.visit-greece.info/en/travel-tips/typical-greek-dishes/moussaka/",
+      "https://en.wikipedia.org/wiki/Moussaka"
+    ],
+    "image_url": "/recipe-images/moussaka.webp",
+    "photo_source_url": "https://en.wikipedia.org/wiki/Moussaka",
+    "origin_title": "ムサカの由来",
+    "culture_title": "ギリシャの食文化とムサカ",
+    "origin_body": "ムサカという名は東地中海からバルカンに広がる野菜料理群と関係し、現在のギリシャ風ムサカはナス、肉、トマト、ベシャメルを層にする形で知られます。オスマン帝国圏の煮込みや焼き野菜の伝統に、20世紀の料理人ニコラオス・ツェレメンテスが紹介した西欧風ソースの考え方が重なったと説明されます。\n\nそのためムサカは「古代から変わらない一皿」というより、地域の移動、帝国の影響、近代国家の料理観が合わさって定着した料理です。手間のかかる層構造は家庭のごちそうらしさを作り、冷まして切り分けることで食卓に安定した主菜として並びます。\n\n料理としての輪郭は、単一の発明者だけでなく、ギリシャの市場、家庭、外食の場で繰り返し作られる中で固まりました。材料の選び方や火入れの順序には、保存、季節、共同で食べる習慣が反映されています。",
+    "culture_body": "ギリシャ料理では、オリーブオイル、野菜、羊肉・牛肉、乳製品が地中海の暮らしを支えます。ムサカは家庭料理でありながら、来客や週末の食事にも向くため、家族単位で大皿を囲む文化をよく表しています。\n\nギリシャ正教には肉や乳製品を控える断食期があり、伝統的なムサカはそれらの期間には適しません。一方で、ナスやトマトを中心にした菜食版も作られてきました。標準的なレシピでは小麦、乳、卵、肉を含むため、アレルギーや宗教的食制限を確認してから提供する必要があります。\n\n現在のムサカは観光向けの名物であると同時に、家庭で調整される日常料理でもあります。宗教・アレルギー・菜食の条件に合わせるには、中心食材と調味料の由来を確認し、伝統的な味の軸を保ったまま置き換えることが重要です。"
+  },
+  {
+    "slug": "borscht",
+    "wiki_page": "Borscht",
+    "source_ref": "curated:borscht",
+    "title": "ボルシチ",
+    "description": "ビーツの赤い色が印象的なウクライナ周辺のスープ。牛肉または野菜のだしにキャベツ、じゃがいも、にんじんを合わせ、サワークリームを添えます。",
+    "cuisine": "ウクライナ",
+    "flag": "🇺🇦",
+    "image_url": "/recipe-images/borscht.webp",
+    "photo_source_url": "https://en.wikipedia.org/wiki/Borscht",
+    "cook_time_min": 80,
+    "servings": 4,
+    "is_vegan": false,
+    "is_gluten_free": true,
+    "tags": [
+      "東欧料理",
+      "スープ",
+      "ビーツ",
+      "家庭料理"
+    ],
+    "ingredients": [
+      {
+        "name_ja": "ビーツ",
+        "name_en": "beetroot",
+        "quantity": "2個",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "牛肉",
+        "name_en": "beef",
+        "quantity": "300g",
+        "master_name_en": "beef",
+        "is_optional": false
+      },
+      {
+        "name_ja": "キャベツ",
+        "name_en": "cabbage",
+        "quantity": "1/4個",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "じゃがいも",
+        "name_en": "potato",
+        "quantity": "2個",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "にんじん",
+        "name_en": "carrot",
+        "quantity": "1本",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "玉ねぎ",
+        "name_en": "onion",
+        "quantity": "1個",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "トマトペースト",
+        "name_en": "tomato paste",
+        "quantity": "大さじ2",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "サワークリーム",
+        "name_en": "sour cream",
+        "quantity": "適量",
+        "master_name_en": "milk",
+        "is_optional": false
+      }
+    ],
+    "steps": [
+      {
+        "order": 1,
+        "text": "牛肉を水から煮てアクを取り、香味野菜と一緒にだしを作ります。"
+      },
+      {
+        "order": 2,
+        "text": "ビーツ、にんじん、玉ねぎを細切りにし、油で炒めて甘みを引き出します。"
+      },
+      {
+        "order": 3,
+        "text": "トマトペーストと少量の酢を加え、ビーツの色を保ちながら軽く煮詰めます。"
+      },
+      {
+        "order": 4,
+        "text": "だしにじゃがいもとキャベツを加え、柔らかくなったら炒めたビーツを戻します。"
+      },
+      {
+        "order": 5,
+        "text": "肉を食べやすく切って鍋に戻し、塩、胡椒、必要なら砂糖少々で酸味と甘みを整えます。"
+      },
+      {
+        "order": 6,
+        "text": "少し休ませて味をなじませ、ディルとサワークリームを添えて提供します。"
+      }
+    ],
+    "source_urls": [
+      "https://ich.unesco.org/en/USL/culture-of-ukrainian-borscht-cooking-01852",
+      "https://en.wikipedia.org/wiki/Borscht"
+    ],
+    "origin_title": "ボルシチの由来",
+    "origin_body": "ボルシチは東欧の広い地域で食べられますが、ウクライナでは家庭と地域の記憶を担う料理として特に重要視されています。ビーツを中心に、畑の野菜、肉や豆、発酵乳製品を組み合わせるため、土地ごとの農産物や保存の知恵が反映されます。\n\n近年はウクライナのボルシチ調理文化が無形文化遺産として国際的にも注目されました。レシピは家庭ごとに異なり、肉入り、豆入り、きのこ入り、断食期向けなど多様です。赤い色と酸味、甘み、香草の重なりが、単なるスープではなく食卓のアイデンティティを示します。\n\n料理としての輪郭は、単一の発明者だけでなく、ウクライナの市場、家庭、外食の場で繰り返し作られる中で固まりました。材料の選び方や火入れの順序には、保存、季節、共同で食べる習慣が反映されています。",
+    "culture_title": "ウクライナの食文化とボルシチ",
+    "culture_body": "正教圏の食文化では、断食期に肉や乳製品を避ける習慣があり、ボルシチも時期に応じて肉入り・菜食版が作り分けられます。日常の昼食にも祝日の食卓にも出るため、宗教行事と家庭の実用が重なりやすい料理です。\n\n標準的な肉入りボルシチはヴィーガンではありませんが、小麦を使わない構成にしやすく、グルテンフリー対応は比較的容易です。仕上げのサワークリームには乳が含まれるため、乳アレルギーや完全菜食では省く必要があります。\n\n現在のボルシチは観光向けの名物であると同時に、家庭で調整される日常料理でもあります。宗教・アレルギー・菜食の条件に合わせるには、中心食材と調味料の由来を確認し、伝統的な味の軸を保ったまま置き換えることが重要です。"
+  },
+  {
+    "slug": "sushi",
+    "wiki_page": "Sushi",
+    "source_ref": "curated:sushi",
+    "title": "寿司",
+    "description": "酢飯に魚介や野菜を合わせる日本料理。ここでは家庭でも作りやすい握り寿司と巻き寿司の基本構成として登録します。",
+    "cuisine": "日本",
+    "flag": "🇯🇵",
+    "image_url": "/recipe-images/sushi.webp",
+    "photo_source_url": "https://en.wikipedia.org/wiki/Sushi",
+    "cook_time_min": 60,
+    "servings": 4,
+    "is_vegan": false,
+    "is_gluten_free": false,
+    "tags": [
+      "日本料理",
+      "酢飯",
+      "魚介",
+      "祝い食"
+    ],
+    "ingredients": [
+      {
+        "name_ja": "米",
+        "name_en": "rice",
+        "quantity": "2合",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "米酢",
+        "name_en": "rice vinegar",
+        "quantity": "大さじ4",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "砂糖",
+        "name_en": "sugar",
+        "quantity": "大さじ2",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "塩",
+        "name_en": "salt",
+        "quantity": "小さじ1",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "刺身用サーモン",
+        "name_en": "salmon",
+        "quantity": "150g",
+        "master_name_en": "salmon",
+        "is_optional": false
+      },
+      {
+        "name_ja": "えび",
+        "name_en": "shrimp",
+        "quantity": "8尾",
+        "master_name_en": "shrimp",
+        "is_optional": false
+      },
+      {
+        "name_ja": "卵焼き",
+        "name_en": "egg omelet",
+        "quantity": "1本",
+        "master_name_en": "egg",
+        "is_optional": false
+      },
+      {
+        "name_ja": "海苔",
+        "name_en": "nori",
+        "quantity": "適量",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "醤油",
+        "name_en": "soy sauce",
+        "quantity": "適量",
+        "master_name_en": "soybean",
+        "is_optional": false
+      },
+      {
+        "name_ja": "わさび",
+        "name_en": "wasabi",
+        "quantity": "適量",
+        "master_name_en": null,
+        "is_optional": false
+      }
+    ],
+    "steps": [
+      {
+        "order": 1,
+        "text": "米を研いでやや硬めに炊き、熱いうちに酢、砂糖、塩を合わせた寿司酢を切るように混ぜます。"
+      },
+      {
+        "order": 2,
+        "text": "酢飯をうちわなどで冷まし、乾燥しないよう濡れ布巾をかけて人肌程度に保ちます。"
+      },
+      {
+        "order": 3,
+        "text": "魚介は水分を拭き、握りやすい厚さに切り、えびは下処理してゆでて開きます。"
+      },
+      {
+        "order": 4,
+        "text": "手酢を用意し、酢飯を小さくまとめ、わさびを薄く塗ったネタをのせて軽く握ります。"
+      },
+      {
+        "order": 5,
+        "text": "巻き寿司は海苔に酢飯を薄く広げ、具を中央に置いて巻きすで締め、濡らした包丁で切ります。"
+      },
+      {
+        "order": 6,
+        "text": "醤油をネタ側に少量つけ、ガリや茶と一緒に味の変化を楽しみます。"
+      }
+    ],
+    "source_urls": [
+      "https://www.britannica.com/topic/sushi",
+      "https://en.wikipedia.org/wiki/Sushi"
+    ],
+    "origin_title": "寿司の由来",
+    "origin_body": "寿司の原型は魚を米で発酵させて保存する技術にあり、現在の酢飯と魚介を合わせる形は江戸期の都市文化の中で大きく発展しました。握り寿司は早く食べられる屋台的な食事として広まり、保存食から即食の料理へと性格を変えました。\n\n現代の寿司は高級店から家庭の巻き寿司まで幅広く、酢飯の温度、魚の切りつけ、握りの空気感が味を左右します。生魚だけでなく、卵、野菜、加熱した魚介も使われ、季節と地域の魚を映す料理として国内外に広がっています。\n\n料理としての輪郭は、単一の発明者だけでなく、日本の市場、家庭、外食の場で繰り返し作られる中で固まりました。材料の選び方や火入れの順序には、保存、季節、共同で食べる習慣が反映されています。",
+    "culture_title": "日本の食文化と寿司",
+    "culture_body": "日本の食文化では、米と魚介は祭礼、季節、地域性を語る基本要素です。寿司は祝い事や節句、来客時にも用いられ、見た目の整然さと手でつまめる気軽さを併せ持ちます。\n\n仏教の影響を受けた精進料理とは異なり、標準的な寿司は魚介や卵を含むためヴィーガンではありません。小麦は必須ではありませんが、一般的な醤油には小麦を含むものがあるため、グルテンフリー表示には醤油の種類確認が必要です。\n\n現在の寿司は観光向けの名物であると同時に、家庭で調整される日常料理でもあります。宗教・アレルギー・菜食の条件に合わせるには、中心食材と調味料の由来を確認し、伝統的な味の軸を保ったまま置き換えることが重要です。"
+  },
+  {
+    "slug": "ramen",
+    "wiki_page": "Ramen",
+    "source_ref": "curated:ramen",
+    "title": "醤油ラーメン",
+    "description": "鶏ガラや豚骨、魚介だしを醤油だれと合わせ、小麦麺、叉焼、メンマ、卵などをのせる日本の麺料理です。",
+    "cuisine": "日本",
+    "flag": "🇯🇵",
+    "image_url": "/recipe-images/ramen.webp",
+    "photo_source_url": "https://en.wikipedia.org/wiki/Ramen",
+    "cook_time_min": 120,
+    "servings": 4,
+    "is_vegan": false,
+    "is_gluten_free": false,
+    "tags": [
+      "日本料理",
+      "麺料理",
+      "醤油",
+      "スープ"
+    ],
+    "ingredients": [
+      {
+        "name_ja": "中華麺",
+        "name_en": "wheat noodles",
+        "quantity": "4玉",
+        "master_name_en": "wheat",
+        "is_optional": false
+      },
+      {
+        "name_ja": "鶏ガラ",
+        "name_en": "chicken bones",
+        "quantity": "1kg",
+        "master_name_en": "chicken",
+        "is_optional": false
+      },
+      {
+        "name_ja": "豚肉（叉焼用）",
+        "name_en": "pork",
+        "quantity": "400g",
+        "master_name_en": "pork",
+        "is_optional": false
+      },
+      {
+        "name_ja": "醤油",
+        "name_en": "soy sauce",
+        "quantity": "150ml",
+        "master_name_en": "soybean",
+        "is_optional": false
+      },
+      {
+        "name_ja": "卵",
+        "name_en": "egg",
+        "quantity": "4個",
+        "master_name_en": "egg",
+        "is_optional": false
+      },
+      {
+        "name_ja": "メンマ",
+        "name_en": "menma",
+        "quantity": "適量",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "長ねぎ",
+        "name_en": "green onion",
+        "quantity": "1本",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "昆布",
+        "name_en": "kombu",
+        "quantity": "10g",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "煮干しまたはかつお節",
+        "name_en": "dried fish",
+        "quantity": "20g",
+        "master_name_en": null,
+        "is_optional": false
+      }
+    ],
+    "steps": [
+      {
+        "order": 1,
+        "text": "鶏ガラを下ゆでして洗い、昆布、煮干し、香味野菜と弱火で煮て澄んだスープを取ります。"
+      },
+      {
+        "order": 2,
+        "text": "豚肉は醤油、酒、砂糖、香味野菜で煮て叉焼にし、煮汁の一部を醤油だれに使います。"
+      },
+      {
+        "order": 3,
+        "text": "半熟卵を作り、粗熱を取ってから叉焼の煮汁に数時間漬け、味玉として使います。"
+      },
+      {
+        "order": 4,
+        "text": "丼に醤油だれと香味油を入れ、熱いスープを注いで味を決めます。"
+      },
+      {
+        "order": 5,
+        "text": "中華麺を表示時間どおりにゆで、湯切りして丼に入れます。"
+      },
+      {
+        "order": 6,
+        "text": "叉焼、味玉、メンマ、ねぎをのせ、麺が伸びる前に提供します。"
+      }
+    ],
+    "source_urls": [
+      "https://www.britannica.com/topic/ramen",
+      "https://ramen-japan.jp/en/history/ramen-history/",
+      "https://en.wikipedia.org/wiki/Ramen"
+    ],
+    "origin_title": "醤油ラーメンの由来",
+    "origin_body": "ラーメンは中国系の麺料理が日本の港町や都市の食堂文化に取り込まれ、20世紀に日本独自の多様な麺料理として発展したものです。戦後の小麦流通、屋台、即席麺の発明、地域ごとのスープ文化が重なり、醤油、味噌、塩、豚骨など無数の系統が生まれました。\n\n醤油ラーメンは、だし、たれ、香味油、麺、具を分けて組み立てる考え方が特徴です。家庭向けに簡略化できますが、専門店ではスープの素材、麺の加水率、油の香り、叉焼の火入れまで細かく設計されます。\n\n料理としての輪郭は、単一の発明者だけでなく、日本の市場、家庭、外食の場で繰り返し作られる中で固まりました。材料の選び方や火入れの順序には、保存、季節、共同で食べる習慣が反映されています。",
+    "culture_title": "日本の食文化と醤油ラーメン",
+    "culture_body": "ラーメンは宗教儀礼に強く結びつく料理ではありませんが、外食、労働者の食事、夜食、地域観光を支える現代日本の食文化を象徴します。札幌、博多、喜多方など地域名と結びつくことで、土地のブランドにもなりました。\n\n標準的なラーメンは小麦麺、豚肉、鶏だし、卵を含むため、ヴィーガンやグルテンフリーには向きません。豚肉を避ける宗教的制限にも注意が必要です。一方で、近年は植物性スープや米粉麺の選択肢も増えています。\n\n現在の醤油ラーメンは観光向けの名物であると同時に、家庭で調整される日常料理でもあります。宗教・アレルギー・菜食の条件に合わせるには、中心食材と調味料の由来を確認し、伝統的な味の軸を保ったまま置き換えることが重要です。"
+  },
+  {
+    "slug": "pad-thai",
+    "wiki_page": "Pad thai",
+    "source_ref": "curated:pad-thai",
+    "title": "パッタイ",
+    "description": "米麺をタマリンド、魚醤、砂糖で甘酸っぱく炒め、えび、卵、もやし、落花生、ライムを合わせるタイの屋台料理です。",
+    "cuisine": "タイ",
+    "flag": "🇹🇭",
+    "image_url": "/recipe-images/pad-thai.webp",
+    "photo_source_url": "https://en.wikipedia.org/wiki/Pad_thai",
+    "cook_time_min": 35,
+    "servings": 2,
+    "is_vegan": false,
+    "is_gluten_free": true,
+    "tags": [
+      "タイ料理",
+      "屋台料理",
+      "米麺",
+      "甘酸っぱい"
+    ],
+    "ingredients": [
+      {
+        "name_ja": "米麺",
+        "name_en": "rice noodles",
+        "quantity": "160g",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "えび",
+        "name_en": "shrimp",
+        "quantity": "120g",
+        "master_name_en": "shrimp",
+        "is_optional": false
+      },
+      {
+        "name_ja": "卵",
+        "name_en": "egg",
+        "quantity": "2個",
+        "master_name_en": "egg",
+        "is_optional": false
+      },
+      {
+        "name_ja": "もやし",
+        "name_en": "bean sprouts",
+        "quantity": "100g",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "にら",
+        "name_en": "garlic chives",
+        "quantity": "40g",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "タマリンドペースト",
+        "name_en": "tamarind paste",
+        "quantity": "大さじ2",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "魚醤",
+        "name_en": "fish sauce",
+        "quantity": "大さじ2",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "パームシュガー",
+        "name_en": "palm sugar",
+        "quantity": "大さじ1.5",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "落花生",
+        "name_en": "peanut",
+        "quantity": "大さじ3",
+        "master_name_en": "peanut",
+        "is_optional": false
+      },
+      {
+        "name_ja": "ライム",
+        "name_en": "lime",
+        "quantity": "1個",
+        "master_name_en": null,
+        "is_optional": false
+      }
+    ],
+    "steps": [
+      {
+        "order": 1,
+        "text": "米麺をぬるま湯で戻し、芯が少し残る程度で水気を切ります。"
+      },
+      {
+        "order": 2,
+        "text": "タマリンド、魚醤、砂糖を混ぜ、甘み、酸味、塩味が同時に感じられるソースを作ります。"
+      },
+      {
+        "order": 3,
+        "text": "中華鍋でえびをさっと炒めて取り出し、同じ鍋で卵を崩しながら炒めます。"
+      },
+      {
+        "order": 4,
+        "text": "米麺とソースを加え、麺がソースを吸って柔らかくなるまで手早く炒めます。"
+      },
+      {
+        "order": 5,
+        "text": "えびを戻し、もやしとにらを加えて食感が残る程度に合わせます。"
+      },
+      {
+        "order": 6,
+        "text": "砕いた落花生、ライム、唐辛子を添え、食べる直前に混ぜて味を調整します。"
+      }
+    ],
+    "source_urls": [
+      "https://www.templeofthai.com/cooking/about_pad_thai.php",
+      "https://en.wikipedia.org/wiki/Pad_thai"
+    ],
+    "origin_title": "パッタイの由来",
+    "origin_body": "パッタイはタイの屋台料理として世界的に知られますが、米麺を炒める技法には華人系の麺文化との関係が見られます。20世紀の国民食化の文脈で語られることも多く、甘酸っぱいソース、米麺、安価なたんぱく質を合わせた実用的な一皿として普及しました。\n\n地域や店により具材は変わりますが、タマリンドの酸味、魚醤の塩味、砂糖の甘み、落花生の香ばしさを一つの鍋でまとめる点が核です。短時間で作れるため屋台やフードコートに向き、仕上げに客がライムや唐辛子で調整する参加型の料理でもあります。\n\n料理としての輪郭は、単一の発明者だけでなく、タイの市場、家庭、外食の場で繰り返し作られる中で固まりました。材料の選び方や火入れの順序には、保存、季節、共同で食べる習慣が反映されています。",
+    "culture_title": "タイの食文化とパッタイ",
+    "culture_body": "タイの食文化では、甘い、酸っぱい、塩辛い、辛いという味のバランスが重視されます。パッタイはその均衡をわかりやすく示し、屋台での外食文化、都市労働者の食事、観光客に開かれた国民的イメージを支えてきました。\n\n米麺を使うため基本的にはグルテンを含みにくい一方、魚醤、えび、卵、落花生を使うためヴィーガンではなく、甲殻類・卵・落花生アレルギーに注意が必要です。仏教国ですが、日常食としては魚介や卵を広く使う点もタイ料理らしさです。\n\n現在のパッタイは観光向けの名物であると同時に、家庭で調整される日常料理でもあります。宗教・アレルギー・菜食の条件に合わせるには、中心食材と調味料の由来を確認し、伝統的な味の軸を保ったまま置き換えることが重要です。"
+  },
+  {
+    "slug": "pho",
+    "wiki_page": "Pho",
+    "source_ref": "curated:pho",
+    "title": "フォー・ボー",
+    "description": "牛骨スープに平たい米麺、薄切り牛肉、香草を合わせるベトナムの麺料理。北部発祥とされ、南北で薬味や甘みの違いがあります。",
+    "cuisine": "ベトナム",
+    "flag": "🇻🇳",
+    "image_url": "/recipe-images/pho.webp",
+    "photo_source_url": "https://en.wikipedia.org/wiki/Pho",
+    "cook_time_min": 180,
+    "servings": 4,
+    "is_vegan": false,
+    "is_gluten_free": true,
+    "tags": [
+      "ベトナム料理",
+      "米麺",
+      "牛肉",
+      "スープ"
+    ],
+    "ingredients": [
+      {
+        "name_ja": "フォー用米麺",
+        "name_en": "rice noodles",
+        "quantity": "400g",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "牛骨",
+        "name_en": "beef bones",
+        "quantity": "1.5kg",
+        "master_name_en": "beef",
+        "is_optional": false
+      },
+      {
+        "name_ja": "牛薄切り肉",
+        "name_en": "beef",
+        "quantity": "250g",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "玉ねぎ",
+        "name_en": "onion",
+        "quantity": "2個",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "しょうが",
+        "name_en": "ginger",
+        "quantity": "1片",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "八角",
+        "name_en": "star anise",
+        "quantity": "3個",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "シナモン",
+        "name_en": "cinnamon",
+        "quantity": "1本",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "魚醤",
+        "name_en": "fish sauce",
+        "quantity": "大さじ3",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "もやし",
+        "name_en": "bean sprouts",
+        "quantity": "適量",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "香草",
+        "name_en": "fresh herbs",
+        "quantity": "適量",
+        "master_name_en": null,
+        "is_optional": false
+      }
+    ],
+    "steps": [
+      {
+        "order": 1,
+        "text": "牛骨を下ゆでして洗い、澄んだスープになるようアクを除きます。"
+      },
+      {
+        "order": 2,
+        "text": "玉ねぎとしょうがを直火またはフライパンで焦げ目がつくまで焼き、香りを出します。"
+      },
+      {
+        "order": 3,
+        "text": "牛骨、水、焼いた香味野菜、八角、シナモンを弱火でじっくり煮出します。"
+      },
+      {
+        "order": 4,
+        "text": "スープを濾し、魚醤と塩で味を整え、香辛料が強すぎないよう調整します。"
+      },
+      {
+        "order": 5,
+        "text": "米麺を戻してゆで、器に入れ、薄切り牛肉をのせます。"
+      },
+      {
+        "order": 6,
+        "text": "熱いスープを注いで肉に火を通し、もやし、香草、ライム、唐辛子を添えます。"
+      }
+    ],
+    "source_urls": [
+      "https://www.britannica.com/topic/pho",
+      "https://en.wikipedia.org/wiki/Pho"
+    ],
+    "origin_title": "フォー・ボーの由来",
+    "origin_body": "フォーはベトナム北部で生まれたとされる比較的新しい麺料理で、牛肉食、米麺、フランス植民地期の食習慣、都市の屋台文化が重なって発展しました。1954年以降の人口移動により南部へ広がり、香草や甘みの使い方が地域ごとに変化しました。\n\n北部では澄んだスープと控えめな薬味が好まれ、南部ではもやし、香草、ソースを添える食べ方が広く知られます。長時間煮た骨スープに米麺を合わせるため、単純な麺料理ではなく、朝食から外食までを支える国民的な食事になっています。\n\n料理としての輪郭は、単一の発明者だけでなく、ベトナムの市場、家庭、外食の場で繰り返し作られる中で固まりました。材料の選び方や火入れの順序には、保存、季節、共同で食べる習慣が反映されています。",
+    "culture_title": "ベトナムの食文化とフォー・ボー",
+    "culture_body": "ベトナムの食文化は米、魚醤、香草、軽い酸味を巧みに使います。フォーは朝に屋台で食べる日常性と、海外移住者が故郷を思い出す象徴性を併せ持ちます。仏教の影響で菜食料理も存在しますが、標準的なフォー・ボーは牛骨と牛肉が中心です。\n\n米麺を使うため小麦は通常不要で、グルテンフリーにしやすい料理です。ただし牛肉を避ける宗教的・個人的制限には合わず、魚醤を使うため完全菜食にも適しません。香草を客が加える形式は、味を個人化するベトナム料理の特徴を示します。\n\n現在のフォー・ボーは観光向けの名物であると同時に、家庭で調整される日常料理でもあります。宗教・アレルギー・菜食の条件に合わせるには、中心食材と調味料の由来を確認し、伝統的な味の軸を保ったまま置き換えることが重要です。"
+  },
+  {
+    "slug": "biryani",
+    "wiki_page": "Biryani",
+    "source_ref": "curated:biryani",
+    "title": "ハイデラバード風ビリヤニ",
+    "description": "スパイスでマリネした肉と半ゆでのバスマティ米を層にし、密閉して蒸し上げる南アジアの祝祭的な米料理です。",
+    "cuisine": "インド",
+    "flag": "🇮🇳",
+    "image_url": "/recipe-images/biryani.webp",
+    "photo_source_url": "https://en.wikipedia.org/wiki/Biryani",
+    "cook_time_min": 120,
+    "servings": 4,
+    "is_vegan": false,
+    "is_gluten_free": true,
+    "tags": [
+      "インド料理",
+      "米料理",
+      "スパイス",
+      "祝祭料理"
+    ],
+    "ingredients": [
+      {
+        "name_ja": "バスマティ米",
+        "name_en": "basmati rice",
+        "quantity": "400g",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "鶏肉",
+        "name_en": "chicken",
+        "quantity": "500g",
+        "master_name_en": "chicken",
+        "is_optional": false
+      },
+      {
+        "name_ja": "ヨーグルト",
+        "name_en": "yogurt",
+        "quantity": "150g",
+        "master_name_en": "milk",
+        "is_optional": false
+      },
+      {
+        "name_ja": "玉ねぎ",
+        "name_en": "onion",
+        "quantity": "2個",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "にんにく",
+        "name_en": "garlic",
+        "quantity": "3片",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "しょうが",
+        "name_en": "ginger",
+        "quantity": "1片",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "ミント",
+        "name_en": "mint",
+        "quantity": "ひとつかみ",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "コリアンダー",
+        "name_en": "coriander",
+        "quantity": "ひとつかみ",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "ビリヤニ用スパイス",
+        "name_en": "biryani spices",
+        "quantity": "大さじ2",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "サフランミルク",
+        "name_en": "saffron milk",
+        "quantity": "大さじ2",
+        "master_name_en": null,
+        "is_optional": false
+      }
+    ],
+    "steps": [
+      {
+        "order": 1,
+        "text": "鶏肉にヨーグルト、にんにく、しょうが、スパイス、塩、香草を揉み込み、できれば数時間マリネします。"
+      },
+      {
+        "order": 2,
+        "text": "玉ねぎを薄切りにして油で飴色に揚げ焼きし、フライドオニオンを作ります。"
+      },
+      {
+        "order": 3,
+        "text": "バスマティ米を洗って浸水し、塩とホールスパイスを入れた湯で7割程度までゆでて湯を切ります。"
+      },
+      {
+        "order": 4,
+        "text": "厚手鍋にマリネした鶏肉を敷き、米、フライドオニオン、香草、サフランミルクを層にします。"
+      },
+      {
+        "order": 5,
+        "text": "鍋を密閉し、弱火で蒸し焼きにして肉の蒸気で米を仕上げます。"
+      },
+      {
+        "order": 6,
+        "text": "火を止めて休ませ、層を大きく崩しすぎないよう底からすくって盛り付けます。"
+      }
+    ],
+    "source_urls": [
+      "https://www.britannica.com/topic/biryani",
+      "https://en.wikipedia.org/wiki/Hyderabadi_biryani"
+    ],
+    "origin_title": "ハイデラバード風ビリヤニの由来",
+    "origin_body": "ビリヤニはペルシア語系の語源を持つとされ、南アジア各地で宮廷料理、交易、地域の米文化と結びつきながら発展しました。ハイデラバード風は、肉のマリネと米を層にして密閉加熱する「ダム」の技法で知られ、香りを逃さず一体化させます。\n\n同じビリヤニでも、米の品種、肉、辛さ、じゃがいもや干し果物の有無は地域で異なります。ハイデラバードではムスリム宮廷文化の影響が強く、香辛料、ヨーグルト、サフラン、フライドオニオンの香りが祝祭性を作ります。\n\n料理としての輪郭は、単一の発明者だけでなく、インドの市場、家庭、外食の場で繰り返し作られる中で固まりました。材料の選び方や火入れの順序には、保存、季節、共同で食べる習慣が反映されています。",
+    "culture_title": "インドの食文化とハイデラバード風ビリヤニ",
+    "culture_body": "インド亜大陸では宗教により食材選択が大きく変わります。ヒンドゥー教徒の中には牛肉を避ける人が多く、ムスリムの食卓では豚肉を避けるため、鶏肉や羊肉のビリヤニが広く受け入れられました。\n\n米を主食にした料理なので小麦は不要ですが、ヨーグルトやギーを使う場合は乳を含みます。標準的な鶏ビリヤニはヴィーガンではないものの、野菜や豆を使う菜食版も発達しています。大鍋で作って分け合う形式は、結婚式や祭りの共同体性をよく表します。\n\n現在のハイデラバード風ビリヤニは観光向けの名物であると同時に、家庭で調整される日常料理でもあります。宗教・アレルギー・菜食の条件に合わせるには、中心食材と調味料の由来を確認し、伝統的な味の軸を保ったまま置き換えることが重要です。"
+  },
+  {
+    "slug": "mapo-tofu",
+    "wiki_page": "Mapo tofu",
+    "source_ref": "curated:mapo-tofu",
+    "title": "麻婆豆腐",
+    "description": "豆腐、牛または豚ひき肉、豆板醤、豆豉、花椒を使い、四川料理らしい麻辣の香りで仕上げる煮込み料理です。",
+    "cuisine": "中国",
+    "flag": "🇨🇳",
+    "image_url": "/recipe-images/mapo-tofu.webp",
+    "photo_source_url": "https://en.wikipedia.org/wiki/Mapo_tofu",
+    "cook_time_min": 30,
+    "servings": 3,
+    "is_vegan": false,
+    "is_gluten_free": false,
+    "tags": [
+      "四川料理",
+      "豆腐",
+      "麻辣",
+      "ひき肉"
+    ],
+    "ingredients": [
+      {
+        "name_ja": "豆腐",
+        "name_en": "tofu",
+        "quantity": "400g",
+        "master_name_en": "soybean",
+        "is_optional": false
+      },
+      {
+        "name_ja": "豚ひき肉",
+        "name_en": "ground pork",
+        "quantity": "120g",
+        "master_name_en": "pork",
+        "is_optional": false
+      },
+      {
+        "name_ja": "豆板醤",
+        "name_en": "doubanjiang",
+        "quantity": "大さじ1.5",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "豆豉",
+        "name_en": "fermented black beans",
+        "quantity": "大さじ1",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "花椒",
+        "name_en": "sichuan pepper",
+        "quantity": "小さじ1",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "にんにく",
+        "name_en": "garlic",
+        "quantity": "2片",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "しょうが",
+        "name_en": "ginger",
+        "quantity": "1片",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "長ねぎ",
+        "name_en": "green onion",
+        "quantity": "1/2本",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "鶏がらスープ",
+        "name_en": "chicken stock",
+        "quantity": "200ml",
+        "master_name_en": "chicken",
+        "is_optional": false
+      },
+      {
+        "name_ja": "片栗粉",
+        "name_en": "potato starch",
+        "quantity": "小さじ2",
+        "master_name_en": null,
+        "is_optional": false
+      }
+    ],
+    "steps": [
+      {
+        "order": 1,
+        "text": "豆腐をさいの目に切り、塩を入れた湯で温めて崩れにくくします。"
+      },
+      {
+        "order": 2,
+        "text": "中華鍋でひき肉を炒め、脂が透き通るまで香ばしく火を通します。"
+      },
+      {
+        "order": 3,
+        "text": "豆板醤、刻んだ豆豉、にんにく、しょうがを加え、赤い油が出るまで弱火で炒めます。"
+      },
+      {
+        "order": 4,
+        "text": "スープを注ぎ、豆腐を加えて揺すりながら煮含め、豆腐に辛味と旨味を移します。"
+      },
+      {
+        "order": 5,
+        "text": "水溶き片栗粉を数回に分けて加え、とろみを均一につけます。"
+      },
+      {
+        "order": 6,
+        "text": "仕上げに花椒粉とねぎを散らし、熱いうちに白飯と合わせます。"
+      }
+    ],
+    "source_urls": [
+      "https://www.epicurious.com/recipes/food/views/spicy-sichuan-tofu-em-mapo-doufu-em-242878",
+      "https://en.wikipedia.org/wiki/Mapo_tofu"
+    ],
+    "origin_title": "麻婆豆腐の由来",
+    "origin_body": "麻婆豆腐は四川省成都の料理として知られ、豆腐と少量の肉を、発酵豆板醤、豆豉、唐辛子、花椒で力強くまとめます。名前には料理を作った女性の店にまつわる逸話が残り、庶民的な食堂料理として広がりました。\n\n四川料理の特徴である「麻」と「辣」を明確に示すため、単に辛いだけでなく花椒のしびれ、発酵調味料の旨味、油の香りが重要です。豆腐を煮崩さず味を含ませ、とろみで熱を閉じ込める技術が、家庭料理でありながら専門性を感じさせます。\n\n料理としての輪郭は、単一の発明者だけでなく、中国の市場、家庭、外食の場で繰り返し作られる中で固まりました。材料の選び方や火入れの順序には、保存、季節、共同で食べる習慣が反映されています。",
+    "culture_title": "中国の食文化と麻婆豆腐",
+    "culture_body": "四川は湿度が高く、香辛料や発酵調味料を使う料理文化が発達しました。麻婆豆腐は安価な豆腐を主役にしながら、少量の肉で満足感を作るため、都市の食堂や家庭で広く受け入れられました。\n\n標準的な麻婆豆腐は豚肉、鶏スープ、大豆製品を含み、ヴィーガンではありません。豆板醤や醤油類には小麦を含む場合があるため、グルテンフリーにも注意が必要です。大豆アレルギー、豚肉を避ける宗教的制限にも対応が必要な料理です。\n\n現在の麻婆豆腐は観光向けの名物であると同時に、家庭で調整される日常料理でもあります。宗教・アレルギー・菜食の条件に合わせるには、中心食材と調味料の由来を確認し、伝統的な味の軸を保ったまま置き換えることが重要です。"
+  },
+  {
+    "slug": "bibimbap",
+    "wiki_page": "Bibimbap",
+    "source_ref": "curated:bibimbap",
+    "title": "ビビンバ",
+    "description": "ご飯にナムル、肉、卵、コチュジャンをのせ、食べる直前に混ぜる韓国の丼料理。彩りと味の均衡が特徴です。",
+    "cuisine": "韓国",
+    "flag": "🇰🇷",
+    "image_url": "/recipe-images/bibimbap.webp",
+    "photo_source_url": "https://en.wikipedia.org/wiki/Bibimbap",
+    "cook_time_min": 55,
+    "servings": 2,
+    "is_vegan": false,
+    "is_gluten_free": false,
+    "tags": [
+      "韓国料理",
+      "混ぜご飯",
+      "ナムル",
+      "発酵調味料"
+    ],
+    "ingredients": [
+      {
+        "name_ja": "米飯",
+        "name_en": "rice",
+        "quantity": "2杯",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "牛肉",
+        "name_en": "beef",
+        "quantity": "120g",
+        "master_name_en": "beef",
+        "is_optional": false
+      },
+      {
+        "name_ja": "卵",
+        "name_en": "egg",
+        "quantity": "2個",
+        "master_name_en": "egg",
+        "is_optional": false
+      },
+      {
+        "name_ja": "ほうれん草",
+        "name_en": "spinach",
+        "quantity": "1束",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "もやし",
+        "name_en": "bean sprouts",
+        "quantity": "100g",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "にんじん",
+        "name_en": "carrot",
+        "quantity": "1/2本",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "しいたけ",
+        "name_en": "shiitake",
+        "quantity": "4枚",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "ごま油",
+        "name_en": "sesame oil",
+        "quantity": "大さじ2",
+        "master_name_en": "sesame",
+        "is_optional": false
+      },
+      {
+        "name_ja": "コチュジャン",
+        "name_en": "gochujang",
+        "quantity": "大さじ2",
+        "master_name_en": "soybean",
+        "is_optional": false
+      },
+      {
+        "name_ja": "醤油",
+        "name_en": "soy sauce",
+        "quantity": "大さじ1",
+        "master_name_en": null,
+        "is_optional": false
+      }
+    ],
+    "steps": [
+      {
+        "order": 1,
+        "text": "野菜を種類ごとにゆでる、炒めるなどして火を通し、ごま油、塩、にんにくでナムルにします。"
+      },
+      {
+        "order": 2,
+        "text": "牛肉を細切りにし、醤油、砂糖、にんにく、ごま油で下味をつけて炒めます。"
+      },
+      {
+        "order": 3,
+        "text": "卵は目玉焼きにし、黄身が少し柔らかい状態に仕上げます。"
+      },
+      {
+        "order": 4,
+        "text": "器に熱いご飯を盛り、色が重ならないようナムルと肉を放射状に並べます。"
+      },
+      {
+        "order": 5,
+        "text": "中央に卵をのせ、コチュジャンとごま油を添えて、混ぜる直前まで彩りを保ちます。"
+      },
+      {
+        "order": 6,
+        "text": "食べる直前に全体をよく混ぜ、米、野菜、肉、発酵調味料を一体化させます。"
+      }
+    ],
+    "source_urls": [
+      "https://www.nationalgeographic.com/travel/article/bibimbap-koreas-famous-dish",
+      "https://en.wikipedia.org/wiki/Bibimbap"
+    ],
+    "origin_title": "ビビンバの由来",
+    "origin_body": "ビビンバは「混ぜる」と「ご飯」を意味する名を持ち、韓国の混ぜご飯文化を代表します。年末に残った食材を整理する習慣や祭礼後の供物を分け合う説、地方料理としての発展など、起源には複数の説明があります。\n\n19世紀の文献に類似料理が見られ、近代以降は全州ビビンバや石焼ビビンバのように地域性と外食文化を伴って広まりました。彩りのよいナムル、肉、卵、辛味噌を混ぜることで、見た目の秩序と食べる時の一体感が共存します。\n\n料理としての輪郭は、単一の発明者だけでなく、韓国の市場、家庭、外食の場で繰り返し作られる中で固まりました。材料の選び方や火入れの順序には、保存、季節、共同で食べる習慣が反映されています。",
+    "culture_title": "韓国の食文化とビビンバ",
+    "culture_body": "韓国料理では、発酵調味料、野菜のナムル、米飯、分かち合う副菜文化が重要です。ビビンバは一つの器にそれらを集約し、五色の食材で栄養と美観を表す料理としても語られます。\n\n標準的なビビンバは牛肉、卵、ごま、大豆発酵調味料を含み、ヴィーガンではありません。コチュジャンや醤油には小麦が含まれる場合があるため、グルテンフリーには専用品が必要です。仏教寺院料理のような菜食版も可能で、食制限に合わせて変化しやすい料理です。\n\n現在のビビンバは観光向けの名物であると同時に、家庭で調整される日常料理でもあります。宗教・アレルギー・菜食の条件に合わせるには、中心食材と調味料の由来を確認し、伝統的な味の軸を保ったまま置き換えることが重要です。"
+  },
+  {
+    "slug": "nasi-lemak",
+    "wiki_page": "Nasi lemak",
+    "source_ref": "curated:nasi-lemak",
+    "title": "ナシレマ",
+    "description": "ココナッツミルクで炊いた香り米にサンバル、揚げ小魚、落花生、卵、きゅうりを添えるマレー系の代表的な朝食です。",
+    "cuisine": "マレーシア",
+    "flag": "🇲🇾",
+    "image_url": "/recipe-images/nasi-lemak.webp",
+    "photo_source_url": "https://en.wikipedia.org/wiki/Nasi_lemak",
+    "cook_time_min": 60,
+    "servings": 4,
+    "is_vegan": false,
+    "is_gluten_free": true,
+    "tags": [
+      "マレー料理",
+      "ココナッツ米",
+      "朝食",
+      "サンバル"
+    ],
+    "ingredients": [
+      {
+        "name_ja": "米",
+        "name_en": "rice",
+        "quantity": "2合",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "ココナッツミルク",
+        "name_en": "coconut milk",
+        "quantity": "200ml",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "パンダンリーフ",
+        "name_en": "pandan leaf",
+        "quantity": "1枚",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "干し小魚",
+        "name_en": "dried anchovies",
+        "quantity": "60g",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "落花生",
+        "name_en": "peanut",
+        "quantity": "60g",
+        "master_name_en": "peanut",
+        "is_optional": false
+      },
+      {
+        "name_ja": "卵",
+        "name_en": "egg",
+        "quantity": "4個",
+        "master_name_en": "egg",
+        "is_optional": false
+      },
+      {
+        "name_ja": "きゅうり",
+        "name_en": "cucumber",
+        "quantity": "1本",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "唐辛子",
+        "name_en": "chili",
+        "quantity": "適量",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "玉ねぎ",
+        "name_en": "onion",
+        "quantity": "1個",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "タマリンド",
+        "name_en": "tamarind",
+        "quantity": "大さじ1",
+        "master_name_en": null,
+        "is_optional": false
+      }
+    ],
+    "steps": [
+      {
+        "order": 1,
+        "text": "米を洗い、ココナッツミルク、水、塩、パンダンリーフと一緒に炊きます。"
+      },
+      {
+        "order": 2,
+        "text": "干し小魚と落花生を別々に香ばしく揚げ焼きし、油を切って食感を残します。"
+      },
+      {
+        "order": 3,
+        "text": "唐辛子、玉ねぎ、にんにくをペーストにし、油でじっくり炒めてサンバルの香りを出します。"
+      },
+      {
+        "order": 4,
+        "text": "サンバルにタマリンド、砂糖、塩を加え、甘辛く濃い味に煮詰めます。"
+      },
+      {
+        "order": 5,
+        "text": "卵を固ゆでにして半分に切り、きゅうりは薄切りにして清涼感を出します。"
+      },
+      {
+        "order": 6,
+        "text": "ココナッツ米を盛り、サンバル、小魚、落花生、卵、きゅうりを添えて一皿にします。"
+      }
+    ],
+    "source_urls": [
+      "https://www.roots.gov.sg/ich-landing/ich/nasi-lemak",
+      "https://www.malaysia.travel/explore/rezept-das-beste-nasi-lemak",
+      "https://en.wikipedia.org/wiki/Nasi_lemak"
+    ],
+    "origin_title": "ナシレマの由来",
+    "origin_body": "ナシレマはマレー語で「脂のある、濃厚な米」を意味し、ココナッツミルクで米を炊く香り高い料理です。農村や海辺の朝食として始まり、サンバル、小魚、落花生、卵を添えた包み飯として都市の日常にも広まりました。\n\n現在はマレーシア、シンガポール、ブルネイ周辺で広く食べられ、鶏肉、牛肉の煮込み、カレーなどを追加する店もあります。基本形は簡素ですが、サンバルの炒め方と米の香りが味を決め、国民的料理として多民族社会の共有財産になっています。\n\n料理としての輪郭は、単一の発明者だけでなく、マレーシアの市場、家庭、外食の場で繰り返し作られる中で固まりました。材料の選び方や火入れの順序には、保存、季節、共同で食べる習慣が反映されています。",
+    "culture_title": "マレーシアの食文化とナシレマ",
+    "culture_body": "マレー系社会ではイスラム教の影響が強く、豚肉を使わない料理構成が一般的です。ナシレマも豚肉を必要とせず、ハラール対応の屋台や食堂で広く提供されます。朝食、学校、職場、夜市まで時間を問わず食べられる点が現代的です。\n\n米料理で小麦は不要なためグルテンフリーにしやすい一方、卵、落花生、小魚を含み、ヴィーガンではありません。多民族国家の中で、マレー、華人、インド系の副菜が加わることもあり、宗教と民族の共存が皿の上に現れます。\n\n現在のナシレマは観光向けの名物であると同時に、家庭で調整される日常料理でもあります。宗教・アレルギー・菜食の条件に合わせるには、中心食材と調味料の由来を確認し、伝統的な味の軸を保ったまま置き換えることが重要です。"
+  },
+  {
+    "slug": "rendang",
+    "wiki_page": "Rendang",
+    "source_ref": "curated:rendang",
+    "title": "ルンダン",
+    "description": "牛肉をココナッツミルクと香辛料で長時間煮詰め、濃厚なペースト状に仕上げるミナンカバウ系の料理です。",
+    "cuisine": "インドネシア",
+    "flag": "🇮🇩",
+    "image_url": "/recipe-images/rendang.webp",
+    "photo_source_url": "https://en.wikipedia.org/wiki/Rendang",
+    "cook_time_min": 180,
+    "servings": 4,
+    "is_vegan": false,
+    "is_gluten_free": true,
+    "tags": [
+      "インドネシア料理",
+      "牛肉",
+      "ココナッツ",
+      "煮込み"
+    ],
+    "ingredients": [
+      {
+        "name_ja": "牛肉",
+        "name_en": "beef",
+        "quantity": "600g",
+        "master_name_en": "beef",
+        "is_optional": false
+      },
+      {
+        "name_ja": "ココナッツミルク",
+        "name_en": "coconut milk",
+        "quantity": "600ml",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "レモングラス",
+        "name_en": "lemongrass",
+        "quantity": "2本",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "ガランガル",
+        "name_en": "galangal",
+        "quantity": "1片",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "しょうが",
+        "name_en": "ginger",
+        "quantity": "1片",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "にんにく",
+        "name_en": "garlic",
+        "quantity": "4片",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "唐辛子",
+        "name_en": "chili",
+        "quantity": "適量",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "エシャロット",
+        "name_en": "shallot",
+        "quantity": "6個",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "ターメリック",
+        "name_en": "turmeric",
+        "quantity": "小さじ1",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "こぶみかんの葉",
+        "name_en": "kaffir lime leaf",
+        "quantity": "4枚",
+        "master_name_en": null,
+        "is_optional": false
+      }
+    ],
+    "steps": [
+      {
+        "order": 1,
+        "text": "香味野菜、唐辛子、ターメリックをすりつぶしてスパイスペーストを作ります。"
+      },
+      {
+        "order": 2,
+        "text": "鍋でペーストを炒め、香りが立ったら牛肉を加えて表面をなじませます。"
+      },
+      {
+        "order": 3,
+        "text": "ココナッツミルク、レモングラス、ガランガル、こぶみかんの葉を加えて煮立てます。"
+      },
+      {
+        "order": 4,
+        "text": "弱火で時々混ぜながら、肉が柔らかくなるまでじっくり煮込みます。"
+      },
+      {
+        "order": 5,
+        "text": "水分が減ったら焦げないよう混ぜ続け、油が分離して濃い褐色になるまで煮詰めます。"
+      },
+      {
+        "order": 6,
+        "text": "味を整え、米や圧縮米と一緒に少量ずつ濃厚な味を楽しみます。"
+      }
+    ],
+    "source_urls": [
+      "https://link.springer.com/article/10.1186/s42779-020-00065-1",
+      "https://en.wikipedia.org/wiki/Rendang"
+    ],
+    "origin_title": "ルンダンの由来",
+    "origin_body": "ルンダンは西スマトラのミナンカバウ文化と深く結びつく料理です。牛肉をココナッツミルクと香辛料で長く煮詰めることで保存性を高め、儀礼や旅、客人をもてなす場に適した濃厚な料理として発展しました。\n\n単なるカレーではなく、水分を飛ばしながら肉に香辛料とココナッツの油分を含ませる点が特徴です。仕上がりは湿ったものから乾いたものまで段階があり、時間をかけるほど味が凝縮されます。移住したミナンカバウの人々によってマレーシアやシンガポールにも広まりました。\n\n料理としての輪郭は、単一の発明者だけでなく、インドネシアの市場、家庭、外食の場で繰り返し作られる中で固まりました。材料の選び方や火入れの順序には、保存、季節、共同で食べる習慣が反映されています。",
+    "culture_title": "インドネシアの食文化とルンダン",
+    "culture_body": "インドネシアはイスラム教徒が多く、ルンダンも豚肉ではなく牛肉や鶏肉で作られることが一般的です。結婚式、祝祭、断食明けの食卓などで供され、共同体の労力と時間を象徴します。\n\n牛肉を使うためヴィーガンではなく、ヒンドゥー教徒など牛肉を避ける人には不向きです。一方で小麦を使わないためグルテンフリーにしやすく、乳製品も使いません。香辛料の強さと保存性は、熱帯の気候と移動の文化を反映しています。\n\n現在のルンダンは観光向けの名物であると同時に、家庭で調整される日常料理でもあります。宗教・アレルギー・菜食の条件に合わせるには、中心食材と調味料の由来を確認し、伝統的な味の軸を保ったまま置き換えることが重要です。"
+  },
+  {
+    "slug": "jollof-rice",
+    "wiki_page": "Jollof rice",
+    "source_ref": "curated:jollof-rice",
+    "title": "ジョロフライス",
+    "description": "トマト、唐辛子、玉ねぎのソースで米を炊き込む西アフリカの代表料理。国ごとの違いをめぐる友好的な競争でも知られます。",
+    "cuisine": "ナイジェリア",
+    "flag": "🇳🇬",
+    "image_url": "/recipe-images/jollof-rice.webp",
+    "photo_source_url": "https://en.wikipedia.org/wiki/Jollof_rice",
+    "cook_time_min": 70,
+    "servings": 4,
+    "is_vegan": false,
+    "is_gluten_free": true,
+    "tags": [
+      "西アフリカ料理",
+      "米料理",
+      "トマト",
+      "スパイス"
+    ],
+    "ingredients": [
+      {
+        "name_ja": "長粒米",
+        "name_en": "long grain rice",
+        "quantity": "400g",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "鶏肉",
+        "name_en": "chicken",
+        "quantity": "400g",
+        "master_name_en": "chicken",
+        "is_optional": false
+      },
+      {
+        "name_ja": "トマト",
+        "name_en": "tomato",
+        "quantity": "4個",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "赤パプリカ",
+        "name_en": "red pepper",
+        "quantity": "2個",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "玉ねぎ",
+        "name_en": "onion",
+        "quantity": "2個",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "唐辛子",
+        "name_en": "chili",
+        "quantity": "適量",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "トマトペースト",
+        "name_en": "tomato paste",
+        "quantity": "大さじ3",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "タイム",
+        "name_en": "thyme",
+        "quantity": "小さじ1",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "カレー粉",
+        "name_en": "curry powder",
+        "quantity": "小さじ1",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "チキンストック",
+        "name_en": "chicken stock",
+        "quantity": "600ml",
+        "master_name_en": null,
+        "is_optional": false
+      }
+    ],
+    "steps": [
+      {
+        "order": 1,
+        "text": "トマト、赤パプリカ、玉ねぎ、唐辛子を攪拌し、赤いペッパーソースを作ります。"
+      },
+      {
+        "order": 2,
+        "text": "鍋で玉ねぎを炒め、トマトペーストを加えて酸味が丸くなるまで炒めます。"
+      },
+      {
+        "order": 3,
+        "text": "ペッパーソースを加え、油が浮き味が濃くなるまでじっくり煮詰めます。"
+      },
+      {
+        "order": 4,
+        "text": "洗った米、チキンストック、スパイスを加え、鶏肉をのせて炊きます。"
+      },
+      {
+        "order": 5,
+        "text": "弱火で蒸らしながら米にソースを吸わせ、焦げすぎないよう必要に応じて水分を補います。"
+      },
+      {
+        "order": 6,
+        "text": "米が炊けたら底から大きく混ぜ、焼いた鶏肉やプランテンを添えます。"
+      }
+    ],
+    "source_urls": [
+      "https://www.foodnetwork.com/how-to/packages/food-network-essentials/what-is-jollof-rice",
+      "https://www.196flavors.com/jollof-rice/",
+      "https://en.wikipedia.org/wiki/Jollof_rice"
+    ],
+    "origin_title": "ジョロフライスの由来",
+    "origin_body": "ジョロフライスは西アフリカ一帯で愛される米料理で、ウォロフ王国やセネガンビア地域との関係が語られます。米、トマト、唐辛子、玉ねぎを一鍋で炊く方法は、地域の農業、交易、都市の祝祭料理として発展しました。\n\nナイジェリア、ガーナ、セネガルなど各国に誇りある作り方があり、どの国が一番かをめぐる「ジョロフ戦争」は友好的な食文化の競争として知られます。スモーキーな香り、赤い色、辛味のバランスが、家庭から大規模なパーティーまで幅広く支持される理由です。\n\n料理としての輪郭は、単一の発明者だけでなく、ナイジェリアの市場、家庭、外食の場で繰り返し作られる中で固まりました。材料の選び方や火入れの順序には、保存、季節、共同で食べる習慣が反映されています。",
+    "culture_title": "ナイジェリアの食文化とジョロフライス",
+    "culture_body": "西アフリカの食文化では、大鍋で作る米料理が結婚式、祝祭、教会やモスク周辺の集まり、家族行事に欠かせません。ジョロフライスは多人数に配りやすく、肉や魚を添えることで晴れの日の主菜になります。\n\n鶏肉ストックや肉を使う標準形はヴィーガンではありませんが、米と野菜ソースを基盤にしているため植物性にも変えやすい料理です。小麦を使わずグルテンフリーにしやすい一方、ストックや調味料の内容確認は必要です。\n\n現在のジョロフライスは観光向けの名物であると同時に、家庭で調整される日常料理でもあります。宗教・アレルギー・菜食の条件に合わせるには、中心食材と調味料の由来を確認し、伝統的な味の軸を保ったまま置き換えることが重要です。"
+  },
+  {
+    "slug": "injera",
+    "wiki_page": "Injera",
+    "source_ref": "curated:injera",
+    "title": "インジェラ",
+    "description": "テフ粉を発酵させて焼くエチオピア・エリトリアの酸味ある薄いパン。皿であり主食でもあり、ワットをのせて手で食べます。",
+    "cuisine": "エチオピア",
+    "flag": "🇪🇹",
+    "image_url": "/recipe-images/injera.webp",
+    "photo_source_url": "https://en.wikipedia.org/wiki/Injera",
+    "cook_time_min": 4320,
+    "servings": 6,
+    "is_vegan": true,
+    "is_gluten_free": true,
+    "tags": [
+      "エチオピア料理",
+      "発酵",
+      "テフ",
+      "主食"
+    ],
+    "ingredients": [
+      {
+        "name_ja": "テフ粉",
+        "name_en": "teff flour",
+        "quantity": "500g",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "水",
+        "name_en": "water",
+        "quantity": "700ml",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "発酵種（エルショ）",
+        "name_en": "ersho starter",
+        "quantity": "大さじ2",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "塩",
+        "name_en": "salt",
+        "quantity": "小さじ1",
+        "master_name_en": null,
+        "is_optional": false
+      }
+    ],
+    "steps": [
+      {
+        "order": 1,
+        "text": "テフ粉、水、発酵種を混ぜ、清潔な容器で2〜3日発酵させます。"
+      },
+      {
+        "order": 2,
+        "text": "表面に泡と酸味が出たら上澄みを調整し、焼く直前に塩を加えます。"
+      },
+      {
+        "order": 3,
+        "text": "生地が濃すぎる場合は水で薄め、クレープ生地より少し重い程度にします。"
+      },
+      {
+        "order": 4,
+        "text": "熱した平鍋に油をほとんど使わず、生地を渦巻き状に流します。"
+      },
+      {
+        "order": 5,
+        "text": "表面に小さな穴が開き、全体が乾いてきたら蓋をして蒸し焼きにします。"
+      },
+      {
+        "order": 6,
+        "text": "裏返さずに取り出し、冷ましてからワットや野菜料理をのせます。"
+      }
+    ],
+    "source_urls": [
+      "https://www.britannica.com/topic/injera",
+      "https://link.springer.com/article/10.1186/s42779-020-00069-x",
+      "https://en.wikipedia.org/wiki/Injera"
+    ],
+    "origin_title": "インジェラの由来",
+    "origin_body": "インジェラはテフを発酵させて作るエチオピア・エリトリアの主食です。テフ栽培は高地の農業と結びつき、発酵による酸味とスポンジ状の表面が、ワットなどの煮込みをすくう機能を持ちます。\n\n皿、主食、道具を兼ねる点がインジェラの大きな特徴です。大きな一枚に料理をのせ、ちぎって食べる形式は、個別の皿よりも共同の食卓を強く意識させます。発酵種を次の生地へつなぐため、家庭ごとの味が継承されます。\n\n料理としての輪郭は、単一の発明者だけでなく、エチオピアの市場、家庭、外食の場で繰り返し作られる中で固まりました。材料の選び方や火入れの順序には、保存、季節、共同で食べる習慣が反映されています。",
+    "culture_title": "エチオピアの食文化とインジェラ",
+    "culture_body": "エチオピア正教には断食日が多く、動物性食品を避ける期間には豆や野菜のワットとインジェラが中心になります。そのためインジェラは宗教的な食習慣と非常に相性がよく、菜食の食卓にも自然に組み込まれます。\n\n100%テフ粉で作る場合は小麦を含まず、ヴィーガンかつグルテンフリーにできます。ただし輸入環境では小麦や大麦を混ぜることもあるため、厳密なアレルギー対応では原材料確認が必要です。共同で食べる作法は、食事を社会的な結びつきとして示します。\n\n現在のインジェラは観光向けの名物であると同時に、家庭で調整される日常料理でもあります。宗教・アレルギー・菜食の条件に合わせるには、中心食材と調味料の由来を確認し、伝統的な味の軸を保ったまま置き換えることが重要です。"
+  },
+  {
+    "slug": "tagine",
+    "wiki_page": "Tagine",
+    "source_ref": "curated:tagine",
+    "title": "鶏肉とレモンのタジン",
+    "description": "円錐形の土鍋で鶏肉、塩漬けレモン、オリーブ、香辛料を蒸し煮にするモロッコ料理です。",
+    "cuisine": "モロッコ",
+    "flag": "🇲🇦",
+    "image_url": "/recipe-images/tagine.webp",
+    "photo_source_url": "https://en.wikipedia.org/wiki/Tagine",
+    "cook_time_min": 90,
+    "servings": 4,
+    "is_vegan": false,
+    "is_gluten_free": true,
+    "tags": [
+      "モロッコ料理",
+      "土鍋",
+      "鶏肉",
+      "スパイス"
+    ],
+    "ingredients": [
+      {
+        "name_ja": "鶏肉",
+        "name_en": "chicken",
+        "quantity": "600g",
+        "master_name_en": "chicken",
+        "is_optional": false
+      },
+      {
+        "name_ja": "塩漬けレモン",
+        "name_en": "preserved lemon",
+        "quantity": "1個",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "オリーブ",
+        "name_en": "olives",
+        "quantity": "100g",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "玉ねぎ",
+        "name_en": "onion",
+        "quantity": "2個",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "にんにく",
+        "name_en": "garlic",
+        "quantity": "3片",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "しょうが",
+        "name_en": "ginger",
+        "quantity": "小さじ1",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "ターメリック",
+        "name_en": "turmeric",
+        "quantity": "小さじ1",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "サフラン",
+        "name_en": "saffron",
+        "quantity": "少々",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "オリーブオイル",
+        "name_en": "olive oil",
+        "quantity": "大さじ3",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "コリアンダー",
+        "name_en": "coriander",
+        "quantity": "適量",
+        "master_name_en": null,
+        "is_optional": false
+      }
+    ],
+    "steps": [
+      {
+        "order": 1,
+        "text": "鶏肉に塩、しょうが、ターメリック、にんにく、オリーブオイルを揉み込みます。"
+      },
+      {
+        "order": 2,
+        "text": "タジン鍋または厚手鍋に玉ねぎを敷き、鶏肉をのせて弱火で加熱します。"
+      },
+      {
+        "order": 3,
+        "text": "少量の水とサフランを加え、蓋をして蒸気を循環させながら蒸し煮にします。"
+      },
+      {
+        "order": 4,
+        "text": "途中で鶏肉を返し、焦げつきそうなら少量の水を足します。"
+      },
+      {
+        "order": 5,
+        "text": "肉が柔らかくなったら塩漬けレモンとオリーブを加え、香りを移します。"
+      },
+      {
+        "order": 6,
+        "text": "ソースが濃くなったら香草を散らし、パンやクスクスと一緒に食べます。"
+      }
+    ],
+    "source_urls": [
+      "https://www.britannica.com/topic/tagine-cooking-vessel",
+      "https://en.wikipedia.org/wiki/Tagine"
+    ],
+    "origin_title": "鶏肉とレモンのタジンの由来",
+    "origin_body": "タジンは料理名であると同時に、円錐形の蓋を持つ土鍋の名でもあります。少ない水分で肉や野菜を蒸し煮にし、蓋の内側で蒸気を循環させるため、乾燥した気候の中で素材の水分を生かす調理器具として発達しました。\n\n鶏肉と塩漬けレモン、オリーブの組み合わせはモロッコ料理の代表的な味です。酸味、塩気、香辛料、オリーブオイルをゆっくり一体化させるため、強火で煮込むよりも弱火で待つ時間が味を作ります。\n\n料理としての輪郭は、単一の発明者だけでなく、モロッコの市場、家庭、外食の場で繰り返し作られる中で固まりました。材料の選び方や火入れの順序には、保存、季節、共同で食べる習慣が反映されています。",
+    "culture_title": "モロッコの食文化と鶏肉とレモンのタジン",
+    "culture_body": "モロッコの食文化はイスラム教の影響を強く受け、豚肉を避け、ハラールの肉を用いることが一般的です。タジンは家族で囲む料理で、パンを使ってソースをすくう食べ方に共同性が表れます。\n\n標準的な鶏タジンはヴィーガンではありませんが、小麦を調理に必須としないためグルテンフリーにしやすい料理です。ただしパンを添える場合は小麦を含みます。塩漬けレモンや香辛料は、保存と交易の歴史を感じさせる重要な要素です。\n\n現在の鶏肉とレモンのタジンは観光向けの名物であると同時に、家庭で調整される日常料理でもあります。宗教・アレルギー・菜食の条件に合わせるには、中心食材と調味料の由来を確認し、伝統的な味の軸を保ったまま置き換えることが重要です。"
+  },
+  {
+    "slug": "hummus",
+    "wiki_page": "Hummus",
+    "source_ref": "curated:hummus",
+    "title": "フムス",
+    "description": "ひよこ豆、タヒニ、レモン、にんにく、オリーブオイルをなめらかにすりつぶすレバント地域のメゼです。",
+    "cuisine": "レバノン",
+    "flag": "🇱🇧",
+    "image_url": "/recipe-images/hummus.webp",
+    "photo_source_url": "https://en.wikipedia.org/wiki/Hummus",
+    "cook_time_min": 25,
+    "servings": 4,
+    "is_vegan": true,
+    "is_gluten_free": true,
+    "tags": [
+      "レバント料理",
+      "豆料理",
+      "メゼ",
+      "植物性"
+    ],
+    "ingredients": [
+      {
+        "name_ja": "ひよこ豆",
+        "name_en": "chickpeas",
+        "quantity": "400g",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "タヒニ",
+        "name_en": "tahini",
+        "quantity": "大さじ4",
+        "master_name_en": "sesame",
+        "is_optional": false
+      },
+      {
+        "name_ja": "レモン汁",
+        "name_en": "lemon juice",
+        "quantity": "大さじ3",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "にんにく",
+        "name_en": "garlic",
+        "quantity": "1片",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "オリーブオイル",
+        "name_en": "olive oil",
+        "quantity": "大さじ3",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "クミン",
+        "name_en": "cumin",
+        "quantity": "小さじ1/2",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "塩",
+        "name_en": "salt",
+        "quantity": "適量",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "パプリカ",
+        "name_en": "paprika",
+        "quantity": "少々",
+        "master_name_en": null,
+        "is_optional": false
+      }
+    ],
+    "steps": [
+      {
+        "order": 1,
+        "text": "乾燥ひよこ豆を使う場合は一晩浸水し、柔らかくなるまでゆでます。缶詰の場合は水気を切ります。"
+      },
+      {
+        "order": 2,
+        "text": "ひよこ豆、タヒニ、レモン汁、にんにく、塩をフードプロセッサーに入れます。"
+      },
+      {
+        "order": 3,
+        "text": "ゆで汁または冷水を少しずつ加えながら、空気を含ませるようになめらかに攪拌します。"
+      },
+      {
+        "order": 4,
+        "text": "味を見て、酸味、塩味、タヒニの濃さを調整し、必要なら冷水で軽くします。"
+      },
+      {
+        "order": 5,
+        "text": "皿に広げ、中央にくぼみを作ってオリーブオイルを注ぎます。"
+      },
+      {
+        "order": 6,
+        "text": "パプリカやクミンを散らし、野菜やパンと一緒に提供します。"
+      }
+    ],
+    "source_urls": [
+      "https://www.britannica.com/topic/hummus",
+      "https://en.wikipedia.org/wiki/Hummus"
+    ],
+    "origin_title": "フムスの由来",
+    "origin_body": "フムスはアラビア語のひよこ豆に由来する名を持ち、ひよこ豆とタヒニを合わせたペーストとして中東・地中海東部で広く食べられています。古い料理書に似た豆料理が見られ、現代の形はレバント地域を中心に発達したと考えられます。\n\n国や地域によって帰属をめぐる議論もありますが、フムスは単一の国だけでなく、交易、農業、家庭のメゼ文化に支えられた共有料理です。ひよこ豆のゆで加減、タヒニの品質、レモンの酸味が味を左右します。\n\n料理としての輪郭は、単一の発明者だけでなく、レバノンの市場、家庭、外食の場で繰り返し作られる中で固まりました。材料の選び方や火入れの順序には、保存、季節、共同で食べる習慣が反映されています。",
+    "culture_title": "レバノンの食文化とフムス",
+    "culture_body": "レバントの食文化では、メゼと呼ばれる小皿料理を分け合う習慣が重要です。フムスは肉を使わず満足感があり、キリスト教、イスラム教、ユダヤ教のさまざまな食卓で受け入れられやすい料理です。\n\n標準的なフムスはヴィーガンで、小麦を混ぜない限りグルテンフリーです。ただしタヒニにごまを使うため、ごまアレルギーには注意が必要です。パンと一緒に食べる場合は小麦が加わるため、野菜スティックなどの代替が有効です。\n\n現在のフムスは観光向けの名物であると同時に、家庭で調整される日常料理でもあります。宗教・アレルギー・菜食の条件に合わせるには、中心食材と調味料の由来を確認し、伝統的な味の軸を保ったまま置き換えることが重要です。"
+  },
+  {
+    "slug": "tacos",
+    "wiki_page": "Taco",
+    "source_ref": "curated:tacos",
+    "title": "タコス・デ・カルニータス",
+    "description": "トウモロコシのトルティーヤに豚肉、玉ねぎ、香草、サルサをのせるメキシコの代表的な手食料理です。",
+    "cuisine": "メキシコ",
+    "flag": "🇲🇽",
+    "image_url": "/recipe-images/tacos.webp",
+    "photo_source_url": "https://en.wikipedia.org/wiki/Taco",
+    "cook_time_min": 150,
+    "servings": 4,
+    "is_vegan": false,
+    "is_gluten_free": true,
+    "tags": [
+      "メキシコ料理",
+      "トルティーヤ",
+      "豚肉",
+      "屋台料理"
+    ],
+    "ingredients": [
+      {
+        "name_ja": "コーントルティーヤ",
+        "name_en": "corn tortillas",
+        "quantity": "12枚",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "豚肩肉",
+        "name_en": "pork shoulder",
+        "quantity": "600g",
+        "master_name_en": "pork",
+        "is_optional": false
+      },
+      {
+        "name_ja": "オレンジ",
+        "name_en": "orange",
+        "quantity": "1個",
+        "master_name_en": "orange",
+        "is_optional": false
+      },
+      {
+        "name_ja": "玉ねぎ",
+        "name_en": "onion",
+        "quantity": "1個",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "にんにく",
+        "name_en": "garlic",
+        "quantity": "3片",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "クミン",
+        "name_en": "cumin",
+        "quantity": "小さじ1",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "ラードまたは油",
+        "name_en": "lard",
+        "quantity": "適量",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "パクチー",
+        "name_en": "cilantro",
+        "quantity": "適量",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "ライム",
+        "name_en": "lime",
+        "quantity": "2個",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "サルサ",
+        "name_en": "salsa",
+        "quantity": "適量",
+        "master_name_en": null,
+        "is_optional": false
+      }
+    ],
+    "steps": [
+      {
+        "order": 1,
+        "text": "豚肉を大きめに切り、塩、にんにく、クミン、オレンジ果汁で下味をつけます。"
+      },
+      {
+        "order": 2,
+        "text": "厚手鍋に豚肉、少量の水、ラードまたは油を入れ、弱火で柔らかくなるまで煮ます。"
+      },
+      {
+        "order": 3,
+        "text": "水分が減ったら肉をほぐしながら表面を香ばしく焼きつけます。"
+      },
+      {
+        "order": 4,
+        "text": "コーントルティーヤを乾いたフライパンで温め、柔らかさを戻します。"
+      },
+      {
+        "order": 5,
+        "text": "トルティーヤに肉をのせ、刻み玉ねぎ、パクチー、サルサを重ねます。"
+      },
+      {
+        "order": 6,
+        "text": "ライムを搾り、サルサの水分で皮が破れないうちに温かいまま手で包んで食べます。"
+      }
+    ],
+    "source_urls": [
+      "https://en.wikipedia.org/wiki/Taco",
+      "https://www.britannica.com/topic/Mexican-cuisine"
+    ],
+    "origin_title": "タコス・デ・カルニータスの由来",
+    "origin_body": "タコスはトウモロコシ文化を基盤にしたメキシコの手食料理です。トルティーヤに具を包む形式は先住民の主食文化と結びつき、都市化と屋台文化の中で無数の具材を受け入れて発展しました。\n\nカルニータスは豚肉を脂でじっくり火入れして香ばしく仕上げる具で、ミチョアカン州との関係がよく語られます。タコスは皿よりも手とトルティーヤを使うため、移動しながら食べられる都市の食事であり、地域の肉料理を運ぶ器でもあります。\n\n料理としての輪郭は、単一の発明者だけでなく、メキシコの市場、家庭、外食の場で繰り返し作られる中で固まりました。材料の選び方や火入れの順序には、保存、季節、共同で食べる習慣が反映されています。",
+    "culture_title": "メキシコの食文化とタコス・デ・カルニータス",
+    "culture_body": "メキシコ料理では、トウモロコシ、唐辛子、豆、サルサが食文化の基盤です。カトリックの祝祭、家族の集まり、屋台の夜食など、タコスは日常と祝いの両方に登場します。\n\nコーントルティーヤを使う標準形は小麦を含まず、グルテンフリーにしやすい料理です。ただしカルニータスは豚肉を使うため、イスラム教やユダヤ教など豚肉を避ける食制限には適しません。ヴィーガンではありませんが、豆やきのこを使う植物性タコスも一般化しています。\n\n現在のタコス・デ・カルニータスは観光向けの名物であると同時に、家庭で調整される日常料理でもあります。宗教・アレルギー・菜食の条件に合わせるには、中心食材と調味料の由来を確認し、伝統的な味の軸を保ったまま置き換えることが重要です。"
+  },
+  {
+    "slug": "ceviche",
+    "wiki_page": "Ceviche",
+    "source_ref": "curated:ceviche",
+    "title": "ペルー風セビーチェ",
+    "description": "新鮮な白身魚をライム、唐辛子、赤玉ねぎ、塩で短時間マリネし、さつまいもやとうもろこしを添えるペルー料理です。",
+    "cuisine": "ペルー",
+    "flag": "🇵🇪",
+    "image_url": "/recipe-images/ceviche.webp",
+    "photo_source_url": "https://en.wikipedia.org/wiki/Ceviche",
+    "cook_time_min": 30,
+    "servings": 2,
+    "is_vegan": false,
+    "is_gluten_free": true,
+    "tags": [
+      "ペルー料理",
+      "魚介",
+      "ライム",
+      "冷菜"
+    ],
+    "ingredients": [
+      {
+        "name_ja": "刺身用白身魚",
+        "name_en": "white fish",
+        "quantity": "300g",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "ライム果汁",
+        "name_en": "lime juice",
+        "quantity": "120ml",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "赤玉ねぎ",
+        "name_en": "red onion",
+        "quantity": "1/2個",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "唐辛子",
+        "name_en": "chili",
+        "quantity": "1本",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "塩",
+        "name_en": "salt",
+        "quantity": "適量",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "パクチー",
+        "name_en": "cilantro",
+        "quantity": "適量",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "さつまいも",
+        "name_en": "sweet potato",
+        "quantity": "1本",
+        "master_name_en": null,
+        "is_optional": false
+      },
+      {
+        "name_ja": "とうもろこし",
+        "name_en": "corn",
+        "quantity": "1本",
+        "master_name_en": null,
+        "is_optional": false
+      }
+    ],
+    "steps": [
+      {
+        "order": 1,
+        "text": "魚を冷やした状態で一口大に切り、塩をして表面を締めます。"
+      },
+      {
+        "order": 2,
+        "text": "赤玉ねぎを薄切りにし、水にさらして辛味をやわらげます。"
+      },
+      {
+        "order": 3,
+        "text": "ボウルで魚、唐辛子、パクチー、ライム果汁を合わせ、短時間だけマリネします。"
+      },
+      {
+        "order": 4,
+        "text": "魚の表面が白く変わり、中心にみずみずしさが残る状態で味を確認します。"
+      },
+      {
+        "order": 5,
+        "text": "ゆでたさつまいもととうもろこしを添え、酸味と辛味を受け止める甘みを加えます。"
+      },
+      {
+        "order": 6,
+        "text": "冷たい皿に盛り、マリネ液であるレチェ・デ・ティグレも少量かけます。"
+      }
+    ],
+    "source_urls": [
+      "https://www.peru.travel/gastronomy/en/recipes/entrees/peruvian-fish-ceviche.html",
+      "https://ich.unesco.org/en/RL/practices-and-meanings-associated-with-the-preparation-and-consumption-of-ceviche-an-expression-of-peruvian-traditional-cuisine-01952",
+      "https://en.wikipedia.org/wiki/Ceviche"
+    ],
+    "origin_title": "ペルー風セビーチェの由来",
+    "origin_body": "セビーチェはペルー沿岸の魚介文化を代表する料理で、魚を柑橘の酸で短時間マリネする技法と、唐辛子、赤玉ねぎ、塩を組み合わせる味が特徴です。2023年にはペルーの伝統料理表現として無形文化遺産にも登録され、地域ごとの材料や作法の多様性が評価されました。\n\n古い海岸文化、スペイン植民地期以降の柑橘、アンデスの芋やとうもろこしが一皿に並ぶため、海と山の関係を感じさせます。魚の鮮度、切り方、マリネ時間が重要で、長く漬けすぎず、作りたてを食べる点が本来の魅力です。\n\n料理としての輪郭は、単一の発明者だけでなく、ペルーの市場、家庭、外食の場で繰り返し作られる中で固まりました。材料の選び方や火入れの順序には、保存、季節、共同で食べる習慣が反映されています。",
+    "culture_title": "ペルーの食文化とペルー風セビーチェ",
+    "culture_body": "ペルー料理は先住民、スペイン、アフリカ系、アジア系移民の影響が重なる多層的な食文化です。セビーチェは国民的な誇りを担い、祝日、海辺の食堂、都市のレストランで幅広く提供されます。\n\n魚を使うためヴィーガンではありませんが、小麦や乳、卵を使わないためグルテンフリーにしやすい料理です。生魚を扱うため衛生と鮮度が不可欠で、魚介アレルギーにも注意が必要です。カトリック圏で肉を避ける日に魚介料理が選ばれる文化ともゆるやかにつながります。\n\n現在のペルー風セビーチェは観光向けの名物であると同時に、家庭で調整される日常料理でもあります。宗教・アレルギー・菜食の条件に合わせるには、中心食材と調味料の由来を確認し、伝統的な味の軸を保ったまま置き換えることが重要です。"
+  }
+]

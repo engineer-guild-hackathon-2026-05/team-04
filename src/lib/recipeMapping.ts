@@ -11,6 +11,7 @@ import { toIngredientCodeFromDbRow } from './ingredientCodes';
 type RecipeIngredientJoinRow = {
   quantity?: string | null;
   is_optional?: boolean | null;
+  display_name_ja?: string | null;
   ingredients?: {
     ingredient_code?: string | null;
     name_ja?: string | null;
@@ -101,7 +102,7 @@ function normalizeRecipeIngredients(rows: RecipeIngredientJoinRow[] | null | und
 
       return {
         id: toIngredientCodeFromDbRow(ingredient) ?? `none-${ingredient.name_ja}`,
-        name_ja: ingredient.name_ja,
+        name_ja: row.display_name_ja?.trim() || ingredient.name_ja,
         quantity: row.quantity ?? '',
         is_optional: row.is_optional ?? false,
       };

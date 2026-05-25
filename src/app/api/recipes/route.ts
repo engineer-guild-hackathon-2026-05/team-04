@@ -32,6 +32,7 @@ export async function GET() {
         recipe_ingredients (
           quantity,
           is_optional,
+          display_name_ja,
           ingredients ( ingredient_code, name_ja, name_en )
         ),
         recipe_culture_sections (
