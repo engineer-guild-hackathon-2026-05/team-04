@@ -164,6 +164,18 @@ with raw_ingredient_seed as (
     source_ref,
     coalesce(canonical_name_en, source_ref || ':ingredient:' || lpad(ordinality::text, 2, '0')) as name_en
   from raw_ingredient_seed
+  union
+  select distinct source_ref, 'pork' as name_en
+  from raw_ingredient_seed
+  where name_ja like '%豚肉%'
+  union
+  select distinct source_ref, 'chicken' as name_en
+  from raw_ingredient_seed
+  where name_ja like '%鶏肉%'
+  union
+  select distinct source_ref, 'beef' as name_en
+  from raw_ingredient_seed
+  where name_ja like '%牛肉%'
 )
 insert into public.recipe_ingredients (recipe_id, ingredient_id, quantity, is_optional)
 select r.id, ing.id, '適量', false

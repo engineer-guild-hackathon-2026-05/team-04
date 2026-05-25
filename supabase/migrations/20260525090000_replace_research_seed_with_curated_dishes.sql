@@ -199,10 +199,20 @@ with source_seed as (
   select source_ref, photo_source_url, '写真出典'::text
   from _curated_dish_seed
   where photo_source_url is not null and photo_source_url <> ''
+), deduped_source_seed as (
+  select
+    source_ref,
+    source_url,
+    case
+      when bool_or(source_title = '写真出典') then '写真出典'
+      else '調査資料'
+    end as source_title
+  from source_seed
+  group by source_ref, source_url
 )
 insert into public.recipe_research_sources (recipe_id, source_url, source_title)
 select r.id, s.source_url, s.source_title
-from source_seed s
+from deduped_source_seed s
 join public.recipes r
   on r.source_type = 'api'
  and r.source_ref = s.source_ref

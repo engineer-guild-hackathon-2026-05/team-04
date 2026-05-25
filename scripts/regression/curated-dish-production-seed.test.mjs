@@ -3,6 +3,7 @@ import { existsSync, readFileSync, statSync } from 'node:fs';
 
 const seedPath = 'supabase/seed-data/curated-dishes.json';
 const migrationPath = 'supabase/migrations/20260525090000_replace_research_seed_with_curated_dishes.sql';
+const researchMigrationPath = 'supabase/migrations/20260525073000_replace_mock_with_real_global_dishes.sql';
 const displayMigrationPath = 'supabase/migrations/20260525091500_add_recipe_ingredient_display_names.sql';
 const apiRoutePath = 'src/app/api/recipes/route.ts';
 const mappingPath = 'src/lib/recipeMapping.ts';
@@ -11,6 +12,7 @@ const mockCleanupMigrationPath = 'supabase/migrations/20260525094500_remove_mock
 
 const dishes = JSON.parse(readFileSync(seedPath, 'utf8'));
 const migrationSource = readFileSync(migrationPath, 'utf8');
+const researchMigrationSource = readFileSync(researchMigrationPath, 'utf8');
 const displayMigrationSource = readFileSync(displayMigrationPath, 'utf8');
 const apiRouteSource = readFileSync(apiRoutePath, 'utf8');
 const mappingSource = readFileSync(mappingPath, 'utf8');
@@ -121,6 +123,16 @@ assert.match(migrationSource, /source_ref like 'research:%'/i, '旧 100 件 rese
 assert.match(migrationSource, /source_ref like 'curated:%'/i, 'curated seed は再実行可能にしてください。');
 assert.match(migrationSource, /jsonb_to_recordset\(\$curated_dishes\$/i, '20 件の curated seed を migration に埋め込んでください。');
 assert.match(migrationSource, /recipe_research_sources/i, '調査・写真出典を DB に保存してください。');
+assert.match(
+  migrationSource,
+  /deduped_source_seed[\s\S]*group by source_ref, source_url[\s\S]*from deduped_source_seed s/i,
+  '同一 URL が調査資料と写真出典に重複しても upsert が cardinality violation を起こさないよう source_seed を重複排除してください。',
+);
+assert.match(
+  researchMigrationSource,
+  /select\s+distinct\s+source_ref,\s*'pork'\s+as\s+name_en[\s\S]*where\s+name_ja\s+like\s+'%豚肉%'/i,
+  '旧 research seed migration でも豚肉または鶏肉などの混合肉表記で pork 制限を落とさないでください。',
+);
 assert.match(migrationSource, /display_name_ja/i, 'recipe_ingredients に表示用材料名を保存してください。');
 const displayColumnPosition = migrationSource.indexOf('add column if not exists display_name_ja text');
 const ingredientInsertPosition = migrationSource.indexOf('insert into public.recipe_ingredients (recipe_id, ingredient_id, quantity, is_optional, display_name_ja)');
