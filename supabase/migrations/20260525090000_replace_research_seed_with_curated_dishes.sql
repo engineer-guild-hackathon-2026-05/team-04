@@ -72,8 +72,10 @@ where source_type = 'api'
 -- Remove orphaned managed ingredient rows from earlier broad seeds after recipe cascade deletion.
 delete from public.ingredients i
 where (
-    i.name_en like 'research:%:ingredient:%'
+    i.name_en like 'mock:%:ingredient:%'
+    or i.name_en like 'research:%:ingredient:%'
     or i.name_en like 'curated:%:ingredient:%'
+    or i.category = 'mock料理'
   )
   and not exists (
     select 1 from public.recipe_ingredients ri where ri.ingredient_id = i.id

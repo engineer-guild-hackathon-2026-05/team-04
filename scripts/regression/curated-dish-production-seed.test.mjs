@@ -7,6 +7,7 @@ const displayMigrationPath = 'supabase/migrations/20260525091500_add_recipe_ingr
 const apiRoutePath = 'src/app/api/recipes/route.ts';
 const mappingPath = 'src/lib/recipeMapping.ts';
 const displayBackfillMigrationPath = 'supabase/migrations/20260525093000_backfill_curated_ingredient_display_names.sql';
+const mockCleanupMigrationPath = 'supabase/migrations/20260525094500_remove_mock_recipe_ingredients.sql';
 
 const dishes = JSON.parse(readFileSync(seedPath, 'utf8'));
 const migrationSource = readFileSync(migrationPath, 'utf8');
@@ -14,6 +15,7 @@ const displayMigrationSource = readFileSync(displayMigrationPath, 'utf8');
 const apiRouteSource = readFileSync(apiRoutePath, 'utf8');
 const mappingSource = readFileSync(mappingPath, 'utf8');
 const displayBackfillMigrationSource = readFileSync(displayBackfillMigrationPath, 'utf8');
+const mockCleanupMigrationSource = readFileSync(mockCleanupMigrationPath, 'utf8');
 const migrationPayload = JSON.parse(migrationSource.match(/\$curated_dishes\$([\s\S]+?)\$curated_dishes\$::jsonb/)?.[1] ?? '[]');
 const forbiddenTags = new Set(['実データ', 'Web調査']);
 
@@ -35,6 +37,13 @@ assert.match(
   /export\s+type\s+RecipesResponse\s*=\s*\{[\s\S]*source:\s*['"]database['"][\s\S]*\}/,
   'RecipesResponse は recipe fallback source を公開しないでください。',
 );
+
+
+assert.match(migrationSource, /name_en like 'mock:%:ingredient:%'/i, 'fresh DB replacement migration は mock-only ingredient rows も削除してください。');
+assert.match(migrationSource, /category = 'mock料理'/, 'fresh DB replacement migration は mock料理 category も削除対象にしてください。');
+assert.match(mockCleanupMigrationSource, /name_en like 'mock:%:ingredient:%'/i, 'already-applied remote DB 用の mock ingredient cleanup migration が必要です。');
+assert.match(mockCleanupMigrationSource, /category = 'mock料理'/, 'mock cleanup migration は mock料理 category を削除対象にしてください。');
+assert.match(mockCleanupMigrationSource, /not exists[\s\S]*recipe_ingredients/i, 'mock cleanup は参照中 ingredient を削除しない安全条件を持ってください。');
 
 assert.equal(dishes.length, 20, 'curated seed は production 品質の 20 件に絞ってください。');
 assert.equal(new Set(dishes.map((dish) => dish.source_ref)).size, dishes.length, 'source_ref は重複させないでください。');
