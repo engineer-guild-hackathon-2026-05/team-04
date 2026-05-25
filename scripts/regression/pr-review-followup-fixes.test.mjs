@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 const loginSource = readFileSync('src/app/login/page.tsx', 'utf8');
 const pageSource = readFileSync('src/app/page.tsx', 'utf8');
 const profileSource = readFileSync('src/app/components/ProfileView.tsx', 'utf8');
+const profileRouteSource = readFileSync('src/app/api/me/profile/route.ts', 'utf8');
 const authDocs = readFileSync('docs/auth.md', 'utf8');
 
 const previousSignInFlow = (demoResult) => {
@@ -60,32 +61,37 @@ assert.match(
 );
 assert.match(
   pageSource,
-  /restrictedIngredientReasons: Record<string, RestrictionReason>/,
+  /restrictedIngredientReasons\??: Record<string, RestrictionReason>/,
   '保存フローは restrictedIngredients と別に reason map を受け渡してください。',
 );
 assert.match(
-  pageSource,
-  /reason:\s*localId[\s\S]*restrictionReasons\[localId\]/,
-  'DB insert の reason は allergy 固定ではなく localId ごとの reason map を使ってください。',
+  profileRouteSource,
+  /restrictionReasons: Record<string, RestrictionReason>/,
+  'API保存フローは restrictedIngredients と別に reason map を受け取ってください。',
+);
+assert.match(
+  profileRouteSource,
+  /reason\s*=\s*code[\s\S]*restrictionReasons\[code\]/,
+  'DB insert の reason は allergy 固定ではなく ingredient_code ごとの reason map を使ってください。',
 );
 assert.doesNotMatch(
-  pageSource,
+  profileRouteSource,
   /reason:\s*'allergy',\n\s*\}\)\);/,
   'replaceRestrictedIngredients に reason: allergy 固定 insert を再導入しないでください。',
 );
 
 assert.match(
-  pageSource,
-  /const ingredientNameEnToLocalId = new Map/,
-  'DB ingredient と local ingredient の照合は一意キー name_en を基準にしてください。',
+  profileRouteSource,
+  /\.select\('id, ingredient_code, name_ja'\)[\s\S]*\.in\('ingredient_code', ingredientCodes\)/,
+  'DB ingredient とフロントの照合は一意キー ingredient_code を基準にしてください。',
 );
 assert.match(
-  pageSource,
-  /\.select\('id, name_en'\)[\s\S]*\.in\('name_en', uniqueNameEns\)/,
-  '置換時の DB ingredient 解決は unique な name_en で行ってください。',
+  profileRouteSource,
+  /restrictedIngredientReasons/,
+  'プロフィールAPIは保存済み reason map をレスポンスへ返してください。',
 );
 assert.doesNotMatch(
-  pageSource,
+  profileRouteSource,
   /\.in\('name_ja',/,
   '一意制約のない name_ja で DB ingredient を解決しないでください。',
 );

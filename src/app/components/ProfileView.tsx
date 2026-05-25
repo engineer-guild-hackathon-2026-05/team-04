@@ -2,11 +2,13 @@
 
 import React, { useState } from 'react';
 import { User, ShieldAlert, Sparkles, Save, ArrowLeft, Check, Search, X } from 'lucide-react';
-import { INGREDIENT_MASTER, MOCK_RECIPES } from '@/lib/mockData';
+import type { IngredientMaster, Recipe } from '@/lib/mockData';
 
 type RestrictionReason = 'allergy' | 'dislike' | 'religious';
 
 interface ProfileViewProps {
+  ingredientOptions: IngredientMaster[];
+  recipeOptions: Recipe[];
   initialUserName: string;
   initialRestrictedIngredients: string[];
   initialRestrictedIngredientReasons: Record<string, RestrictionReason>;
@@ -87,6 +89,8 @@ const matchesOption = (option: SelectableOption, query: string) => {
 };
 
 export default function ProfileView({
+  ingredientOptions,
+  recipeOptions,
   initialUserName,
   initialRestrictedIngredients,
   initialRestrictedIngredientReasons,
@@ -109,7 +113,7 @@ export default function ProfileView({
   const [cuisineQuery, setCuisineQuery] = useState('');
   const [saveSuccess, setSaveSuccess] = useState(false);
 
-  const allergyOptions: SelectableOption[] = INGREDIENT_MASTER.map(ingredient => ({
+  const allergyOptions: SelectableOption[] = ingredientOptions.map(ingredient => ({
     id: ingredient.id,
     label: ingredient.name_ja,
     description: ingredient.category,
@@ -121,7 +125,7 @@ export default function ProfileView({
   );
   const visibleVeganOptions = VEGAN_LEVEL_OPTIONS.filter(option => matchesOption(option, veganQuery));
   const visibleReligiousOptions = RELIGIOUS_RESTRICTION_OPTIONS.filter(option => matchesOption(option, religiousQuery));
-  const recipeDishOptions: SelectableOption[] = MOCK_RECIPES.map(recipe => ({
+  const recipeDishOptions: SelectableOption[] = recipeOptions.map(recipe => ({
     id: recipe.id,
     label: recipe.title.split('(')[0].trim(),
     description: `${recipe.cuisine}料理 / ${recipe.tags.join('、')}`,

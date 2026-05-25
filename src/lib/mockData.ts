@@ -3,7 +3,13 @@ export interface IngredientMaster {
   name_ja: string;
   name_en: string;
   category: string;
+  dietary_tags: string[];
 }
+
+export type RecipeStep = string | {
+  order: number;
+  text: string;
+};
 
 export interface RecipeIngredient {
   id: string;           // ingredient_id
@@ -25,42 +31,42 @@ export interface Recipe {
   is_gluten_free: boolean;
   tags: string[];       // 料理の特徴タグ
   ingredients: RecipeIngredient[];
-  steps: string[];      // 調理手順
+  steps: RecipeStep[];  // 調理手順（DBでは { order, text }[]、旧mock文字列も許容）
 }
 
 // データベースの `ingredients` 初期データ (特定原材料8品目 + 推奨20品目) に準拠
 export const INGREDIENT_MASTER: IngredientMaster[] = [
   // 特定原材料（8品目）
-  { id: "ing-shrimp", name_ja: "えび", name_en: "shrimp", category: "甲殻類" },
-  { id: "ing-crab", name_ja: "かに", name_en: "crab", category: "甲殻類" },
-  { id: "ing-wheat", name_ja: "小麦", name_en: "wheat", category: "穀類" },
-  { id: "ing-buckwheat", name_ja: "そば", name_en: "buckwheat", category: "穀類" },
-  { id: "ing-egg", name_ja: "卵", name_en: "egg", category: "卵・乳" },
-  { id: "ing-milk", name_ja: "乳", name_en: "milk", category: "卵・乳" },
-  { id: "ing-peanut", name_ja: "落花生", name_en: "peanut", category: "ナッツ類" },
-  { id: "ing-walnut", name_ja: "くるみ", name_en: "walnut", category: "ナッツ類" },
+  { id: "ing-shrimp", name_ja: "えび", name_en: "shrimp", category: "甲殻類", dietary_tags: ["shellfish", "animal-product"] },
+  { id: "ing-crab", name_ja: "かに", name_en: "crab", category: "甲殻類", dietary_tags: ["shellfish", "animal-product"] },
+  { id: "ing-wheat", name_ja: "小麦", name_en: "wheat", category: "穀類", dietary_tags: ["gluten"] },
+  { id: "ing-buckwheat", name_ja: "そば", name_en: "buckwheat", category: "穀類", dietary_tags: [] },
+  { id: "ing-egg", name_ja: "卵", name_en: "egg", category: "卵・乳", dietary_tags: ["egg", "animal-product"] },
+  { id: "ing-milk", name_ja: "乳", name_en: "milk", category: "卵・乳", dietary_tags: ["dairy", "animal-product"] },
+  { id: "ing-peanut", name_ja: "落花生", name_en: "peanut", category: "ナッツ類", dietary_tags: [] },
+  { id: "ing-walnut", name_ja: "くるみ", name_en: "walnut", category: "ナッツ類", dietary_tags: [] },
 
   // 特定原材料に準ずるもの（20品目）
-  { id: "ing-almond", name_ja: "アーモンド", name_en: "almond", category: "ナッツ類" },
-  { id: "ing-cashew", name_ja: "カシューナッツ", name_en: "cashew nut", category: "ナッツ類" },
-  { id: "ing-sesame", name_ja: "ごま", name_en: "sesame", category: "その他" },
-  { id: "ing-soybean", name_ja: "大豆", name_en: "soybean", category: "穀類" },
-  { id: "ing-abalone", name_ja: "あわび", name_en: "abalone", category: "魚介類" },
-  { id: "ing-squid", name_ja: "いか", name_en: "squid", category: "魚介類" },
-  { id: "ing-roe", name_ja: "いくら", name_en: "salmon roe", category: "魚介類" },
-  { id: "ing-salmon", name_ja: "さけ", name_en: "salmon", category: "魚介類" },
-  { id: "ing-mackerel", name_ja: "さば", name_en: "mackerel", category: "魚介類" },
-  { id: "ing-beef", name_ja: "牛肉", name_en: "beef", category: "肉類" },
-  { id: "ing-chicken", name_ja: "鶏肉", name_en: "chicken", category: "肉類" },
-  { id: "ing-pork", name_ja: "豚肉", name_en: "pork", category: "肉類" },
-  { id: "ing-orange", name_ja: "オレンジ", name_en: "orange", category: "果物" },
-  { id: "ing-kiwi", name_ja: "キウイフルーツ", name_en: "kiwi fruit", category: "果物" },
-  { id: "ing-banana", name_ja: "バナナ", name_en: "banana", category: "果物" },
-  { id: "ing-peach", name_ja: "もも", name_en: "peach", category: "果物" },
-  { id: "ing-apple", name_ja: "りんご", name_en: "apple", category: "果物" },
-  { id: "ing-matsutake", name_ja: "まつたけ", name_en: "matsutake", category: "その他" },
-  { id: "ing-yam", name_ja: "やまいも", name_en: "yam", category: "その他" },
-  { id: "ing-gelatin", name_ja: "ゼラチン", name_en: "gelatin", category: "その他" },
+  { id: "ing-almond", name_ja: "アーモンド", name_en: "almond", category: "ナッツ類", dietary_tags: [] },
+  { id: "ing-cashew", name_ja: "カシューナッツ", name_en: "cashew nut", category: "ナッツ類", dietary_tags: [] },
+  { id: "ing-sesame", name_ja: "ごま", name_en: "sesame", category: "その他", dietary_tags: [] },
+  { id: "ing-soybean", name_ja: "大豆", name_en: "soybean", category: "穀類", dietary_tags: [] },
+  { id: "ing-abalone", name_ja: "あわび", name_en: "abalone", category: "魚介類", dietary_tags: ["shellfish", "animal-product"] },
+  { id: "ing-squid", name_ja: "いか", name_en: "squid", category: "魚介類", dietary_tags: ["shellfish", "animal-product"] },
+  { id: "ing-roe", name_ja: "いくら", name_en: "salmon roe", category: "魚介類", dietary_tags: ["fish", "animal-product"] },
+  { id: "ing-salmon", name_ja: "さけ", name_en: "salmon", category: "魚介類", dietary_tags: ["fish", "animal-product"] },
+  { id: "ing-mackerel", name_ja: "さば", name_en: "mackerel", category: "魚介類", dietary_tags: ["fish", "animal-product"] },
+  { id: "ing-beef", name_ja: "牛肉", name_en: "beef", category: "肉類", dietary_tags: ["meat", "animal-product"] },
+  { id: "ing-chicken", name_ja: "鶏肉", name_en: "chicken", category: "肉類", dietary_tags: ["meat", "animal-product"] },
+  { id: "ing-pork", name_ja: "豚肉", name_en: "pork", category: "肉類", dietary_tags: ["meat", "animal-product", "pork"] },
+  { id: "ing-orange", name_ja: "オレンジ", name_en: "orange", category: "果物", dietary_tags: [] },
+  { id: "ing-kiwi", name_ja: "キウイフルーツ", name_en: "kiwi fruit", category: "果物", dietary_tags: [] },
+  { id: "ing-banana", name_ja: "バナナ", name_en: "banana", category: "果物", dietary_tags: [] },
+  { id: "ing-peach", name_ja: "もも", name_en: "peach", category: "果物", dietary_tags: [] },
+  { id: "ing-apple", name_ja: "りんご", name_en: "apple", category: "果物", dietary_tags: [] },
+  { id: "ing-matsutake", name_ja: "まつたけ", name_en: "matsutake", category: "その他", dietary_tags: [] },
+  { id: "ing-yam", name_ja: "やまいも", name_en: "yam", category: "その他", dietary_tags: [] },
+  { id: "ing-gelatin", name_ja: "ゼラチン", name_en: "gelatin", category: "その他", dietary_tags: ["animal-product"] },
 ];
 
 export const MOCK_RECIPES: Recipe[] = [

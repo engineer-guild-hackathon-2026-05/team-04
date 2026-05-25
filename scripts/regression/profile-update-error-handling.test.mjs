@@ -1,57 +1,57 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-const source = readFileSync('src/app/page.tsx', 'utf8');
+const routeSource = readFileSync('src/app/api/me/profile/route.ts', 'utf8');
+const pageSource = readFileSync('src/app/page.tsx', 'utf8');
 
-const bareUpdatePattern = /^\s*await supabase\.from\('profiles'\)\.update\(\{ name: profile\.userName \}\)\.eq\('id', user\.id\);$/m;
-
-assert.doesNotMatch(
-  source,
-  bareUpdatePattern,
-  '再現: Supabase/PostgREST update は { error } を返すため、await だけでは失敗を検知できません。',
+assert.match(
+  routeSource,
+  /const\s+\{\s*error:\s*profileError\s*\}\s*=\s*await\s+supabase[\s\S]*\.from\('profiles'\)[\s\S]*\.upsert\(/,
+  'profiles upsert の戻り値から profileError を取り出してください。',
+);
+assert.match(
+  routeSource,
+  /if\s*\(profileError\)\s*throw\s+profileError;[\s\S]*const\s+\{\s*error:\s*preferencesError\s*\}/,
+  'profile name 更新に失敗した場合は後続の好み/制限食材保存へ進まないでください。',
+);
+assert.match(routeSource, /await\s+resolveRestrictedIngredients\(supabase,\s*requestedRestrictedIngredients\);/);
+assert.match(
+  routeSource,
+  /await\s+replaceRestrictedIngredients\(\s*supabase,\s*user\.id,\s*resolvedRestrictedIngredients,\s*requestedRestrictionReasons,\s*\);/,
 );
 
 assert.match(
-  source,
-  /const\s+\{\s*error:\s*profileUpdateError\s*\}\s*=\s*await\s+supabase\s*\.from\('profiles'\)\s*\.update\(\{\s*name:\s*profile\.userName\s*\}\)\s*\.eq\('id',\s*user\.id\);/,
-  'profiles update の戻り値から profileUpdateError を取り出してください。',
+  routeSource,
+  /if\s*\(preferencesError\)\s*throw\s+preferencesError;[\s\S]*await\s+replaceRestrictedIngredients/,
+  'preferences 更新に失敗した場合は database 成功レスポンス扱いにせず、制限食材同期へ進まないでください。',
 );
 
 assert.match(
-  source,
-  /if\s*\(profileUpdateError\)\s*throw\s+profileUpdateError;[\s\S]*await\s+replaceRestrictedIngredients\([\s\S]*supabase,[\s\S]*user\.id,[\s\S]*profile\.restrictedIngredients[\s\S]*\);/,
-  'profile name 更新に失敗した場合は制限食材の置換へ進まず、catch で同期失敗として扱ってください。',
+  pageSource,
+  /class\s+ProfileSaveValidationError\s+extends\s+Error[\s\S]*unknownCodes/,
+  'profile保存の4xx validation errorは通常の一時的なDB失敗と区別してください。',
+);
+assert.match(
+  pageSource,
+  /response\.status\s*>=\s*400\s*&&\s*response\.status\s*<\s*500[\s\S]*Array\.isArray\(body\?\.unknownCodes\)[\s\S]*throw\s+new\s+ProfileSaveValidationError\(body\.unknownCodes\)/,
+  'unknownCodes付き4xxはProfileSaveValidationErrorとして扱ってください。',
+);
+assert.match(
+  pageSource,
+  /dbErr\s+instanceof\s+ProfileSaveValidationError[\s\S]*setCurrentView\('profile'\)[\s\S]*return;/,
+  'unknownCodes付き4xxでは通常localStorage fallbackへ進まず、プロフィール編集状態へ戻してください。',
 );
 
-const previousSaveFlow = async ({ updateProfile, replaceRestrictedIngredients }) => {
-  await updateProfile();
-  await replaceRestrictedIngredients();
-  return 'continued';
-};
 
 const fixedSaveFlow = async ({ updateProfile, replaceRestrictedIngredients }) => {
-  const { error: profileUpdateError } = await updateProfile();
-  if (profileUpdateError) throw profileUpdateError;
+  const { error: profileError } = await updateProfile();
+  if (profileError) throw profileError;
   await replaceRestrictedIngredients();
   return 'continued';
 };
 
 let replaceCalls = 0;
 const updateFailure = { message: 'RLS rejected profile update' };
-
-assert.equal(
-  await previousSaveFlow({
-    updateProfile: async () => ({ error: updateFailure }),
-    replaceRestrictedIngredients: async () => {
-      replaceCalls += 1;
-    },
-  }),
-  'continued',
-  '再現: 旧実装は profile update の error を無視して制限食材置換へ進みます。',
-);
-assert.equal(replaceCalls, 1, '再現: 旧実装では profile update 失敗後も制限食材置換が呼ばれます。');
-
-replaceCalls = 0;
 await assert.rejects(
   fixedSaveFlow({
     updateProfile: async () => ({ error: updateFailure }),
@@ -60,8 +60,7 @@ await assert.rejects(
     },
   }),
   updateFailure,
-  '修正: profile update 失敗は throw されます。',
 );
-assert.equal(replaceCalls, 0, '修正: profile update 失敗時は制限食材置換へ進みません。');
+assert.equal(replaceCalls, 0);
 
 console.log('profile-update-error-handling regression checks passed');
