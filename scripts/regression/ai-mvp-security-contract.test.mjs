@@ -88,7 +88,7 @@ for (const path of aiRouteFiles) {
   if (!existsSync(path)) continue;
   const source = readFileSync(path, 'utf8');
   const authIndex = source.search(/getUser\s*\(|auth\.getUser\s*\(|requireAuthenticatedUser/);
-  const privilegedIndex = source.search(/generateRecipesWithOpenRouter\s*\(|persistAiRecipe\s*\(|createServiceRoleClient\s*\(|rpc\s*\(/i);
+  const privilegedIndex = source.search(/generateRecipesWithOpenRouter\s*\(|selectRecipeIdsWithOpenRouter\s*\(|persistAiRecipe\s*\(|createServiceRoleClient\s*\(|rpc\s*\(/i);
   assert.ok(authIndex >= 0, `${path} must authenticate before doing AI or secret-key work.`);
   assert.ok(
     privilegedIndex === -1 || authIndex < privilegedIndex,

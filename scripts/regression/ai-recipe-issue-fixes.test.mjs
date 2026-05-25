@@ -10,17 +10,33 @@ const substituteRoute = read('src/app/api/recipes/[id]/substitute/route.ts');
 const persistence = read('src/lib/server/recipePersistence.ts');
 const recipeAi = read('src/lib/recipeAi.ts');
 const openRouter = read('src/lib/server/openRouter.ts');
+const listView = read('src/app/components/ListView.tsx');
 const migration = read('supabase/migrations/20260525134500_add_ai_recipe_mvp_fields.sql');
 
-assert.match(
-  suggestRoute,
-  /persistAiRecipes\s*\(/,
-  'suggest route must persist generated recipes through one batch call to avoid request-level partial success.',
-);
 assert.doesNotMatch(
   compact(suggestRoute),
   /for\s*\([^)]*generatedRecipe[^)]*\)[\s\S]*persistAiRecipe\s*\(/,
   'suggest route must not persist generated recipes one-by-one inside a loop.',
+);
+assert.doesNotMatch(
+  suggestRoute,
+  /persistAiRecipes\s*\(/,
+  'suggest route must not persist generated recipes because mood suggestions select existing edible recipes.',
+);
+assert.match(
+  suggestRoute,
+  /fetchEdibleRecipeCandidates[\s\S]*includesRestrictedIngredient[\s\S]*violatesDietaryConstraints/,
+  'suggest route must filter existing recipe candidates server-side before AI selection.',
+);
+assert.match(
+  suggestRoute,
+  /selectRecipeIdsWithOpenRouter\s*\(/,
+  'suggest route must ask AI to select recipe ids from filtered candidates instead of generating new recipes.',
+);
+assert.match(
+  suggestRoute,
+  /selectedRecipeIds[\s\S]*recipesById[\s\S]*NextResponse\.json\(\{\s*recipes,\s*source:\s*['"]ai['"]/,
+  'suggest route must return the selected existing recipes in AI-selected order.',
 );
 assert.match(
   persistence,
@@ -105,8 +121,29 @@ assert.match(
 );
 assert.match(
   openRouter,
+  /buildSelectionPrompt[\s\S]*候補レシピはサーバー側で食材制限を除外済み[\s\S]*新しいレシピを作らない/,
+  'OpenRouter selection prompt must choose from already-filtered existing recipes without inventing new recipes.',
+);
+assert.match(
+  openRouter,
+  /parseSelectedRecipeIds[\s\S]*uniqueIds\.length !== count[\s\S]*allowedIds\.has/,
+  'OpenRouter selection must validate exactly three unique ids from the provided candidate list.',
+);
+assert.match(
+  openRouter,
   /requestRecipesFromOpenRouter[\s\S]*catch[\s\S]*OpenRouterResponseError[\s\S]*requestRecipesFromOpenRouter\(input,\s*error\.message\)/,
   'OpenRouter recipe generation must retry once when the first AI response fails validation.',
+);
+
+assert.doesNotMatch(
+  listView,
+  /新しいAIレシピを一覧に追加しました/,
+  'ListView success copy must not say AI created new recipes when suggestions select existing recipes.',
+);
+assert.match(
+  listView,
+  /食材制限に合うレシピから選んでいます。/,
+  'ListView loading copy must describe selecting from edible recipes, not generating new recipes.',
 );
 
 const substituteCompact = compact(substituteRoute);

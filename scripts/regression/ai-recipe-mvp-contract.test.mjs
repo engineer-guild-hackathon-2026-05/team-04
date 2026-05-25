@@ -160,7 +160,7 @@ if (serviceRole) {
 if (suggestRoute) {
   const route = compact(suggestRoute);
   const authIndex = route.search(/getUser\(|auth\.getUser|isDemoAuthenticated/);
-  const openRouterIndex = route.search(/generateRecipesWithOpenRouter\s*\(/);
+  const openRouterIndex = route.search(/generateRecipesWithOpenRouter\s*\(|selectRecipeIdsWithOpenRouter\s*\(/);
   const serviceRoleIndex = route.search(/persistAiRecipe\s*\(|createServiceRoleClient\s*\(|rpc\(/);
 
   assert.notEqual(authIndex, -1, 'suggest route must authenticate before AI or DB work.');

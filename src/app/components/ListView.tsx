@@ -391,8 +391,8 @@ export default function ListView({
 
             {suggestStatus !== 'idle' && (
               <p className="mood-chat-helper" role="status" aria-live="polite">
-                {suggestStatus === 'loading' && 'あなたの制限食材を避けてレシピを考えています。'}
-                {suggestStatus === 'success' && '新しいAIレシピを一覧に追加しました。'}
+                {suggestStatus === 'loading' && '食材制限に合うレシピから選んでいます。'}
+                {suggestStatus === 'success' && 'おすすめレシピを3件選びました。'}
               </p>
             )}
             {suggestStatus === 'error' && suggestError && (
