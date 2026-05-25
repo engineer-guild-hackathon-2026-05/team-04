@@ -7,7 +7,7 @@ import LandingView from './components/LandingView';
 import ListView from './components/ListView';
 import ProfileView from './components/ProfileView';
 import RecipeModal from './components/RecipeModal';
-import { INGREDIENT_MASTER, MOCK_RECIPES, type IngredientMaster, type Recipe } from '@/lib/mockData';
+import { INGREDIENT_MASTER, type IngredientMaster, type Recipe } from '@/lib/mockData';
 import type { IngredientsResponse, ProfileFallbackField, ProfilePayload, ProfileResponse, RecipesResponse, RestrictionReason } from '@/lib/apiTypes';
 
 type CurrentView = 'landing' | 'list' | 'profile';
@@ -168,7 +168,7 @@ export default function Home() {
   const [preferredDishes, setPreferredDishes] = useState<string[]>([]);
   const [preferredCuisines, setPreferredCuisines] = useState<string[]>([]);
   const [ingredientOptions, setIngredientOptions] = useState<IngredientMaster[]>(INGREDIENT_MASTER);
-  const [recipes, setRecipes] = useState<Recipe[]>(MOCK_RECIPES);
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
 
   useEffect(() => {

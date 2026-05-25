@@ -1,18 +1,39 @@
-import { MOCK_RECIPES, type Recipe, type RecipeIngredient, type RecipeStep } from './mockData';
+import {
+  type Recipe,
+  type RecipeCultureSection,
+  type RecipeCultureSectionKey,
+  type RecipeIngredient,
+  type RecipeStep,
+} from './mockData';
 import { toIngredientCodeFromDbRow } from './ingredientCodes';
 
 type RecipeIngredientJoinRow = {
   quantity?: string | null;
   is_optional?: boolean | null;
+  display_name_ja?: string | null;
   ingredients?: {
     ingredient_code?: string | null;
     name_ja?: string | null;
     name_en?: string | null;
+    category?: string | null;
+    is_allergen?: boolean | null;
+    dietary_tags?: string[] | null;
   } | {
     ingredient_code?: string | null;
     name_ja?: string | null;
     name_en?: string | null;
+    category?: string | null;
+    is_allergen?: boolean | null;
+    dietary_tags?: string[] | null;
   }[] | null;
+};
+
+type RecipeCultureSectionJoinRow = {
+  section_key?: string | null;
+  label?: string | null;
+  title?: string | null;
+  body?: string | null;
+  sort_order?: number | null;
 };
 
 type RecipeDbRow = {
@@ -29,7 +50,13 @@ type RecipeDbRow = {
   tags?: string[] | null;
   steps?: unknown;
   recipe_ingredients?: RecipeIngredientJoinRow[] | null;
+  recipe_culture_sections?: RecipeCultureSectionJoinRow[] | null;
 };
+
+const CULTURE_SECTION_KEYS = new Set<RecipeCultureSectionKey>(['origin', 'food_culture']);
+
+const isNonEmptyString = (value: unknown): value is string =>
+  typeof value === 'string' && value.trim().length > 0;
 
 export function normalizeRecipeSteps(value: unknown): RecipeStep[] {
   if (!Array.isArray(value)) return [];
@@ -50,6 +77,28 @@ export function normalizeRecipeSteps(value: unknown): RecipeStep[] {
     .filter((step): step is RecipeStep => Boolean(step));
 }
 
+export function normalizeRecipeCultureSections(
+  rows: RecipeCultureSectionJoinRow[] | null | undefined,
+): RecipeCultureSection[] {
+  return (rows ?? [])
+    .map((row): RecipeCultureSection | null => {
+      const key = row.section_key;
+      if (!key || !CULTURE_SECTION_KEYS.has(key as RecipeCultureSectionKey)) return null;
+      if (!isNonEmptyString(row.label) || !isNonEmptyString(row.title) || !isNonEmptyString(row.body)) return null;
+      if (!(typeof row.sort_order === 'number') || !Number.isFinite(row.sort_order)) return null;
+
+      return {
+        key: key as RecipeCultureSectionKey,
+        label: row.label.trim(),
+        title: row.title.trim(),
+        body: row.body.trim(),
+        sort_order: row.sort_order,
+      };
+    })
+    .filter((section): section is RecipeCultureSection => Boolean(section))
+    .sort((a, b) => a.sort_order - b.sort_order);
+}
+
 function normalizeRecipeIngredients(rows: RecipeIngredientJoinRow[] | null | undefined): RecipeIngredient[] {
   return (rows ?? [])
     .map((row): RecipeIngredient | null => {
@@ -58,9 +107,12 @@ function normalizeRecipeIngredients(rows: RecipeIngredientJoinRow[] | null | und
 
       return {
         id: toIngredientCodeFromDbRow(ingredient) ?? `none-${ingredient.name_ja}`,
-        name_ja: ingredient.name_ja,
+        name_ja: row.display_name_ja?.trim() || ingredient.name_ja,
         quantity: row.quantity ?? '',
         is_optional: row.is_optional ?? false,
+        category: ingredient.category ?? undefined,
+        is_allergen: ingredient.is_allergen ?? false,
+        dietary_tags: ingredient.dietary_tags ?? [],
       };
     })
     .filter((ingredient): ingredient is RecipeIngredient => Boolean(ingredient));
@@ -71,7 +123,6 @@ export function mapRecipeRowToRecipe(row: RecipeDbRow): Recipe | null {
 
   const ingredients = normalizeRecipeIngredients(row.recipe_ingredients);
   const steps = normalizeRecipeSteps(row.steps);
-
   return {
     id: row.id,
     title: row.title,
@@ -86,12 +137,6 @@ export function mapRecipeRowToRecipe(row: RecipeDbRow): Recipe | null {
     tags: row.tags ?? [],
     ingredients,
     steps,
+    culture_sections: normalizeRecipeCultureSections(row.recipe_culture_sections),
   };
-}
-
-export function fallbackRecipes() {
-  return MOCK_RECIPES.map((recipe) => ({
-    ...recipe,
-    steps: normalizeRecipeSteps(recipe.steps),
-  }));
 }

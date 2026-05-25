@@ -24,5 +24,5 @@ export type ProfileResponse = ProfilePayload & {
 
 export type RecipesResponse = {
   recipes: Recipe[];
-  source: 'database' | 'fallback';
+  source: 'database';
 };
