@@ -48,6 +48,15 @@ export type RecipeSubstituteRequest = {
   restrictedIngredients?: string[];
 };
 
+export type IngredientSubstitution = {
+  originalIngredientName: string;
+  originalQuantity?: string;
+  substituteIngredient: IngredientMaster;
+  reason: string;
+  usageNote?: string;
+};
+
 export type RecipeSubstituteResponse = {
-  recipe: Recipe;
+  substitutions: IngredientSubstitution[];
+  source: 'ai';
 };

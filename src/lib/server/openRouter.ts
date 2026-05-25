@@ -1,7 +1,6 @@
 import 'server-only';
 
-import type { Recipe } from '@/lib/mockData';
-import { validateAiRecipeCollection, type AiGeneratedRecipe, type RestrictionFact } from '@/lib/recipeAi';
+import type { IngredientMaster, Recipe } from '@/lib/mockData';
 
 export const OPENROUTER_MODEL = 'google/gemini-3.1-flash-lite';
 
@@ -19,20 +18,6 @@ export class OpenRouterResponseError extends Error {
   }
 }
 
-type GenerateRecipeInput = {
-  purpose: 'suggest' | 'substitute';
-  mood?: string;
-  count?: number;
-  originalRecipe?: {
-    title: string;
-    description: string;
-    cuisine: string;
-    ingredients: string[];
-  };
-  restrictions: RestrictionFact[];
-  dietaryConstraints: string[];
-};
-
 type OpenRouterResponse = {
   choices?: Array<{
     message?: {
@@ -45,6 +30,23 @@ type SelectRecipeInput = {
   mood: string;
   count: number;
   candidates: Recipe[];
+};
+
+type OriginalIngredientInput = {
+  name_ja: string;
+  quantity?: string;
+};
+
+type SelectIngredientSubstitutionInput = {
+  originalIngredients: OriginalIngredientInput[];
+  candidates: IngredientMaster[];
+};
+
+export type IngredientSubstitutionSelection = {
+  originalIngredientName: string;
+  substituteIngredientId: string;
+  reason: string;
+  usageNote?: string;
 };
 
 function getOpenRouterConfig() {
@@ -70,42 +72,44 @@ function stripJsonFence(content: string) {
     .trim();
 }
 
-function restrictionPromptFacts(restrictions: RestrictionFact[], dietaryConstraints: string[]) {
-  const ingredientFacts = restrictions.length === 0
-    ? 'なし'
-    : restrictions.map((item) => `${item.name_ja} (${item.name_en || item.id})`).join('、');
-  const dietLabels: Record<string, string> = {
-    'diet-vegan': 'ヴィーガン（肉・魚介・卵・乳製品・ゼラチン・はちみつを含めない）',
-    'diet-lacto-vegetarian': 'ラクト・ベジタリアン（肉・魚介・卵・ゼラチンを含めず、乳製品は可）',
-    'diet-ovo-vegetarian': 'オボ・ベジタリアン（肉・魚介・乳製品・ゼラチンを含めず、卵は可）',
-    'diet-pescatarian': 'ペスカタリアン（肉類を含めず、魚介は可）',
-  };
-  const dietFacts = dietaryConstraints.length === 0
-    ? 'なし'
-    : dietaryConstraints.map((constraint) => dietLabels[constraint] ?? constraint).join('、');
-  return `避ける材料: ${ingredientFacts}\n食事制約: ${dietFacts}`;
+function parseJsonContent(content: string) {
+  try {
+    return JSON.parse(stripJsonFence(content)) as unknown;
+  } catch {
+    throw new OpenRouterResponseError('OpenRouter response was not valid JSON.');
+  }
 }
 
-function buildPrompt(input: GenerateRecipeInput, retryReason?: string) {
-  const count = Math.max(1, Math.min(input.count ?? 1, 3));
-  const retryInstruction = retryReason
-    ? `\n前回の応答は ${retryReason} により利用できませんでした。禁止材料・食事制約・JSON schema を再確認し、条件に合う別材料で作り直してください。`
-    : '';
-  const sharedRules = [
-    '日本語で返答すること。',
-    '気分・要望が日本語以外でも意味を解釈し、返答は必ず日本語にすること。',
-    'JSON以外の文章を返さないこと。',
-    '材料は1〜12件、手順は1〜10件にすること。',
-    '避ける材料や食事制約に違反する材料を絶対に含めないこと。',
-    'cultural_background には料理の文化的背景を80〜240文字で書くこと。',
-    '画像URLが不明な場合は空文字にすること。',
-  ].join('\n- ');
+async function requestJsonFromOpenRouter(system: string, user: string, temperature: number) {
+  const { apiKey, model } = getOpenRouterConfig();
+  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model,
+      response_format: { type: 'json_object' },
+      messages: [
+        { role: 'system', content: system },
+        { role: 'user', content: user },
+      ],
+      temperature,
+    }),
+  });
 
-  if (input.purpose === 'substitute' && input.originalRecipe) {
-    return `あなたは世界料理を日本で安全に作れるよう再提案する料理家です。\n- ${sharedRules}\n${restrictionPromptFacts(input.restrictions, input.dietaryConstraints)}${retryInstruction}\n元レシピ: ${input.originalRecipe.title}\n説明: ${input.originalRecipe.description}\n地域: ${input.originalRecipe.cuisine}\n元材料: ${input.originalRecipe.ingredients.join('、')}\n日本で入手しやすい代替材料を使った派生レシピを1件だけ作ってください。\nJSON形式: {"recipes":[{"title":"...","description":"...","cuisine":"...","flag":"🌍","image_url":"","cook_time_min":20,"servings":2,"is_vegan":false,"is_gluten_free":false,"tags":["..."],"cultural_background":"...","ingredients":[{"name_ja":"...","name_en":"...","quantity":"...","is_optional":false}],"steps":[{"order":1,"text":"..."}]}]}`;
+  if (!response.ok) {
+    throw new OpenRouterResponseError(`OpenRouter request failed with status ${response.status}.`);
   }
 
-  return `あなたは気分に合う世界料理を安全に提案する料理家です。\n- ${sharedRules}\n${restrictionPromptFacts(input.restrictions, input.dietaryConstraints)}${retryInstruction}\n気分・要望: ${input.mood ?? ''}\n条件に合う世界料理レシピを${count}件作ってください。\nJSON形式: {"recipes":[{"title":"...","description":"...","cuisine":"...","flag":"🌍","image_url":"","cook_time_min":20,"servings":2,"is_vegan":false,"is_gluten_free":false,"tags":["..."],"cultural_background":"...","ingredients":[{"name_ja":"...","name_en":"...","quantity":"...","is_optional":false}],"steps":[{"order":1,"text":"..."}]}]}`;
+  const payload = await response.json().catch(() => null) as OpenRouterResponse | null;
+  const content = payload?.choices?.[0]?.message?.content;
+  if (!content) {
+    throw new OpenRouterResponseError('OpenRouter response did not include JSON content.');
+  }
+
+  return parseJsonContent(content);
 }
 
 function buildSelectionPrompt(input: SelectRecipeInput, retryReason?: string) {
@@ -158,104 +162,119 @@ function parseSelectedRecipeIds(payload: unknown, candidates: Recipe[], count: n
   return uniqueIds;
 }
 
-async function requestRecipesFromOpenRouter(input: GenerateRecipeInput, retryReason?: string): Promise<AiGeneratedRecipe[]> {
-  const { apiKey, model } = getOpenRouterConfig();
-  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model,
-      response_format: { type: 'json_object' },
-      messages: [
-        { role: 'system', content: 'You generate safe, structured recipe JSON only.' },
-        { role: 'user', content: buildPrompt(input, retryReason) },
-      ],
-      temperature: 0.7,
-    }),
-  });
-
-  if (!response.ok) {
-    throw new OpenRouterResponseError(`OpenRouter request failed with status ${response.status}.`);
-  }
-
-  const payload = await response.json().catch(() => null) as OpenRouterResponse | null;
-  const content = payload?.choices?.[0]?.message?.content;
-  if (!content) {
-    throw new OpenRouterResponseError('OpenRouter response did not include JSON content.');
-  }
-
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(stripJsonFence(content));
-  } catch {
-    throw new OpenRouterResponseError('OpenRouter response was not valid JSON.');
-  }
-
-  try {
-    return validateAiRecipeCollection(parsed, {
-      maxRecipes: Math.max(1, Math.min(input.count ?? 1, 3)),
-      restrictions: input.restrictions,
-      dietaryConstraints: input.dietaryConstraints,
-    });
-  } catch (error) {
-    throw new OpenRouterResponseError(error instanceof Error ? error.message : 'OpenRouter response failed validation.');
-  }
-}
-
 async function requestRecipeSelectionFromOpenRouter(input: SelectRecipeInput, retryReason?: string): Promise<string[]> {
   const count = Math.max(1, Math.min(input.count, 3));
   if (input.candidates.length < count) {
     throw new OpenRouterResponseError('Not enough edible recipe candidates.');
   }
 
-  const { apiKey, model } = getOpenRouterConfig();
-  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model,
-      response_format: { type: 'json_object' },
-      messages: [
-        { role: 'system', content: 'You select existing recipe ids from a provided candidate list and return JSON only.' },
-        { role: 'user', content: buildSelectionPrompt(input, retryReason) },
-      ],
-      temperature: 0.4,
-    }),
-  });
-
-  if (!response.ok) {
-    throw new OpenRouterResponseError(`OpenRouter request failed with status ${response.status}.`);
-  }
-
-  const payload = await response.json().catch(() => null) as OpenRouterResponse | null;
-  const content = payload?.choices?.[0]?.message?.content;
-  if (!content) {
-    throw new OpenRouterResponseError('OpenRouter response did not include JSON content.');
-  }
-
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(stripJsonFence(content));
-  } catch {
-    throw new OpenRouterResponseError('OpenRouter response was not valid JSON.');
-  }
-
+  const parsed = await requestJsonFromOpenRouter(
+    'You select existing recipe ids from a provided candidate list and return JSON only.',
+    buildSelectionPrompt(input, retryReason),
+    0.4,
+  );
   return parseSelectedRecipeIds(parsed, input.candidates, count);
 }
 
-export async function generateRecipesWithOpenRouter(input: GenerateRecipeInput): Promise<AiGeneratedRecipe[]> {
-  try {
-    return await requestRecipesFromOpenRouter(input);
-  } catch (error) {
-    if (!(error instanceof OpenRouterResponseError)) throw error;
-    return requestRecipesFromOpenRouter(input, error.message);
+function buildIngredientSubstitutionPrompt(input: SelectIngredientSubstitutionInput, retryReason?: string) {
+  const retryInstruction = retryReason
+    ? `\n前回の応答は ${retryReason} により利用できませんでした。候補IDだけから選び直してください。`
+    : '';
+  const originalIngredients = input.originalIngredients.map((ingredient, index) => ({
+    index: index + 1,
+    name_ja: ingredient.name_ja,
+    quantity: ingredient.quantity ?? '',
+  }));
+  const candidates = input.candidates.map((ingredient, index) => ({
+    index: index + 1,
+    id: ingredient.id,
+    name_ja: ingredient.name_ja,
+    name_en: ingredient.name_en,
+    category: ingredient.category,
+    dietary_tags: ingredient.dietary_tags,
+  }));
+
+  return `あなたは日本のスーパーで買いやすい食材への置き換えを提案する料理アシスタントです。
+- 元レシピの材料のうち、日本の一般的なスーパーで通常入手しにくい材料だけを置き換えてください。
+- 置き換えが不要な材料は返さないでください。
+- 代替材料は必ず候補食材JSONに存在する id だけを使ってください。
+- 新しい食材名や候補外の id を作らないでください。
+- アレルギー安全性のため、候補外の材料や推測の材料を絶対に使わないでください。
+- JSON以外の文章を返さないでください。${retryInstruction}
+元レシピ材料JSON: ${JSON.stringify(originalIngredients)}
+候補食材JSON: ${JSON.stringify(candidates)}
+JSON形式: {"substitutions":[{"original_ingredient_name":"元材料名","substitute_ingredient_id":"候補id","reason":"短い理由","usage_note":"分量や使い方の短いメモ"}]}`;
+}
+
+function parseIngredientSubstitutionSelections(
+  payload: unknown,
+  input: SelectIngredientSubstitutionInput,
+): IngredientSubstitutionSelection[] {
+  const object = payload && typeof payload === 'object' && !Array.isArray(payload)
+    ? payload as { substitutions?: unknown }
+    : null;
+  const substitutions = object?.substitutions;
+  if (!Array.isArray(substitutions)) {
+    throw new OpenRouterResponseError('OpenRouter substitution response did not include substitutions.');
   }
+
+  const allowedIngredientIds = new Set(input.candidates.map((ingredient) => ingredient.id));
+  const originalNames = new Set(input.originalIngredients.map((ingredient) => ingredient.name_ja));
+  const seenOriginalNames = new Set<string>();
+  const parsed: IngredientSubstitutionSelection[] = [];
+
+  for (const item of substitutions.slice(0, input.originalIngredients.length)) {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) {
+      throw new OpenRouterResponseError('OpenRouter substitution item was invalid.');
+    }
+    const candidate = item as {
+      original_ingredient_name?: unknown;
+      substitute_ingredient_id?: unknown;
+      reason?: unknown;
+      usage_note?: unknown;
+    };
+    const originalIngredientName = typeof candidate.original_ingredient_name === 'string'
+      ? candidate.original_ingredient_name.trim()
+      : '';
+    const substituteIngredientId = typeof candidate.substitute_ingredient_id === 'string'
+      ? candidate.substitute_ingredient_id.trim()
+      : '';
+    const reason = typeof candidate.reason === 'string' ? candidate.reason.trim().slice(0, 160) : '';
+    const usageNote = typeof candidate.usage_note === 'string' ? candidate.usage_note.trim().slice(0, 160) : '';
+
+    if (
+      !originalNames.has(originalIngredientName) ||
+      seenOriginalNames.has(originalIngredientName) ||
+      !allowedIngredientIds.has(substituteIngredientId) ||
+      !reason
+    ) {
+      throw new OpenRouterResponseError('OpenRouter selected invalid ingredient substitutions.');
+    }
+
+    seenOriginalNames.add(originalIngredientName);
+    parsed.push({
+      originalIngredientName,
+      substituteIngredientId,
+      reason,
+      ...(usageNote ? { usageNote } : {}),
+    });
+  }
+
+  return parsed;
+}
+
+async function requestIngredientSubstitutionsFromOpenRouter(
+  input: SelectIngredientSubstitutionInput,
+  retryReason?: string,
+): Promise<IngredientSubstitutionSelection[]> {
+  if (input.originalIngredients.length === 0 || input.candidates.length === 0) return [];
+
+  const parsed = await requestJsonFromOpenRouter(
+    'You select substitute ingredient ids only from a provided ingredient catalog and return JSON only.',
+    buildIngredientSubstitutionPrompt(input, retryReason),
+    0.2,
+  );
+  return parseIngredientSubstitutionSelections(parsed, input);
 }
 
 export async function selectRecipeIdsWithOpenRouter(input: SelectRecipeInput): Promise<string[]> {
@@ -264,5 +283,16 @@ export async function selectRecipeIdsWithOpenRouter(input: SelectRecipeInput): P
   } catch (error) {
     if (!(error instanceof OpenRouterResponseError)) throw error;
     return requestRecipeSelectionFromOpenRouter(input, error.message);
+  }
+}
+
+export async function selectIngredientSubstitutionsWithOpenRouter(
+  input: SelectIngredientSubstitutionInput,
+): Promise<IngredientSubstitutionSelection[]> {
+  try {
+    return await requestIngredientSubstitutionsFromOpenRouter(input);
+  } catch (error) {
+    if (!(error instanceof OpenRouterResponseError)) throw error;
+    return requestIngredientSubstitutionsFromOpenRouter(input, error.message);
   }
 }

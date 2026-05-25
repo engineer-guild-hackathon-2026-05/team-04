@@ -40,15 +40,16 @@ assert.match(
   /^NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-supabase-publishable-key-here$/m,
   '.env.local.example must use the current Supabase publishable key variable.',
 );
-assert.match(
-  envExample,
-  /^SUPABASE_SECRET_KEY=your-supabase-secret-key-here$/m,
-  '.env.local.example must use the current Supabase secret key variable.',
+assert.doesNotMatch(
+  `${envExample}
+${allSourceText}`,
+  /SUPABASE_SECRET_KEY|SUPABASE_SERVICE_ROLE_KEY|createServiceRoleClient|persistAiRecipe|persistAiRecipes/i,
+  'AI features must not keep any Supabase secret-key/service-role persistence path.',
 );
 assert.doesNotMatch(
   envExample,
-  /NEXT_PUBLIC_SUPABASE_ANON_KEY|SUPABASE_SERVICE_ROLE_KEY/,
-  '.env.local.example must not document legacy Supabase API key variables.',
+  /NEXT_PUBLIC_SUPABASE_ANON_KEY|SUPABASE_SERVICE_ROLE_KEY|SUPABASE_SECRET_KEY/,
+  '.env.local.example must not document Supabase secret/service-role key variables for AI runtime writes.',
 );
 assert.doesNotMatch(
   `${envExample}\n${allSourceText}`,
@@ -88,7 +89,7 @@ for (const path of aiRouteFiles) {
   if (!existsSync(path)) continue;
   const source = readFileSync(path, 'utf8');
   const authIndex = source.search(/getUser\s*\(|auth\.getUser\s*\(|requireAuthenticatedUser/);
-  const privilegedIndex = source.search(/generateRecipesWithOpenRouter\s*\(|selectRecipeIdsWithOpenRouter\s*\(|persistAiRecipe\s*\(|createServiceRoleClient\s*\(|rpc\s*\(/i);
+  const privilegedIndex = source.search(/selectRecipeIdsWithOpenRouter\s*\(|selectIngredientSubstitutionsWithOpenRouter\s*\(/i);
   assert.ok(authIndex >= 0, `${path} must authenticate before doing AI or secret-key work.`);
   assert.ok(
     privilegedIndex === -1 || authIndex < privilegedIndex,
@@ -109,7 +110,7 @@ if (aiMigrationEntries.length > 0) {
     'cultural_background',
     'substituted_from_ingredient_id',
   ]) {
-    assert.match(aiMigrationText, new RegExp(`\\b${requiredColumn}\\b`), `AI MVP migration must include ${requiredColumn}.`);
+    assert.match(aiMigrationText, new RegExp(`\\b${requiredColumn}\\b`), `AI MVP migration history must include ${requiredColumn}.`);
   }
 
   for (const nonMvpName of [
@@ -127,25 +128,11 @@ if (aiMigrationEntries.length > 0) {
     );
   }
 
-  const rpcSource = aiMigrationEntries
-    .map(([path, source]) => ({ path, source }))
-    .find(({ source }) => /create\s+(?:or\s+replace\s+)?function[\s\S]*insert/i.test(source));
-  assert.ok(rpcSource, 'AI MVP persistence must use an atomic insert RPC/function.');
-  assert.match(
-    rpcSource.source,
-    /revoke\s+all\s+on\s+function[\s\S]*from\s+public/i,
-    `${rpcSource.path} must revoke PUBLIC execute on the AI insert RPC.`,
+  const dropRpcMigration = [...migrationTextByPath.values()].find((source) =>
+    /drop\s+function\s+if\s+exists\s+public\.insert_ai_recipes_mvp/i.test(source) &&
+    /drop\s+function\s+if\s+exists\s+public\.insert_ai_recipe_mvp/i.test(source),
   );
-  assert.match(
-    rpcSource.source,
-    /grant\s+execute\s+on\s+function[\s\S]*to\s+service_role/i,
-    `${rpcSource.path} must grant AI insert RPC execute only to service_role.`,
-  );
-  assert.doesNotMatch(
-    rpcSource.source,
-    /grant\s+execute\s+on\s+function[\s\S]*to\s+(?:anon|authenticated)/i,
-    `${rpcSource.path} must not grant AI insert RPC execute to anon/authenticated roles.`,
-  );
+  assert.ok(dropRpcMigration, 'A follow-up migration must drop old AI recipe write RPCs so AI runtime cannot mutate trusted recipe data.');
 }
 
 console.log('AI MVP security contract regression checks passed');

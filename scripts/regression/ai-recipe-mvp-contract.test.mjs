@@ -19,7 +19,6 @@ const sourceFiles = [
   ['src/lib/mockData.ts', readIfExists('src/lib/mockData.ts')],
   ['src/lib/openRouter.ts', readIfExists('src/lib/openRouter.ts')],
   ['src/lib/server/openRouter.ts', readIfExists('src/lib/server/openRouter.ts')],
-  ['src/lib/supabase/serviceRole.ts', readIfExists('src/lib/supabase/serviceRole.ts')],
   ['src/lib/recipeAiValidation.ts', readIfExists('src/lib/recipeAiValidation.ts')],
   ['src/app/api/recipes/suggest/route.ts', readIfExists('src/app/api/recipes/suggest/route.ts')],
   ['src/app/api/recipes/[id]/substitute/route.ts', readIfExists('src/app/api/recipes/[id]/substitute/route.ts')],
@@ -37,7 +36,6 @@ const recipeModal = readIfExists('src/app/components/RecipeModal.tsx');
 const apiTypes = readIfExists('src/lib/apiTypes.ts');
 const recipeMapping = readIfExists('src/lib/recipeMapping.ts');
 const mockData = readIfExists('src/lib/mockData.ts');
-const serviceRole = readIfExists('src/lib/supabase/serviceRole.ts');
 const openRouter =
   readIfExists('src/lib/openRouter.ts') || readIfExists('src/lib/server/openRouter.ts');
 
@@ -113,31 +111,12 @@ if (aiMigration) {
     `${path}: non-MVP social/action tables are out of scope.`,
   );
 
-  const functionMatch = source.match(/create (?:or replace )?function public\.([a-z0-9_]+)/i);
-  assert.ok(functionMatch, `${path}: atomic AI recipe insertion must be a Postgres RPC/function.`);
-  const functionName = functionMatch[1];
-  const escapedFunctionName = functionName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  assert.match(
-    source,
-    new RegExp(`revoke\\s+(?:all|execute)[\\s\\S]*public\\.${escapedFunctionName}`, 'i'),
-    `${path}: AI insert RPC must revoke default PUBLIC execution.`,
+  const dropRpcMigration = migrationSources.find(([, migrationSource]) =>
+    /drop\s+function\s+if\s+exists\s+public\.insert_ai_recipes_mvp/i.test(migrationSource) &&
+    /drop\s+function\s+if\s+exists\s+public\.insert_ai_recipe_mvp/i.test(migrationSource),
   );
-  assert.match(
-    source,
-    new RegExp(`grant\\s+execute[\\s\\S]*public\\.${escapedFunctionName}[\\s\\S]*service_role`, 'i'),
-    `${path}: AI insert RPC must grant execute only to service_role.`,
-  );
-  const unprivilegedGrantLines = source
-    .split('\n')
-    .filter((line) =>
-      new RegExp(`grant\\s+execute\\s+on\\s+function\\s+public\\.${escapedFunctionName}\\s*\\(`, 'i').test(line) &&
-      /\b(?:anon|authenticated)\b/i.test(line),
-    );
-  assert.deepEqual(
-    unprivilegedGrantLines,
-    [],
-    `${path}: AI insert RPC must not grant execute to anon/authenticated.`,
-  );
+  assert.ok(dropRpcMigration, 'AI recipe write RPCs must be dropped after removing DB-mutating AI runtime behavior.');
+
 }
 
 if (openRouter) {
@@ -151,16 +130,12 @@ if (openRouter) {
   );
 }
 
-if (serviceRole) {
-  assert.match(serviceRole, /server-only/, 'Supabase secret-key utility must import server-only.');
-  assert.match(serviceRole, /SUPABASE_SECRET_KEY/, 'Supabase secret-key utility must read SUPABASE_SECRET_KEY.');
-  assert.doesNotMatch(serviceRole, /NEXT_PUBLIC_SUPABASE_SERVICE_ROLE/i, 'secret key must not use NEXT_PUBLIC_.');
-}
+assert.doesNotMatch(envExample + openRouter + substituteRoute + suggestRoute, /SUPABASE_SECRET_KEY|createServiceRoleClient|persistAiRecipe|persistAiRecipes/i, 'AI routes must not keep Supabase secret-key or AI persistence paths.');
 
 if (suggestRoute) {
   const route = compact(suggestRoute);
   const authIndex = route.search(/getUser\(|auth\.getUser|isDemoAuthenticated/);
-  const openRouterIndex = route.search(/generateRecipesWithOpenRouter\s*\(|selectRecipeIdsWithOpenRouter\s*\(/);
+  const openRouterIndex = route.search(/selectRecipeIdsWithOpenRouter\s*\(/);
   const serviceRoleIndex = route.search(/persistAiRecipe\s*\(|createServiceRoleClient\s*\(|rpc\(/);
 
   assert.notEqual(authIndex, -1, 'suggest route must authenticate before AI or DB work.');
@@ -180,24 +155,19 @@ if (suggestRoute) {
 if (substituteRoute) {
   const route = compact(substituteRoute);
   const authIndex = route.search(/getUser\(|auth\.getUser|isDemoAuthenticated/);
-  const serviceRoleIndex = route.search(/persistAiRecipe\s*\(|createServiceRoleClient\s*\(|rpc\(/);
+  const openRouterIndex = route.search(/selectIngredientSubstitutionsWithOpenRouter\s*\(/);
+  const serviceRoleIndex = route.search(/persistAiRecipe\s*\(|persistAiRecipes\s*\(|createServiceRoleClient\s*\(|rpc\(/);
 
   assert.match(
     substituteRoute,
     /[0-9a-f]\{8\}|isUuid|uuid|UUID/i,
-    'substitute route must reject non-UUID fallback/mock recipe ids before secret-key work.',
+    'substitute route must reject non-UUID fallback/mock recipe ids before AI work.',
   );
-  assert.notEqual(authIndex, -1, 'substitute route must authenticate before DB/secret-key work.');
-  if (serviceRoleIndex !== -1) {
-    assert.ok(authIndex < serviceRoleIndex, 'substitute route must authorize before secret-key persistence.');
-  }
-  assert.match(substituteRoute, /parent_recipe_id|parentRecipe/i, 'substitute route must persist parent recipe lineage.');
-  assert.match(substituteRoute, /cultural_background|culturalBackground/i, 'substitute route must return cultural background.');
-  assert.match(
-    substituteRoute,
-    /substituted_from_ingredient_id|substitutedFromIngredient/i,
-    'substitute route must persist substituted ingredient lineage when available.',
-  );
+  assert.notEqual(authIndex, -1, 'substitute route must authenticate before DB/AI work.');
+  assert.ok(openRouterIndex === -1 || authIndex < openRouterIndex, 'substitute route must authorize before calling OpenRouter.');
+  assert.equal(serviceRoleIndex, -1, 'substitute route must never use service-role, RPC, or persistence writes.');
+  assert.match(substituteRoute, /from\('ingredients'\)/, 'substitute route must choose replacement candidates from the existing ingredient DB.');
+  assert.match(substituteRoute, /substituteIngredient/, 'substitute route must return substitute ingredient data for modal display.');
   assert.match(substituteRoute, /apiError\(\s*401|status:\s*401|NextResponse\.json\([\s\S]*401/, 'substitute route must have controlled 401 behavior.');
 }
 
@@ -206,6 +176,7 @@ if (apiTypes.includes('RecipeSuggest') || suggestRoute) {
   assert.match(apiTypes, /RecipeSuggestResponse/, 'apiTypes must define RecipeSuggestResponse.');
   assert.match(apiTypes, /RecipeSubstituteRequest/, 'apiTypes must define RecipeSubstituteRequest.');
   assert.match(apiTypes, /RecipeSubstituteResponse/, 'apiTypes must define RecipeSubstituteResponse.');
+  assert.match(apiTypes, /IngredientSubstitution/, 'apiTypes must define modal-only IngredientSubstitution.');
   assert.match(apiTypes, /ApiErrorResponse/, 'apiTypes must define controlled ApiErrorResponse.');
 }
 
@@ -232,7 +203,8 @@ if (/onSubstituteRecipe|substitute|再提案|日本の食材/.test(recipeModal) 
     'RecipeModal/substitute route must not show login-after-copy because recipes are not visible before login.',
   );
   assert.match(recipeModal, /isUuid|uuid|[0-9a-f]\{8\}/i, 'RecipeModal must guard non-UUID fallback/mock recipe ids.');
-  assert.match(recipeModal, /cultural_background|culturalBackground/, 'RecipeModal must render cultural background when present.');
+  assert.match(recipeModal, /substituteSuggestions/, 'RecipeModal must render modal-only ingredient substitutions.');
+  assert.doesNotMatch(recipeModal, /setSelectedRecipe\(substitutedRecipe\)|レシピに更新しました/, 'RecipeModal/page copy must not imply persisted recipe replacement.');
 }
 
 console.log('AI recipe MVP ratcheting contract checks passed');

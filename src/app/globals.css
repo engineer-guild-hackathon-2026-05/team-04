@@ -1749,6 +1749,28 @@ button, input {
   color: #15803d;
 }
 
+.modal-substitute-success p {
+  margin: 0;
+}
+
+.modal-substitute-list {
+  display: grid;
+  gap: 6px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.modal-substitute-list li {
+  display: grid;
+  gap: 2px;
+}
+
+.modal-substitute-list small {
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
 .modal-substitute-error {
   color: #b91c1c;
 }

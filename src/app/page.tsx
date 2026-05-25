@@ -8,7 +8,7 @@ import ListView from './components/ListView';
 import ProfileView from './components/ProfileView';
 import RecipeModal from './components/RecipeModal';
 import { INGREDIENT_MASTER, type IngredientMaster, type Recipe } from '@/lib/mockData';
-import type { IngredientsResponse, ProfileFallbackField, ProfilePayload, ProfileResponse, RecipesResponse, RestrictionReason } from '@/lib/apiTypes';
+import type { IngredientSubstitution, IngredientsResponse, ProfileFallbackField, ProfilePayload, ProfileResponse, RecipesResponse, RestrictionReason } from '@/lib/apiTypes';
 
 type CurrentView = 'landing' | 'list' | 'profile';
 type AuthStatus = 'checking' | 'authenticated' | 'unauthenticated';
@@ -38,7 +38,7 @@ type SuggestRecipesResponse = {
 };
 
 type SubstituteRecipeResponse = {
-  recipe?: Recipe;
+  substitutions?: IngredientSubstitution[];
 };
 
 const PROFILE_STORAGE_KEY = 'globalbites_profile';
@@ -205,6 +205,7 @@ export default function Home() {
   const [suggestError, setSuggestError] = useState<string | null>(null);
   const [substituteStatus, setSubstituteStatus] = useState<AiRequestStatus>('idle');
   const [substituteError, setSubstituteError] = useState<string | null>(null);
+  const [substituteSuggestions, setSubstituteSuggestions] = useState<IngredientSubstitution[]>([]);
 
   useEffect(() => {
     const parsed = readStoredProfile(PROFILE_STORAGE_KEY, 'local storage profile');
@@ -391,6 +392,7 @@ export default function Home() {
   const handleSubstituteRecipe = async (recipeId: string) => {
     setSubstituteStatus('loading');
     setSubstituteError(null);
+    setSubstituteSuggestions([]);
 
     try {
       const response = await fetch(`/api/recipes/${recipeId}/substitute`, {
@@ -407,13 +409,8 @@ export default function Home() {
         throw new Error(getAiRecipeErrorMessage(response.status, body, '日本の食材での再提案に失敗しました。時間をおいて再試行してください。'));
       }
 
-      const substitutedRecipe = body?.recipe;
-      if (!substitutedRecipe) {
-        throw new Error('再提案されたレシピを取得できませんでした。');
-      }
-
-      setRecipes((currentRecipes) => mergeRecipesById(currentRecipes, [substitutedRecipe]));
-      setSelectedRecipe(substitutedRecipe);
+      const substitutions = Array.isArray(body?.substitutions) ? body.substitutions : [];
+      setSubstituteSuggestions(substitutions);
       setSubstituteStatus('success');
     } catch (error) {
       setSubstituteStatus('error');
@@ -544,11 +541,17 @@ export default function Home() {
 
       <RecipeModal
         recipe={selectedRecipe}
-        onClose={() => setSelectedRecipe(null)}
+        onClose={() => {
+          setSelectedRecipe(null);
+          setSubstituteSuggestions([]);
+          setSubstituteStatus('idle');
+          setSubstituteError(null);
+        }}
         restrictedIngredients={restrictedIngredients}
         onSubstituteRecipe={handleSubstituteRecipe}
         substituteStatus={substituteStatus}
         substituteError={substituteError}
+        substituteSuggestions={substituteSuggestions}
       />
     </div>
   );
