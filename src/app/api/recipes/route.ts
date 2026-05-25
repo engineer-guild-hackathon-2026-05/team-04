@@ -33,7 +33,7 @@ export async function GET() {
           quantity,
           is_optional,
           display_name_ja,
-          ingredients ( ingredient_code, name_ja, name_en, category, is_allergen, dietary_tags )
+          ingredients!recipe_ingredients_ingredient_id_fkey ( ingredient_code, name_ja, name_en, category, is_allergen, dietary_tags )
         ),
         recipe_culture_sections (
           section_key,

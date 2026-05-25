@@ -12,6 +12,17 @@ assert.match(
 );
 
 assert.match(
+  routeSource,
+  /ingredients!recipe_ingredients_ingredient_id_fkey\s*\([\s\S]*?ingredient_code[\s\S]*?name_ja[\s\S]*?dietary_tags[\s\S]*?\)/,
+  '/api/recipes select は recipe_ingredients.ingredient_id 側の ingredients FK を明示し、substituted_from_ingredient_id 追加後も PostgREST embed を曖昧にしないでください。',
+);
+assert.doesNotMatch(
+  routeSource,
+  /[^!]ingredients\s*\(\s*ingredient_code/,
+  '/api/recipes select で bare ingredients(...) embed を使うと複数FK環境で PGRST201 になります。',
+);
+
+assert.match(
   mockDataSource,
   /export\s+type\s+RecipeCultureSectionKey\s*=\s*['"]origin['"]\s*\|\s*['"]food_culture['"]|export\s+type\s+RecipeCultureSectionKey\s*=\s*['"]food_culture['"]\s*\|\s*['"]origin['"]/,
   'RecipeCultureSectionKey は origin / food_culture の union として公開してください。',
