@@ -10,6 +10,9 @@ const substituteRoute = read('src/app/api/recipes/[id]/substitute/route.ts');
 const recipeAi = read('src/lib/recipeAi.ts');
 const openRouter = read('src/lib/server/openRouter.ts');
 const listView = read('src/app/components/ListView.tsx');
+const page = read('src/app/page.tsx');
+const recipeModal = read('src/app/components/RecipeModal.tsx');
+const globalsCss = read('src/app/globals.css');
 const dropWriteRpcMigration = read('supabase/migrations/20260525143000_drop_ai_recipe_write_rpcs.sql');
 
 assert.doesNotMatch(
@@ -150,5 +153,51 @@ assert.ok(aiIndex === -1 || authzIndex < aiIndex, 'substitute route must authori
 assert.equal(persistIndex, -1, 'substitute route must not persist AI output or call service-role/RPC writes.');
 assert.match(substituteRoute, /from\('ingredients'\)[\s\S]*select\('ingredient_code, name_ja, name_en, category, dietary_tags'\)/, 'substitute route must load replacement candidates from the existing ingredient catalog.');
 assert.match(substituteRoute, /NextResponse\.json\(\{\s*substitutions,\s*source:\s*['"]ai['"]/, 'substitute route must return modal-only substitutions, not a persisted recipe.');
+
+assert.match(
+  page,
+  /substituteCacheKey[\s\S]*restrictedIngredients[\s\S]*cachedSubstitutions[\s\S]*return[\s\S]*fetch\(`\/api\/recipes\/\$\{recipeId\}\/substitute`/,
+  'page must reuse modal substitution cache before calling the AI substitute API again when the recipe and restrictions match.',
+);
+assert.match(
+  page,
+  /setSubstituteCache\(\(currentCache\)\s*=>\s*\(\{\s*\.\.\.currentCache,\s*\[substituteCacheKey\]:\s*substitutions\s*\}\)\)/,
+  'page must cache the computed substitution mapping by recipe id and current restrictions.',
+);
+assert.match(
+  page,
+  /onClose=\{\(\)\s*=>\s*\{[\s\S]*setSelectedRecipe\(null\)[\s\S]*setSubstituteSuggestions\(\[\]\)[\s\S]*setSubstituteStatus\('idle'\)/,
+  'closing the modal must reset the visible substituted session so reopening starts from the original recipe.',
+);
+assert.doesNotMatch(
+  page,
+  /setSubstituteCache\(\{\}\)|setSubstituteCache\(\(\)/,
+  'closing the modal must not clear the per-recipe substitution cache.',
+);
+assert.doesNotMatch(
+  page + recipeModal,
+  /setSelectedRecipe\(substitutedRecipe\)|setRecipes\([^)]*substitut|recipe\.ingredients\s*=/i,
+  'modal substitution must not mutate the selected recipe object or recipe list.',
+);
+assert.match(
+  recipeModal,
+  /findSubstitutionForIngredient[\s\S]*getBaseIngredientName/,
+  'RecipeModal must map AI substitutions onto existing ingredient rows for modal-only display.',
+);
+assert.match(
+  recipeModal,
+  /renderSubstitutedStepText[\s\S]*substituted-step-highlight/,
+  'RecipeModal must rewrite matching instruction text only while substitutions are active.',
+);
+assert.match(
+  recipeModal,
+  /substituted-original[\s\S]*substituted-replacement[\s\S]*substitution-badge-tag/s,
+  'RecipeModal ingredient list must show original and replacement ingredients with a visible badge.',
+);
+assert.match(
+  globalsCss,
+  /\.ingredient-item\.is-substituted[\s\S]*\.substituted-step-highlight[\s\S]*\.modal-substitute-btn[\s\S]*var\(--forest-green\)/,
+  'substituted ingredients/steps and the substitute button must use the green theme highlight styles.',
+);
 
 console.log('AI recipe issue-fix regression checks passed');

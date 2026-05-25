@@ -320,5 +320,6 @@ export function aiRecipeToRecipe(aiRecipe: AiGeneratedRecipe, id: string, parent
       is_optional: ingredient.is_optional,
     })),
     steps: aiRecipe.steps.map((step): RecipeStep => ({ order: step.order, text: step.text })),
+    culture_sections: [],
   };
 }

@@ -1624,6 +1624,34 @@ button, input {
   border-bottom-color: #fca5a5;
 }
 
+.ingredient-item.is-substituted {
+  background: linear-gradient(135deg, rgba(216, 243, 220, 0.86), rgba(255, 255, 255, 0.95));
+  border: 1px solid rgba(82, 183, 136, 0.42);
+  border-bottom-color: rgba(82, 183, 136, 0.42);
+}
+
+.substituted-ingredient-name {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.substituted-original {
+  color: var(--text-light);
+  text-decoration: line-through;
+}
+
+.substituted-arrow {
+  color: var(--forest-green);
+  font-weight: 900;
+}
+
+.substituted-replacement {
+  color: var(--forest-green);
+  font-weight: 900;
+}
+
 .allergen-badge-tag {
   background-color: #ef4444;
   color: white;
@@ -1631,6 +1659,15 @@ button, input {
   border-radius: 6px;
   font-size: 0.68rem;
   font-weight: 700;
+}
+
+.substitution-badge-tag {
+  background-color: var(--forest-green);
+  color: white;
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-size: 0.68rem;
+  font-weight: 800;
 }
 
 .ingredient-qty {
@@ -1672,6 +1709,22 @@ button, input {
   line-height: 1.7;
   color: var(--text-primary);
   padding-top: 2px;
+}
+
+.substituted-step-highlight {
+  display: inline;
+  padding: 1px 5px;
+  border-radius: 7px;
+  background-color: rgba(216, 243, 220, 0.95);
+  color: var(--forest-green);
+  font-weight: 900;
+}
+
+.substituted-step-original {
+  margin-left: 2px;
+  color: var(--text-muted);
+  font-size: 0.86em;
+  font-weight: 700;
 }
 
 
@@ -1721,10 +1774,10 @@ button, input {
   border: none;
   border-radius: 14px;
   color: white;
-  background: linear-gradient(135deg, var(--copper), var(--gold));
+  background: linear-gradient(135deg, var(--forest-green), var(--forest-hover));
   font-weight: 900;
   cursor: pointer;
-  box-shadow: 0 8px 22px rgba(180, 83, 9, 0.18);
+  box-shadow: 0 8px 22px rgba(27, 67, 50, 0.18);
 }
 
 .modal-substitute-btn:disabled {

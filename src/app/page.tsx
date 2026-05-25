@@ -206,6 +206,7 @@ export default function Home() {
   const [substituteStatus, setSubstituteStatus] = useState<AiRequestStatus>('idle');
   const [substituteError, setSubstituteError] = useState<string | null>(null);
   const [substituteSuggestions, setSubstituteSuggestions] = useState<IngredientSubstitution[]>([]);
+  const [substituteCache, setSubstituteCache] = useState<Record<string, IngredientSubstitution[]>>({});
 
   useEffect(() => {
     const parsed = readStoredProfile(PROFILE_STORAGE_KEY, 'local storage profile');
@@ -390,6 +391,15 @@ export default function Home() {
   };
 
   const handleSubstituteRecipe = async (recipeId: string) => {
+    const substituteCacheKey = `${recipeId}:${[...restrictedIngredients].sort().join('|')}`;
+    const cachedSubstitutions = substituteCache[substituteCacheKey];
+    if (cachedSubstitutions) {
+      setSubstituteSuggestions(cachedSubstitutions);
+      setSubstituteStatus('success');
+      setSubstituteError(null);
+      return;
+    }
+
     setSubstituteStatus('loading');
     setSubstituteError(null);
     setSubstituteSuggestions([]);
@@ -411,6 +421,7 @@ export default function Home() {
 
       const substitutions = Array.isArray(body?.substitutions) ? body.substitutions : [];
       setSubstituteSuggestions(substitutions);
+      setSubstituteCache((currentCache) => ({ ...currentCache, [substituteCacheKey]: substitutions }));
       setSubstituteStatus('success');
     } catch (error) {
       setSubstituteStatus('error');
