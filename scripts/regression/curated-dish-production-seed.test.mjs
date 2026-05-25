@@ -10,6 +10,7 @@ const mappingPath = 'src/lib/recipeMapping.ts';
 const displayBackfillMigrationPath = 'supabase/migrations/20260525093000_backfill_curated_ingredient_display_names.sql';
 const mockCleanupMigrationPath = 'supabase/migrations/20260525094500_remove_mock_recipe_ingredients.sql';
 const cevicheFishBackfillMigrationPath = 'supabase/migrations/20260525124500_tag_ceviche_fish_ingredient.sql';
+const southeastAsiaMigrationPath = 'supabase/migrations/20260525101000_add_southeast_asian_curated_dishes.sql';
 
 const dishes = JSON.parse(readFileSync(seedPath, 'utf8'));
 const migrationSource = readFileSync(migrationPath, 'utf8');
@@ -21,7 +22,10 @@ const mappingSource = readFileSync(mappingPath, 'utf8');
 const displayBackfillMigrationSource = readFileSync(displayBackfillMigrationPath, 'utf8');
 const mockCleanupMigrationSource = readFileSync(mockCleanupMigrationPath, 'utf8');
 const cevicheFishBackfillMigrationSource = readFileSync(cevicheFishBackfillMigrationPath, 'utf8');
-const migrationPayload = JSON.parse(migrationSource.match(/\$curated_dishes\$([\s\S]+?)\$curated_dishes\$::jsonb/)?.[1] ?? '[]');
+const southeastAsiaMigrationSource = readFileSync(southeastAsiaMigrationPath, 'utf8');
+const baseMigrationPayload = JSON.parse(migrationSource.match(/\$curated_dishes\$([\s\S]+?)\$curated_dishes\$::jsonb/)?.[1] ?? '[]');
+const southeastAsiaMigrationPayload = JSON.parse(southeastAsiaMigrationSource.match(/\$southeast_asian_dishes\$([\s\S]+?)\$southeast_asian_dishes\$::jsonb/)?.[1] ?? '[]');
+const migrationPayload = [...baseMigrationPayload, ...southeastAsiaMigrationPayload];
 const forbiddenTags = new Set(['実データ', 'Web調査']);
 
 assert.doesNotMatch(
@@ -49,8 +53,14 @@ assert.match(migrationSource, /category = 'mock料理'/, 'fresh DB replacement m
 assert.match(mockCleanupMigrationSource, /name_en like 'mock:%:ingredient:%'/i, 'already-applied remote DB 用の mock ingredient cleanup migration が必要です。');
 assert.match(mockCleanupMigrationSource, /category = 'mock料理'/, 'mock cleanup migration は mock料理 category を削除対象にしてください。');
 assert.match(mockCleanupMigrationSource, /not exists[\s\S]*recipe_ingredients/i, 'mock cleanup は参照中 ingredient を削除しない安全条件を持ってください。');
+assert.match(southeastAsiaMigrationSource, /delete from public\.recipes[\s\S]*_southeast_asian_dish_seed/i, '東南アジア追加 migration は対象 curated recipe だけを安全に refresh してください。');
+assert.match(southeastAsiaMigrationSource, /recipe_research_sources/i, '東南アジア追加 migration も調査・写真出典を DB に保存してください。');
+assert.match(southeastAsiaMigrationSource, /select distinct on \(r\.id, s\.source_url\)/i, '東南アジア追加 migration は重複した調査URLと写真URLを dedupe して再実行可能にしてください。');
 
-assert.equal(dishes.length, 20, 'curated seed は production 品質の 20 件に絞ってください。');
+assert.equal(dishes.length, 30, 'curated seed は production 品質の 30 件（既存20件 + 東南アジア10件）にしてください。');
+assert.equal(southeastAsiaMigrationPayload.length, 10, '東南アジア追加 migration は10件の料理を追加してください。');
+assert.ok(southeastAsiaMigrationPayload.every((dish) => ['ベトナム', 'タイ', 'シンガポール', 'カンボジア', 'ラオス', 'インドネシア'].includes(dish.cuisine)), '追加10件は東南アジア料理に限定してください。');
+assert.ok(southeastAsiaMigrationPayload.filter((dish) => dish.is_gluten_free).length >= 8, '米麺・米料理中心の追加として、東南アジア10件の大半を gluten-free にしてください。');
 assert.equal(new Set(dishes.map((dish) => dish.source_ref)).size, dishes.length, 'source_ref は重複させないでください。');
 assert.equal(new Set(dishes.map((dish) => dish.title)).size, dishes.length, '料理名は重複させないでください。');
 assert.deepEqual(migrationPayload, dishes, 'curated-dishes.json と migration 埋め込み JSON を同期してください。');
@@ -138,13 +148,21 @@ for (const dish of dishes) {
 
   assert.ok(Array.isArray(dish.source_urls) && dish.source_urls.length >= 2, `${dish.title} はレシピ・由来調査の出典を複数持つ必要があります。`);
   assert.ok(Array.isArray(dish.ingredients) && dish.ingredients.length >= 4, `${dish.title} は材料を十分に持つ必要があります。`);
+  const resolvedIngredientKeys = dish.ingredients.map((ingredient, index) => (
+    ingredient.master_name_en || `${dish.source_ref}:ingredient:${String(index + 1).padStart(2, '0')}`
+  ));
+  assert.equal(
+    new Set(resolvedIngredientKeys).size,
+    resolvedIngredientKeys.length,
+    `${dish.title} は同一 recipe 内で同じ master ingredient を重複登録しないでください。`,
+  );
   const supportedAllergenMappings = [
     [/小麦|バゲット|中華麺/, 'wheat'],
     [/乳|牛乳|モッツァレラ|チーズ|ヨーグルト/, 'milk'],
     [/卵/, 'egg'],
     [/えび/, 'shrimp'],
     [/かに/, 'crab'],
-    [/落花生/, 'peanut'],
+    [/落花生|ピーナッツ/, 'peanut'],
     [/ごま|タヒニ/, 'sesame'],
     [/大豆|豆腐|醤油|豆板醤|豆豉|コチュジャン/, 'soybean'],
     [/牛肉|牛ひき肉|牛骨/, 'beef'],
