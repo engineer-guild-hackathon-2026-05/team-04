@@ -81,8 +81,7 @@ function LoginForm() {
         }
 
         if (demoSignInResult === 'failed') {
-          setErrorMessage('デモログインに失敗しました。時間をおいてもう一度お試しください。');
-          return;
+          console.warn('Demo login probe failed. Falling back to Supabase password auth.');
         }
 
         const supabase = createClient();

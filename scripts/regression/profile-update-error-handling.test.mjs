@@ -19,7 +19,7 @@ assert.match(
 
 assert.match(
   source,
-  /if\s*\(profileUpdateError\)\s*throw\s+profileUpdateError;[\s\S]*await\s+replaceRestrictedIngredients\(supabase,\s*user\.id,\s*profile\.restrictedIngredients\);/,
+  /if\s*\(profileUpdateError\)\s*throw\s+profileUpdateError;[\s\S]*await\s+replaceRestrictedIngredients\([\s\S]*supabase,[\s\S]*user\.id,[\s\S]*profile\.restrictedIngredients[\s\S]*\);/,
   'profile name 更新に失敗した場合は制限食材の置換へ進まず、catch で同期失敗として扱ってください。',
 );
 

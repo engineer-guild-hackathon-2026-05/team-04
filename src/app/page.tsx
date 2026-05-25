@@ -13,10 +13,13 @@ import { createClient } from '@/lib/supabase/client';
 type CurrentView = 'landing' | 'list' | 'profile';
 type AuthStatus = 'checking' | 'authenticated' | 'unauthenticated';
 
+type RestrictionReason = 'allergy' | 'dislike' | 'religious';
+
 type StoredProfile = {
   email?: string;
   userName?: string;
   restrictedIngredients?: string[];
+  restrictedIngredientReasons?: Record<string, RestrictionReason>;
   preferredDishes?: string[];
   preferredCuisines?: string[];
 };
@@ -25,12 +28,16 @@ const PROFILE_STORAGE_KEY = 'globalbites_profile';
 const DEMO_PROFILE_STORAGE_KEY = 'globalbites_demo_profile';
 
 const ingredientMasterIds = new Set(INGREDIENT_MASTER.map((ingredient) => ingredient.id));
-const ingredientNameToLocalId = new Map(
-  INGREDIENT_MASTER.map((ingredient) => [ingredient.name_ja, ingredient.id]),
+const ingredientNameEnToLocalId = new Map(
+  INGREDIENT_MASTER.map((ingredient) => [ingredient.name_en, ingredient.id]),
 );
+const ingredientByLocalId = new Map(
+  INGREDIENT_MASTER.map((ingredient) => [ingredient.id, ingredient]),
+);
+const religiousRestrictionIds = new Set(['ing-pork', 'ing-beef', 'ing-shrimp', 'ing-crab', 'ing-gelatin']);
 
 type RestrictedIngredientSyncResult =
-  | { ok: true; localIds: string[] }
+  | { ok: true; localIds: string[]; reasons: Record<string, RestrictionReason> }
   | { ok: false; error: unknown };
 
 type RestrictedIngredientDbRow = {
@@ -69,6 +76,33 @@ function mergeSyncedRestrictedIngredients(localIds: string[], databaseIngredient
   return Array.from(new Set([...databaseIngredientIds, ...localOnlyRestrictionIds]));
 }
 
+function isRestrictionReason(value: unknown): value is RestrictionReason {
+  return value === 'allergy' || value === 'dislike' || value === 'religious';
+}
+
+function inferRestrictionReason(localId: string): RestrictionReason {
+  if (religiousRestrictionIds.has(localId)) return 'religious';
+  if (!ingredientMasterIds.has(localId)) return 'dislike';
+  return 'allergy';
+}
+
+function mergeRestrictionReasons(
+  selectedIds: string[],
+  savedReasons: Record<string, RestrictionReason> = {},
+) {
+  return Object.fromEntries(
+    selectedIds.map((id) => [id, savedReasons[id] ?? inferRestrictionReason(id)]),
+  ) as Record<string, RestrictionReason>;
+}
+
+function localIngredients(localIds: string[]) {
+  return localIds
+    .map((id) => ingredientByLocalId.get(id))
+    .filter((ingredient): ingredient is NonNullable<ReturnType<typeof ingredientByLocalId.get>> =>
+      Boolean(ingredient),
+    );
+}
+
 type DemoSessionStatus = 'authenticated' | 'unauthenticated' | 'disabled' | 'failed';
 
 async function fetchDemoSession(): Promise<DemoSessionStatus> {
@@ -80,39 +114,54 @@ async function fetchDemoSession(): Promise<DemoSessionStatus> {
   return 'failed';
 }
 
-function localIngredientNames(localIds: string[]) {
-  const selected = new Set(localIds);
-  return INGREDIENT_MASTER.filter((ingredient) => selected.has(ingredient.id)).map(
-    (ingredient) => ingredient.name_ja,
-  );
-}
-
 async function fetchRestrictedIngredientLocalIds(
   supabase: ReturnType<typeof createClient>,
   userId: string,
 ): Promise<RestrictedIngredientSyncResult> {
   const { data: restrictedRows, error: restrictedError } = await supabase
     .from('user_restricted_ingredients')
-    .select('ingredient_id')
+    .select('ingredient_id, reason')
     .eq('user_id', userId);
 
   if (restrictedError) return { ok: false, error: restrictedError };
 
   const ingredientIds = restrictedRows?.map((row) => row.ingredient_id).filter(Boolean) ?? [];
-  if (ingredientIds.length === 0) return { ok: true, localIds: [] };
+  if (ingredientIds.length === 0) return { ok: true, localIds: [], reasons: {} };
+
+  const reasonByIngredientId = new Map<string, unknown>(
+    restrictedRows
+      ?.filter((row) => Boolean(row.ingredient_id))
+      .map((row) => [row.ingredient_id, row.reason] as const) ?? [],
+  );
 
   const { data: ingredients, error: ingredientError } = await supabase
     .from('ingredients')
-    .select('id, name_ja')
+    .select('id, name_en')
     .in('id', ingredientIds);
 
   if (ingredientError) return { ok: false, error: ingredientError };
 
-  const localIds = ingredients
-    ?.map((ingredient) => ingredientNameToLocalId.get(ingredient.name_ja))
-    .filter((id): id is string => Boolean(id)) ?? [];
+  const syncedPairs = ingredients
+    ?.map((ingredient) => {
+      const localId = ingredientNameEnToLocalId.get(ingredient.name_en);
+      if (!localId) return null;
+      return {
+        localId,
+        reason: reasonByIngredientId.get(ingredient.id),
+      };
+    })
+    .filter((pair): pair is { localId: string; reason: unknown } => Boolean(pair)) ?? [];
 
-  return { ok: true, localIds };
+  return {
+    ok: true,
+    localIds: syncedPairs.map((pair) => pair.localId),
+    reasons: Object.fromEntries(
+      syncedPairs.map((pair) => [
+        pair.localId,
+        isRestrictionReason(pair.reason) ? pair.reason : inferRestrictionReason(pair.localId),
+      ]),
+    ) as Record<string, RestrictionReason>,
+  };
 }
 
 async function restoreRestrictedIngredientRows(
@@ -139,20 +188,22 @@ async function replaceRestrictedIngredients(
   supabase: ReturnType<typeof createClient>,
   userId: string,
   localIds: string[],
+  restrictionReasons: Record<string, RestrictionReason> = {},
 ) {
-  const names = localIngredientNames(localIds);
-  let replacementIngredients: { id: string; name_ja: string }[] = [];
+  const selectedIngredients = localIngredients(localIds);
+  const uniqueNameEns = Array.from(new Set(selectedIngredients.map((ingredient) => ingredient.name_en)));
+  let replacementIngredients: { id: string; name_en: string }[] = [];
 
-  if (names.length > 0) {
+  if (uniqueNameEns.length > 0) {
     const { data: ingredients, error } = await supabase
       .from('ingredients')
-      .select('id, name_ja')
-      .in('name_ja', names);
+      .select('id, name_en')
+      .in('name_en', uniqueNameEns);
 
     if (error) throw error;
 
     replacementIngredients = ingredients ?? [];
-    if (replacementIngredients.length !== names.length) {
+    if (replacementIngredients.length !== uniqueNameEns.length) {
       throw new Error('Some restricted ingredients could not be resolved before replacement.');
     }
   }
@@ -164,11 +215,23 @@ async function replaceRestrictedIngredients(
 
   if (existingError) throw existingError;
 
-  const inserts = replacementIngredients.map((ingredient) => ({
-    user_id: userId,
-    ingredient_id: ingredient.id,
-    reason: 'allergy',
-  }));
+  const existingReasonByIngredientId = new Map(
+    ((existingRows ?? []) as RestrictedIngredientDbRow[]).map((row) => [row.ingredient_id, row.reason]),
+  );
+
+  const inserts = replacementIngredients.map((ingredient) => {
+    const localId = ingredientNameEnToLocalId.get(ingredient.name_en);
+    return {
+      user_id: userId,
+      ingredient_id: ingredient.id,
+      reason: localId
+        ? (restrictionReasons[localId] ??
+          (isRestrictionReason(existingReasonByIngredientId.get(ingredient.id))
+            ? existingReasonByIngredientId.get(ingredient.id) as RestrictionReason
+            : inferRestrictionReason(localId)))
+        : 'allergy',
+    };
+  });
 
   const { error: deleteError } = await supabase
     .from('user_restricted_ingredients')
@@ -196,6 +259,7 @@ export default function Home() {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
   const [userName, setUserName] = useState<string>('ゲスト愛好家');
   const [restrictedIngredients, setRestrictedIngredients] = useState<string[]>([]);
+  const [restrictedIngredientReasons, setRestrictedIngredientReasons] = useState<Record<string, RestrictionReason>>({});
   const [preferredDishes, setPreferredDishes] = useState<string[]>([]);
   const [preferredCuisines, setPreferredCuisines] = useState<string[]>([]);
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
@@ -205,7 +269,12 @@ export default function Home() {
     const locallyStoredRestrictedIngredients = parsed?.restrictedIngredients ?? [];
 
     if (parsed?.userName) setUserName(parsed.userName);
-    if (parsed?.restrictedIngredients) setRestrictedIngredients(parsed.restrictedIngredients);
+    if (parsed?.restrictedIngredients) {
+      setRestrictedIngredients(parsed.restrictedIngredients);
+      setRestrictedIngredientReasons(
+        mergeRestrictionReasons(parsed.restrictedIngredients, parsed.restrictedIngredientReasons),
+      );
+    }
     if (parsed?.preferredDishes) setPreferredDishes(parsed.preferredDishes);
     if (parsed?.preferredCuisines) setPreferredCuisines(parsed.preferredCuisines);
 
@@ -273,7 +342,15 @@ export default function Home() {
               restrictedIngredientSync.localIds,
             );
             setRestrictedIngredients(mergedRestrictedIngredients);
-            writeStoredProfile({ restrictedIngredients: mergedRestrictedIngredients });
+            const mergedRestrictionReasons = mergeRestrictionReasons(
+              mergedRestrictedIngredients,
+              { ...parsed?.restrictedIngredientReasons, ...restrictedIngredientSync.reasons },
+            );
+            setRestrictedIngredientReasons(mergedRestrictionReasons);
+            writeStoredProfile({
+              restrictedIngredients: mergedRestrictedIngredients,
+              restrictedIngredientReasons: mergedRestrictionReasons,
+            });
           } else {
             console.warn(
               'Supabase restricted ingredient sync failed. Keeping local restrictions.',
@@ -303,6 +380,10 @@ export default function Home() {
         updates.restrictedIngredients !== undefined
           ? updates.restrictedIngredients
           : restrictedIngredients,
+      restrictedIngredientReasons:
+        updates.restrictedIngredientReasons !== undefined
+          ? updates.restrictedIngredientReasons
+          : restrictedIngredientReasons,
       preferredDishes: updates.preferredDishes !== undefined ? updates.preferredDishes : preferredDishes,
       preferredCuisines:
         updates.preferredCuisines !== undefined ? updates.preferredCuisines : preferredCuisines,
@@ -337,6 +418,7 @@ export default function Home() {
     setIsLoggedIn(false);
     setUserName('ゲスト愛好家');
     setRestrictedIngredients([]);
+    setRestrictedIngredientReasons({});
     setPreferredDishes([]);
     setPreferredCuisines([]);
     localStorage.removeItem(PROFILE_STORAGE_KEY);
@@ -349,17 +431,20 @@ export default function Home() {
   const handleSaveProfile = async (profile: {
     userName: string;
     restrictedIngredients: string[];
+    restrictedIngredientReasons: Record<string, RestrictionReason>;
     preferredDishes: string[];
     preferredCuisines: string[];
   }) => {
     setUserName(profile.userName);
     setRestrictedIngredients(profile.restrictedIngredients);
+    setRestrictedIngredientReasons(profile.restrictedIngredientReasons);
     setPreferredDishes(profile.preferredDishes);
     setPreferredCuisines(profile.preferredCuisines);
 
     saveToLocalStorage({
       userName: profile.userName,
       restrictedIngredients: profile.restrictedIngredients,
+      restrictedIngredientReasons: profile.restrictedIngredientReasons,
       preferredDishes: profile.preferredDishes,
       preferredCuisines: profile.preferredCuisines,
     });
@@ -371,6 +456,7 @@ export default function Home() {
       writeDemoProfile({
         userName: profile.userName,
         restrictedIngredients: profile.restrictedIngredients,
+        restrictedIngredientReasons: profile.restrictedIngredientReasons,
         preferredDishes: profile.preferredDishes,
         preferredCuisines: profile.preferredCuisines,
       });
@@ -394,7 +480,12 @@ export default function Home() {
         .eq('id', user.id);
       if (profileUpdateError) throw profileUpdateError;
 
-      await replaceRestrictedIngredients(supabase, user.id, profile.restrictedIngredients);
+      await replaceRestrictedIngredients(
+        supabase,
+        user.id,
+        profile.restrictedIngredients,
+        profile.restrictedIngredientReasons,
+      );
     } catch (dbErr) {
       console.warn('Supabase DB update failed. Synchronized locally.', dbErr);
     }
@@ -444,6 +535,7 @@ export default function Home() {
           <ProfileView
             initialUserName={userName}
             initialRestrictedIngredients={restrictedIngredients}
+            initialRestrictedIngredientReasons={restrictedIngredientReasons}
             initialPreferredDishes={preferredDishes}
             initialPreferredCuisines={preferredCuisines}
             onSaveProfile={handleSaveProfile}
