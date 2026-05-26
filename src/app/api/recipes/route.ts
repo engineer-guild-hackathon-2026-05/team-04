@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { mapRecipeRowToRecipe } from '@/lib/recipeMapping';
-import { createClient } from '@/lib/supabase/server';
+import { createPublicReadClient } from '@/lib/supabase/public';
 import type { RecipesResponse } from '@/lib/apiTypes';
 
 function unavailableResponse() {
@@ -13,7 +13,7 @@ export async function GET() {
   }
 
   try {
-    const supabase = await createClient();
+    const supabase = createPublicReadClient();
     const { data, error } = await supabase
       .from('recipes')
       .select(`

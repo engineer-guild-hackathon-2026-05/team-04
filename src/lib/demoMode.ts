@@ -4,7 +4,7 @@ export const DEMO_AUTH_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 7;
 const DEMO_COOKIE_VERSION = 'v1';
 
 export function isDemoModeEnabled() {
-  const value = process.env.DEMO_MODE?.toLowerCase();
+  const value = (process.env.DEMO_MODE ?? process.env.NEXT_PUBLIC_DEMO_MODE)?.toLowerCase();
   return value === 'true' || value === '1' || value === 'yes' || value === 'on';
 }
 

@@ -65,7 +65,7 @@ if (error) {
 
 ## DB-backed デモログイン
 
-発表・試用向けに、ログイン画面ではメール/パスワードとは別に「デモで体験する」ボタンを表示する。`DEMO_MODE=true` のときだけ有効になり、`POST /auth/demo` が `demo_sessions` に専用セッションを作成または復元する。
+発表・試用向けに、ログイン画面ではメール/パスワードとは別に「デモで体験する」ボタンを表示する。`NEXT_PUBLIC_DEMO_MODE=true` でボタンを表示し、`DEMO_MODE=true` で `/auth/demo` route を有効化すると、`POST /auth/demo` が `demo_sessions` に専用セッションを作成または復元する。
 
 - ブラウザの `localStorage` には `globalbites_demo_session_id` だけを保存し、これは復元ヒントとしてのみ使う
 - 実際の認証状態は server-issued の `globalbites_demo_auth` httpOnly 署名 Cookie で判定する
@@ -76,11 +76,14 @@ if (error) {
 必要な環境変数:
 
 ```
+NEXT_PUBLIC_DEMO_MODE=true
 DEMO_MODE=true
 SUPABASE_SERVICE_ROLE_KEY=<service role key>
 # 推奨: Cookie署名専用の長いランダム値。未設定時はservice role keyを署名にも使う。
 DEMO_SESSION_SECRET=<random secret>
 ```
+
+デモ用のenvを変更した場合は `npm run dev` を再起動する。`SUPABASE_SERVICE_ROLE_KEY` がない場合、ボタンは表示されても `/auth/demo` は 503 を返す。
 
 ## 認証方式の判断
 
