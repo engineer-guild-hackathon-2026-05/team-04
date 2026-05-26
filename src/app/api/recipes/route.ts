@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { mapRecipeRowToRecipe } from '@/lib/recipeMapping';
-import { createClient } from '@/lib/supabase/server';
 import { hasSupabaseConfig } from '@/lib/supabase/config';
+import { createPublicReadClient } from '@/lib/supabase/public';
 import type { RecipesResponse } from '@/lib/apiTypes';
 
 function unavailableResponse() {
@@ -14,8 +14,7 @@ export async function GET() {
   }
 
   try {
-    const supabase = await createClient();
-    const userId = (await supabase.auth.getUser()).data.user?.id ?? '00000000-0000-0000-0000-000000000000';
+    const supabase = createPublicReadClient();
     const { data, error } = await supabase
       .from('recipes')
       .select(`
@@ -54,7 +53,7 @@ export async function GET() {
           sort_order
         )
       `)
-      .or(`is_public.eq.true,created_by.eq.${userId}`)
+      .eq('is_public', true)
       .order('created_at', { ascending: false });
 
     if (error) throw error;

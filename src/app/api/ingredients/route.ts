@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { INGREDIENT_MASTER } from '@/lib/mockData';
 import { normalizeIngredientOption } from '@/lib/ingredientCodes';
-import { createClient } from '@/lib/supabase/server';
 import { hasSupabaseConfig } from '@/lib/supabase/config';
+import { createPublicReadClient } from '@/lib/supabase/public';
 import type { IngredientsResponse } from '@/lib/apiTypes';
 
 function fallbackResponse() {
@@ -15,7 +15,7 @@ export async function GET() {
   }
 
   try {
-    const supabase = await createClient();
+    const supabase = createPublicReadClient();
     const { data, error } = await supabase
       .from('ingredients')
       .select('ingredient_code, name_ja, name_en, category, dietary_tags')

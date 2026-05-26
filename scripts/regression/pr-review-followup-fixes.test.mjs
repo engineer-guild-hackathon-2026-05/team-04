@@ -12,29 +12,39 @@ const previousSignInFlow = (demoResult) => {
   if (demoResult === 'failed') return 'demo-error';
   return 'supabase-password';
 };
-const fixedSignInFlow = (demoResult) => {
-  if (demoResult === 'authenticated') return 'demo';
+const fixedSignInFlow = (submitKind, demoResult) => {
+  if (submitKind === 'demo') return demoResult === 'authenticated' ? 'demo' : 'demo-error';
   return 'supabase-password';
 };
 assert.equal(
   previousSignInFlow('failed'),
   'demo-error',
-  '再現: demo probe failed をログイン失敗扱いにすると通常の password auth に進みません。',
+  '再現: demo probe failed を通常ログイン内で扱うと password auth に進みません。',
 );
 assert.equal(
-  fixedSignInFlow('failed'),
+  fixedSignInFlow('password', 'failed'),
   'supabase-password',
-  '修正: demo probe failed でも Supabase password auth へ fallback してください。',
-);
-assert.doesNotMatch(
-  loginSource,
-  /demoSignInResult === 'failed'\) \{[\s\S]*setErrorMessage\('デモログインに失敗しました[\s\S]*return;/,
-  'demo probe failed で早期 return して通常ログインを塞がないでください。',
+  '修正: demo login は独立ボタンに分離し、通常submitは常に Supabase password auth へ進めてください。',
 );
 assert.match(
   loginSource,
-  /Demo login probe failed\. Falling back to Supabase password auth\./,
-  'demo probe failed は警告ログに留め、通常ログインへ進めてください。',
+  /const handleDemoSignIn = async \(\) => \{[\s\S]*tryDemoSignIn\(\)[\s\S]*router\.replace\(demoSignInResult\.isNew \? '\/app\?view=profile' : redirectTo\)/,
+  'demo login は一クリック専用ボタンで作成し、新規demo sessionはプロフィール設定へ送ってください。',
+);
+assert.match(
+  loginSource,
+  /const handleSubmit = async \(event: FormEvent<HTMLFormElement>\) => \{[\s\S]*supabase\.auth\.signInWithPassword/,
+  '通常ログインsubmitはdemo probeを通さずSupabase password authへ進めてください。',
+);
+assert.doesNotMatch(
+  loginSource.slice(loginSource.indexOf('const handleSubmit = async')),
+  /tryDemoSignIn|\/auth\/demo/,
+  '通常ログインsubmitへdemo probeを再導入しないでください。',
+);
+assert.match(
+  loginSource,
+  /<button className="auth-demo-btn" type="button" onClick=\{handleDemoSignIn\}/,
+  'ログイン画面には通常submitから独立したdemo loginボタンを表示してください。',
 );
 
 const previousReasonForInsert = () => 'allergy';

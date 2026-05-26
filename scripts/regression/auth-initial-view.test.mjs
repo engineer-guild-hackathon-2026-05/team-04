@@ -8,10 +8,16 @@ assert.match(source, /useState<AuthStatus>\('checking'\)/);
 assert.doesNotMatch(source, /useState<CurrentView>\('landing'\)/);
 assert.match(source, /if \(authStatus === 'checking'\) \{\s*return \([\s\S]*?role="status"[\s\S]*?\);\s*\}\s*return \(/);
 assert.match(source, /authStatus\s*===\s*'unauthenticated'\s*&&\s*currentView\s*===\s*'landing'\s*&&\s*\(\s*<LandingView/);
-assert.match(source, /if \(demoSession === 'authenticated'\) \{[\s\S]*?setIsLoggedIn\(true\);[\s\S]*?setCurrentView\('list'\);[\s\S]*?setAuthStatus\('authenticated'\);[\s\S]*?return;/);
-assert.doesNotMatch(source, /if \(demoSession === 'unauthenticated'\) \{[\s\S]*?setAuthStatus\('unauthenticated'\);[\s\S]*?return;/);
 
-const failedBlockStart = source.indexOf("if (demoSession === 'failed')");
+const demoBranchStart = source.indexOf("if (demoSession.status === 'authenticated')");
+assert.notEqual(demoBranchStart, -1, 'DB-backed demo authenticated branch を検査できません。');
+const demoBranch = source.slice(demoBranchStart, source.indexOf("if (demoSession.status === 'failed')", demoBranchStart));
+assert.match(demoBranch, /const remoteProfile = await fetchProfileFromApi\(\)/, 'demo session はDB-backed profile APIを読み取ってください。');
+assert.match(demoBranch, /const merged = mergeProfile\(null, remoteProfile\)/, 'demo session は通常localStorageを混ぜずDB profileだけで初期化してください。');
+assert.match(demoBranch, /setIsLoggedIn\(true\);[\s\S]*setCurrentView\(new URLSearchParams\(window\.location\.search\)\.get\('view'\) === 'profile' \? 'profile' : 'list'\);[\s\S]*setAuthStatus\('authenticated'\);[\s\S]*return;/, 'new demo は /app?view=profile でプロフィール設定へ進めてください。');
+assert.doesNotMatch(source, /if \(demoSession\.status === 'unauthenticated'\) \{[\s\S]*?setAuthStatus\('unauthenticated'\);[\s\S]*?return;/);
+
+const failedBlockStart = source.indexOf("if (demoSession.status === 'failed')");
 const apiFallbackStart = source.indexOf('const remoteProfile = await fetchProfileFromApi();', failedBlockStart);
 assert.ok(failedBlockStart !== -1 && apiFallbackStart !== -1, 'デモ認証チェック失敗時の profile API fallback を検査できません。');
 const failedBlock = source.slice(failedBlockStart, apiFallbackStart);

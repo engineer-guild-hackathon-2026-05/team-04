@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import type { User } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
-import { DEMO_AUTH_COOKIE, hasDemoAuthCookie, isDemoModeEnabled } from "@/lib/demoMode";
+import { DEMO_AUTH_COOKIE, getDemoSessionIdFromAuthCookie } from "@/lib/demoMode";
 import { getSupabaseConfig } from "@/lib/supabase/config";
 
 // Next.js middleware から呼ばれ、リクエストごとにセッション Cookie を更新する。
@@ -19,28 +19,19 @@ function clearDemoCookie(response: NextResponse) {
 export async function updateSession(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const demoCookieValue = request.cookies.get(DEMO_AUTH_COOKIE)?.value;
-  const isDemoEnabled = isDemoModeEnabled();
-  const shouldClearDemoCookie = Boolean(demoCookieValue) && !isDemoEnabled;
-  const isDemoAuthenticated = hasDemoAuthCookie(demoCookieValue);
-  const shouldClearInvalidDemoCookie = Boolean(demoCookieValue) && isDemoEnabled && !isDemoAuthenticated;
+  const demoSessionId = await getDemoSessionIdFromAuthCookie(demoCookieValue);
+  const isDemoAuthenticated = Boolean(demoSessionId);
+  const shouldClearInvalidDemoCookie = Boolean(demoCookieValue) && !isDemoAuthenticated;
 
   if (pathname === "/auth/demo") {
     const response = NextResponse.next({ request });
     // POST は route handler が有効な demo cookie を発行するため、middleware では削除 cookie を重ねない。
     const shouldClearAuthDemoCookie =
-      shouldClearDemoCookie || (request.method !== "POST" && shouldClearInvalidDemoCookie);
+      request.method !== "POST" && shouldClearInvalidDemoCookie;
     return shouldClearAuthDemoCookie ? clearDemoCookie(response) : response;
   }
 
   if (isDemoAuthenticated) {
-    if (pathname === "/login") {
-      const url = request.nextUrl.clone();
-      url.pathname = "/app";
-      url.search = "";
-      const response = NextResponse.redirect(url);
-      return shouldClearDemoCookie ? clearDemoCookie(response) : response;
-    }
-
     return NextResponse.next({ request });
   }
 
@@ -76,7 +67,7 @@ export async function updateSession(request: NextRequest) {
   }
 
   // 未ログインユーザーを保護ルートから /login にリダイレクト。
-  // 保護対象ルートはここに集約する。DEMO_MODE 中でも Supabase session を先に尊重する。
+  // 保護対象ルートはここに集約する。Supabase session とゲストCookieをそれぞれ尊重する。
   const isAuthenticated = Boolean(user);
   const isProtectedRoute = pathname.startsWith("/app");
   if (!isAuthenticated && isProtectedRoute) {
@@ -85,7 +76,7 @@ export async function updateSession(request: NextRequest) {
     url.search = "";
     url.searchParams.set("redirect", `${pathname}${request.nextUrl.search}`);
     const response = NextResponse.redirect(url);
-    return shouldClearDemoCookie || shouldClearInvalidDemoCookie ? clearDemoCookie(response) : response;
+    return shouldClearInvalidDemoCookie ? clearDemoCookie(response) : response;
   }
 
   if (isAuthenticated && pathname === "/login") {
@@ -93,10 +84,8 @@ export async function updateSession(request: NextRequest) {
     url.pathname = "/app";
     url.search = "";
     const response = NextResponse.redirect(url);
-    return shouldClearDemoCookie || shouldClearInvalidDemoCookie ? clearDemoCookie(response) : response;
+    return shouldClearInvalidDemoCookie ? clearDemoCookie(response) : response;
   }
 
-  return shouldClearDemoCookie || shouldClearInvalidDemoCookie
-    ? clearDemoCookie(supabaseResponse)
-    : supabaseResponse;
+  return shouldClearInvalidDemoCookie ? clearDemoCookie(supabaseResponse) : supabaseResponse;
 }

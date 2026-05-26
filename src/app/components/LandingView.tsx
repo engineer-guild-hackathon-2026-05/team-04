@@ -5,11 +5,10 @@ import { Clock, ShieldCheck, Sparkles } from 'lucide-react';
 import { MOCK_RECIPES, type Recipe } from '@/lib/mockData';
 
 interface LandingViewProps {
-  onSignIn: () => void;
   previewRecipes?: Recipe[];
 }
 
-export default function LandingView({ onSignIn, previewRecipes = MOCK_RECIPES }: LandingViewProps) {
+export default function LandingView({ previewRecipes = MOCK_RECIPES }: LandingViewProps) {
   return (
     <div className="landing-container">
       <section className="landing-hero" aria-labelledby="hero-title">

@@ -22,7 +22,8 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<publishable key>
 | Client Component（"use client"） | `@/lib/supabase/client` | ログインフォームのボタン押下時 |
 | Server Component / Server Action / Route Handler | `@/lib/supabase/server` | サーバー側でユーザー取得 |
 
-現在のMVPではSupabase service role clientを使わない。ユーザー操作はCookieセッション + RLSで制限し、`/api/me/profile` の取得・更新も本人確認済みセッションで行う。
+通常のユーザー操作はCookieセッション + RLSで制限し、`/api/me/profile` の取得・更新も本人確認済みセッションで行う。service role clientは通常ユーザー操作やAIレシピ保存には使わない。
+DB-backed デモセッションだけは `auth.users` に紐づかない専用テーブルを Route Handler 経由で扱うため、server-only の admin client を使う。
 
 ## メール + パスワードでサインアップ
 
@@ -57,6 +58,27 @@ if (error) {
 ```
 
 成功するとセッション Cookie が立ち、`/login` から `redirect` パラメータ（既定 `/app`）へ遷移する。
+
+
+## DB-backed デモログイン
+
+発表・試用向けに、ログイン画面ではメール/パスワードとは別に「デモで体験する」ボタンを常時表示する。これは旧 `DEMO_MODE` のような特殊モードではなく、DB-backed guest login として扱い、`POST /auth/demo` が `demo_sessions` に専用セッションを作成または復元する。
+
+- ブラウザの `localStorage` には `globalbites_demo_session_id` だけを保存し、これは復元ヒントとしてのみ使う
+- 実際の認証状態は server-issued の `globalbites_demo_auth` httpOnly 署名 Cookie で判定する
+- 新規デモセッションは `demo-user-001` のようなDB生成表示名を持ち、初回は `/app?view=profile` へ遷移してプロフィール設定を体験する
+- デモプロフィール、好み、NG材料は `/api/me/profile` 経由で `demo_profiles` / `demo_restricted_ingredients` に保存する
+- デモ用テーブルはRLSを有効化し、anon/authenticated向けの直接アクセスポリシーは作らない
+
+必要な環境変数:
+
+```
+SUPABASE_SERVICE_ROLE_KEY=<service role key>
+# 必須: Cookie署名専用の長いランダム値。service role keyとは分離する。
+DEMO_SESSION_SECRET=<random secret>
+```
+
+ゲストログイン用のenvを変更した場合は `npm run dev` を再起動する。`SUPABASE_SERVICE_ROLE_KEY` または `DEMO_SESSION_SECRET` がない場合、ボタンは表示されても `/auth/demo` は 503 を返す。旧 `DEMO_MODE` はこのDB-backed guest loginの有効/無効には使わない。
 
 ## 認証方式の判断
 
@@ -97,8 +119,8 @@ const { data: { user } } = await supabase.auth.getUser();
 
 | メソッド | 用途 | service role |
 |---|---|---|
-| `GET /api/me/profile` | `profiles`・`user_preferences`・NG材料設定を取得 | 使わない |
-| `PUT /api/me/profile` | 表示名・好み・NG材料設定を更新 | 使わない |
+| `GET /api/me/profile` | `profiles`・`user_preferences`・NG材料設定を取得。demo cookie が有効な場合は `demo_profiles` 等を取得 | 通常ユーザーは使わない / demo branch はserver-only admin clientを使う |
+| `PUT /api/me/profile` | 表示名・好み・NG材料設定を更新。demo cookie が有効な場合はdemo専用テーブルへ保存 | 通常ユーザーは使わない / demo branch はserver-only admin clientを使う |
 
 レスポンスの中心フィールド：
 
@@ -145,7 +167,7 @@ API側で存在しないコードを除外または400エラーにし、DB内部
 
 ## マイグレーション
 
-`supabase/migrations/20260524000001_init_schema.sql` で基本テーブルと RLS を定義し、`20260524190000_harden_auth_rls.sql` で auth / RLS の hardening を行う。
+`supabase/migrations/20260524000001_init_schema.sql` で基本テーブルと RLS を定義し、`20260524190000_harden_auth_rls.sql` で auth / RLS の hardening を行う。DB-backed デモログインは `20260525234000_add_demo_sessions.sql` で `demo_sessions` / `demo_profiles` / `demo_restricted_ingredients` を追加する。
 
 - `auth.users` 作成時に trigger で `profiles` 行が自動生成される
 - RLS により自分の行のみ SELECT / UPDATE 可能

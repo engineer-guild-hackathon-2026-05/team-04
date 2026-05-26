@@ -122,7 +122,7 @@ export async function getRecipeRouteUser(supabase: SupabaseServerClient): Promis
   }
 
   const cookieStore = await cookies();
-  if (hasDemoAuthCookie(cookieStore.get(DEMO_AUTH_COOKIE)?.value)) {
+  if (await hasDemoAuthCookie(cookieStore.get(DEMO_AUTH_COOKIE)?.value)) {
     return { id: '00000000-0000-0000-0000-000000000000', source: 'demo' };
   }
 

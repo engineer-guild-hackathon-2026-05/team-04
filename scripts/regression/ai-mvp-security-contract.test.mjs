@@ -40,16 +40,21 @@ assert.match(
   /^NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-supabase-publishable-key-here$/m,
   '.env.local.example must use the current Supabase publishable key variable.',
 );
+const aiRuntimeFiles = [
+  'src/app/api/recipes/suggest/route.ts',
+  'src/app/api/recipes/[id]/substitute/route.ts',
+  'src/lib/server/openRouter.ts',
+].map((path) => sourceTextByPath.get(path) ?? '').join('\n');
+
 assert.doesNotMatch(
-  `${envExample}
-${allSourceText}`,
+  aiRuntimeFiles,
   /SUPABASE_SECRET_KEY|SUPABASE_SERVICE_ROLE_KEY|createServiceRoleClient|persistAiRecipe|persistAiRecipes/i,
-  'AI features must not keep any Supabase secret-key/service-role persistence path.',
+  'AI runtime files must not keep any Supabase secret-key/service-role persistence path.',
 );
 assert.doesNotMatch(
   envExample,
-  /NEXT_PUBLIC_SUPABASE_ANON_KEY|SUPABASE_SERVICE_ROLE_KEY|SUPABASE_SECRET_KEY/,
-  '.env.local.example must not document Supabase secret/service-role key variables for AI runtime writes.',
+  /NEXT_PUBLIC_SUPABASE_ANON_KEY/,
+  '.env.local.example must use the current publishable-key env name for client Supabase config.',
 );
 assert.doesNotMatch(
   `${envExample}\n${allSourceText}`,

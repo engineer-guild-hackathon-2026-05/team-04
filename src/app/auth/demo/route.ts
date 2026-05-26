@@ -1,11 +1,23 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { DEMO_AUTH_COOKIE, hasDemoAuthCookie, isDemoModeEnabled } from '@/lib/demoMode';
-
-const DEMO_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 7;
+import {
+  DEMO_AUTH_COOKIE,
+  DEMO_AUTH_COOKIE_MAX_AGE_SECONDS,
+  createDemoAuthCookieValue,
+  getDemoSessionIdFromAuthCookie,
+  hasDemoSessionSigningSecret,
+} from '@/lib/demoMode';
+import { DEMO_SESSION_STORAGE_KEY, getDemoSession, isDemoPersistenceConfigured, restoreOrCreateDemoSession } from '@/lib/demoSession';
 
 type DemoLoginPayload = {
-  email?: string;
+  sessionId?: string;
 };
+
+function getDemoLoginSessionId(payload: unknown) {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return undefined;
+
+  const sessionId = (payload as DemoLoginPayload).sessionId;
+  return typeof sessionId === 'string' ? sessionId : undefined;
+}
 
 function clearDemoCookie(response: NextResponse) {
   response.cookies.set(DEMO_AUTH_COOKIE, '', {
@@ -16,9 +28,15 @@ function clearDemoCookie(response: NextResponse) {
   });
 }
 
-function createDisabledResponse() {
-  const response = NextResponse.json({ authenticated: false }, { status: 404 });
+function createUnavailableResponse() {
+  const response = NextResponse.json({ authenticated: false, error: 'Demo login is not configured.' }, { status: 503 });
   clearDemoCookie(response);
+  return response;
+}
+
+function createUnauthenticatedResponse({ clearCookie = false } = {}) {
+  const response = NextResponse.json({ authenticated: false }, { status: 401 });
+  if (clearCookie) clearDemoCookie(response);
   return response;
 }
 
@@ -26,16 +44,37 @@ function isSameOriginRequest(request: NextRequest) {
   return request.headers.get('origin') === request.nextUrl.origin;
 }
 
+function setDemoCookie(response: NextResponse, cookieValue: string) {
+  response.cookies.set(DEMO_AUTH_COOKIE, cookieValue, {
+    path: '/',
+    httpOnly: true,
+    maxAge: DEMO_AUTH_COOKIE_MAX_AGE_SECONDS,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+  });
+}
+
 export async function GET(request: NextRequest) {
-  if (!isDemoModeEnabled()) {
-    return createDisabledResponse();
+  if (!isDemoPersistenceConfigured() || !hasDemoSessionSigningSecret()) {
+    return createUnavailableResponse();
   }
 
-  if (!hasDemoAuthCookie(request.cookies.get(DEMO_AUTH_COOKIE)?.value)) {
-    return NextResponse.json({ authenticated: false }, { status: 401 });
+  const demoCookieValue = request.cookies.get(DEMO_AUTH_COOKIE)?.value;
+  const sessionId = await getDemoSessionIdFromAuthCookie(demoCookieValue);
+  if (!sessionId) {
+    return createUnauthenticatedResponse({ clearCookie: Boolean(demoCookieValue) });
   }
 
-  return NextResponse.json({ authenticated: true });
+  const session = await getDemoSession(sessionId);
+  if (!session) {
+    return createUnauthenticatedResponse({ clearCookie: true });
+  }
+
+  return NextResponse.json({
+    authenticated: true,
+    sessionId: session.id,
+    userName: session.display_name,
+  });
 }
 
 export async function POST(request: NextRequest) {
@@ -43,25 +82,22 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ authenticated: false }, { status: 403 });
   }
 
-  if (!isDemoModeEnabled()) {
-    return createDisabledResponse();
+  if (!isDemoPersistenceConfigured() || !hasDemoSessionSigningSecret()) {
+    return createUnavailableResponse();
   }
 
-  const payload = await request.json().catch((): DemoLoginPayload => ({}));
-  const fallbackName = payload.email?.split('@')[0] || 'デモユーザー';
+  const payload = await request.json().catch((): unknown => ({}));
+  const { session, isNew } = await restoreOrCreateDemoSession(getDemoLoginSessionId(payload));
+  const cookieValue = await createDemoAuthCookieValue(session.id);
   const response = NextResponse.json({
     authenticated: true,
-    userName: fallbackName,
+    sessionId: session.id,
+    sessionStorageKey: DEMO_SESSION_STORAGE_KEY,
+    userName: session.display_name,
+    isNew,
   });
 
-  response.cookies.set(DEMO_AUTH_COOKIE, '1', {
-    path: '/',
-    httpOnly: true,
-    maxAge: DEMO_COOKIE_MAX_AGE_SECONDS,
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
-  });
-
+  setDemoCookie(response, cookieValue);
   return response;
 }
 
