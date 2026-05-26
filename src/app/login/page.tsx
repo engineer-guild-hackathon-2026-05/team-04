@@ -27,6 +27,12 @@ type DemoSignInResult = {
   status: 'disabled' | 'failed';
 };
 
+async function clearDemoAuthState() {
+  localStorage.removeItem(DEMO_SESSION_STORAGE_KEY);
+  localStorage.removeItem(LEGACY_DEMO_PROFILE_STORAGE_KEY);
+  await fetch('/auth/demo', { method: 'DELETE' }).catch(() => null);
+}
+
 async function tryDemoSignIn(): Promise<DemoSignInResult> {
   const existingSessionId = localStorage.getItem(DEMO_SESSION_STORAGE_KEY);
   const response = await fetch('/auth/demo', {
@@ -111,6 +117,7 @@ function LoginForm() {
           setErrorMessage('メールアドレスまたはパスワードが正しくありません。');
           return;
         }
+        await clearDemoAuthState();
         router.replace(redirectTo);
         router.refresh();
         return;
@@ -131,6 +138,7 @@ function LoginForm() {
       }
 
       if (data.session) {
+        await clearDemoAuthState();
         router.replace(redirectTo);
         router.refresh();
         return;
