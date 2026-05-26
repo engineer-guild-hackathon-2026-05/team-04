@@ -16,9 +16,11 @@ assert.ok(
   'demo PUT は EMPTY_PROFILE ではなく、送信payloadを保存できるようにdemo判定前にpayloadを正規化してください。',
 );
 
-const demoBranchEnd = putRoute.indexOf('if (!process.env.NEXT_PUBLIC_SUPABASE_URL', demoIndex);
+const demoBranchStart = putRoute.indexOf('if (demoSessionId)', demoIndex);
+assert.notEqual(demoBranchStart, -1, 'demo PUT branch を検査できません。');
+const demoBranchEnd = putRoute.indexOf('if (!realUserContext)', demoBranchStart);
 assert.notEqual(demoBranchEnd, -1, 'demo PUT branch の終端を検査できません。');
-const demoBranch = putRoute.slice(demoIndex, demoBranchEnd);
+const demoBranch = putRoute.slice(demoBranchStart, demoBranchEnd);
 assert.doesNotMatch(
   demoBranch,
   /EMPTY_PROFILE/,

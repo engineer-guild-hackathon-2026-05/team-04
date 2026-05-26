@@ -250,4 +250,48 @@ assert.match(
   'signout は常に demo cookie をclearし、Supabase設定がある場合は既存Supabase sessionも失効してください。',
 );
 
+const previousProfileAuthPriority = ({ hasDemoCookie, hasSupabaseSession }) => {
+  if (hasDemoCookie) return 'demo-profile';
+  return hasSupabaseSession ? 'real-profile' : 'unauthenticated';
+};
+const fixedProfileAuthPriority = ({ hasDemoCookie, hasSupabaseSession }) => {
+  if (hasSupabaseSession) return 'real-profile';
+  return hasDemoCookie ? 'demo-profile' : 'unauthenticated';
+};
+
+assert.equal(
+  previousProfileAuthPriority({ hasDemoCookie: true, hasSupabaseSession: true }),
+  'demo-profile',
+  '再現: demo cookie と Supabase session が併存すると、profile API が real user より demo profile を優先していました。',
+);
+assert.equal(
+  fixedProfileAuthPriority({ hasDemoCookie: true, hasSupabaseSession: true }),
+  'real-profile',
+  '修正: profile API は Supabase session がある場合、残存 demo cookie より real user profile を優先してください。',
+);
+{
+  const getRouteSource = profileRouteSource.slice(
+    profileRouteSource.indexOf('export async function GET'),
+    profileRouteSource.indexOf('export async function PUT'),
+  );
+  const putRouteSource = profileRouteSource.slice(profileRouteSource.indexOf('export async function PUT'));
+  const getRealContextIndex = getRouteSource.indexOf('const realUserContext = await getRealUserContext()');
+  const getDemoBranchIndex = getRouteSource.indexOf('if (demoSessionId)');
+  const putRealContextIndex = putRouteSource.indexOf('const realUserContext = await getRealUserContext()');
+  const putDemoBranchIndex = putRouteSource.indexOf('if (demoSessionId)');
+
+  assert.ok(getRealContextIndex !== -1 && getRealContextIndex < getDemoBranchIndex, 'GET /api/me/profile は demo branch より先に Supabase real user session を解決してください。');
+  assert.ok(putRealContextIndex !== -1 && putRealContextIndex < putDemoBranchIndex, 'PUT /api/me/profile は demo branch より先に Supabase real user session を解決してください。');
+  assert.match(
+    getRouteSource,
+    /if \(realUserContext\?\.user && !realUserContext\.error\) \{[\s\S]*source,[\s\S]*\} satisfies ProfileResponse\);[\s\S]*if \(demoSessionId\)/,
+    'GET /api/me/profile は real user response を返せる場合に返してから demo profile fallback に進んでください。',
+  );
+  assert.match(
+    putRouteSource,
+    /if \(realUserContext\?\.user && !realUserContext\.error\) \{[\s\S]*source: 'database'[\s\S]*\} satisfies ProfileResponse\);[\s\S]*if \(demoSessionId\)/,
+    'PUT /api/me/profile は real user save を返せる場合に返してから demo save fallback に進んでください。',
+  );
+}
+
 console.log('PR #30 unresolved review regression checks passed');

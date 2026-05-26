@@ -102,6 +102,22 @@ async function getDemoSessionIdForRequest(request: NextRequest) {
   return sessionId;
 }
 
+function hasPublicSupabaseConfig() {
+  return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+}
+
+async function getRealUserContext() {
+  if (!hasPublicSupabaseConfig()) return null;
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+
+  return { supabase, user, error };
+}
+
 
 async function restoreRestrictedIngredientRows(
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -391,28 +407,10 @@ export async function GET(request: NextRequest) {
   if (demoSessionId === 'mismatch') {
     return NextResponse.json({ error: 'Invalid demo session.' }, { status: 403 });
   }
-  if (demoSessionId) {
-    if (!isDemoPersistenceConfigured()) {
-      return NextResponse.json({ error: 'Demo persistence is not configured.' }, { status: 503 });
-    }
-    const demoProfile = await readDemoProfile(demoSessionId);
-    if (!demoProfile) return createMissingDemoSessionResponse();
-    return NextResponse.json(demoProfile);
-  }
 
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    return NextResponse.json({ error: 'Supabase is not configured.' }, { status: 503 });
-  }
-
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
-
-  if (userError || !user) {
-    return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
-  }
+  const realUserContext = await getRealUserContext();
+  if (realUserContext?.user && !realUserContext.error) {
+    const { supabase, user } = realUserContext;
 
   const fallbackName =
     user.user_metadata?.name || user.user_metadata?.display_name || user.email?.split('@')[0] || EMPTY_PROFILE.userName;
@@ -490,6 +488,22 @@ export async function GET(request: NextRequest) {
     source,
     ...(fallbackFields.length > 0 ? { fallbackFields } : {}),
   } satisfies ProfileResponse);
+  }
+
+  if (demoSessionId) {
+    if (!isDemoPersistenceConfigured()) {
+      return NextResponse.json({ error: 'Demo persistence is not configured.' }, { status: 503 });
+    }
+    const demoProfile = await readDemoProfile(demoSessionId);
+    if (!demoProfile) return createMissingDemoSessionResponse();
+    return NextResponse.json(demoProfile);
+  }
+
+  if (!realUserContext) {
+    return NextResponse.json({ error: 'Supabase is not configured.' }, { status: 503 });
+  }
+
+  return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
 }
 
 export async function PUT(request: NextRequest) {
@@ -508,34 +522,10 @@ export async function PUT(request: NextRequest) {
   if (demoSessionId === 'mismatch') {
     return NextResponse.json({ error: 'Invalid demo session.' }, { status: 403 });
   }
-  if (demoSessionId) {
-    if (!isDemoPersistenceConfigured()) {
-      return NextResponse.json({ error: 'Demo persistence is not configured.' }, { status: 503 });
-    }
-    const demoResponse = await saveDemoProfile(demoSessionId, {
-      userName: submittedUserName ?? '',
-      restrictedIngredients: requestedRestrictedIngredients,
-      restrictedIngredientReasons: requestedRestrictionReasons,
-      preferredDishes,
-      preferredCuisines,
-    });
-    if (!demoResponse) return createMissingDemoSessionResponse();
-    return demoResponse;
-  }
 
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    return NextResponse.json({ error: 'Supabase is not configured.' }, { status: 503 });
-  }
-
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
-
-  if (userError || !user) {
-    return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
-  }
+  const realUserContext = await getRealUserContext();
+  if (realUserContext?.user && !realUserContext.error) {
+    const { supabase, user } = realUserContext;
 
   const userName = submittedUserName
     ?? user.user_metadata?.name
@@ -605,4 +595,26 @@ export async function PUT(request: NextRequest) {
     preferredCuisines,
     source: 'database',
   } satisfies ProfileResponse);
+  }
+
+  if (demoSessionId) {
+    if (!isDemoPersistenceConfigured()) {
+      return NextResponse.json({ error: 'Demo persistence is not configured.' }, { status: 503 });
+    }
+    const demoResponse = await saveDemoProfile(demoSessionId, {
+      userName: submittedUserName ?? '',
+      restrictedIngredients: requestedRestrictedIngredients,
+      restrictedIngredientReasons: requestedRestrictionReasons,
+      preferredDishes,
+      preferredCuisines,
+    });
+    if (!demoResponse) return createMissingDemoSessionResponse();
+    return demoResponse;
+  }
+
+  if (!realUserContext) {
+    return NextResponse.json({ error: 'Supabase is not configured.' }, { status: 503 });
+  }
+
+  return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
 }
