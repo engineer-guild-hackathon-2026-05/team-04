@@ -434,7 +434,9 @@ export default function Home() {
 
       <RecipeModal
         recipe={selectedRecipe}
+        recipes={recipes}
         onClose={() => setSelectedRecipe(null)}
+        onSelectRecipe={setSelectedRecipe}
         restrictedIngredients={restrictedIngredients}
       />
     </div>
