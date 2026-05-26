@@ -3,16 +3,12 @@ export const DEMO_AUTH_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 7;
 
 const DEMO_COOKIE_VERSION = 'v1';
 
-export function isDemoModeEnabled() {
-  const value = (process.env.DEMO_MODE ?? process.env.NEXT_PUBLIC_DEMO_MODE)?.toLowerCase();
-  return value === 'true' || value === '1' || value === 'yes' || value === 'on';
+function getDemoSessionSecret() {
+  return process.env.DEMO_SESSION_SECRET ?? '';
 }
 
-function getDemoSessionSecret() {
-  return process.env.DEMO_SESSION_SECRET
-    ?? process.env.SUPABASE_SERVICE_ROLE_KEY
-    ?? process.env.SUPABASE_SECRET_KEY
-    ?? '';
+export function hasDemoSessionSigningSecret() {
+  return Boolean(getDemoSessionSecret());
 }
 
 function toBase64Url(bytes: ArrayBuffer) {
@@ -48,14 +44,14 @@ function timingSafeEqual(left: string, right: string) {
 export async function createDemoAuthCookieValue(sessionId: string) {
   const signature = await signDemoSessionId(sessionId);
   if (!signature) {
-    throw new Error('Demo session signing secret is missing. Set DEMO_SESSION_SECRET or a server-only Supabase admin key.');
+    throw new Error('Demo session signing secret is missing. Set DEMO_SESSION_SECRET on the server.');
   }
 
   return `${DEMO_COOKIE_VERSION}.${sessionId}.${signature}`;
 }
 
 export async function getDemoSessionIdFromAuthCookie(cookieValue?: string) {
-  if (!isDemoModeEnabled() || !cookieValue) return null;
+  if (!cookieValue) return null;
 
   const [version, sessionId, signature] = cookieValue.split('.');
   if (version !== DEMO_COOKIE_VERSION || !sessionId || !signature) return null;

@@ -4,7 +4,7 @@ import {
   DEMO_AUTH_COOKIE_MAX_AGE_SECONDS,
   createDemoAuthCookieValue,
   getDemoSessionIdFromAuthCookie,
-  isDemoModeEnabled,
+  hasDemoSessionSigningSecret,
 } from '@/lib/demoMode';
 import { DEMO_SESSION_STORAGE_KEY, getDemoSession, isDemoPersistenceConfigured, restoreOrCreateDemoSession } from '@/lib/demoSession';
 
@@ -21,14 +21,8 @@ function clearDemoCookie(response: NextResponse) {
   });
 }
 
-function createDisabledResponse() {
-  const response = NextResponse.json({ authenticated: false }, { status: 404 });
-  clearDemoCookie(response);
-  return response;
-}
-
 function createUnavailableResponse() {
-  const response = NextResponse.json({ authenticated: false, error: 'Demo persistence is not configured.' }, { status: 503 });
+  const response = NextResponse.json({ authenticated: false, error: 'Demo login is not configured.' }, { status: 503 });
   clearDemoCookie(response);
   return response;
 }
@@ -54,11 +48,7 @@ function setDemoCookie(response: NextResponse, cookieValue: string) {
 }
 
 export async function GET(request: NextRequest) {
-  if (!isDemoModeEnabled()) {
-    return createDisabledResponse();
-  }
-
-  if (!isDemoPersistenceConfigured()) {
+  if (!isDemoPersistenceConfigured() || !hasDemoSessionSigningSecret()) {
     return createUnavailableResponse();
   }
 
@@ -85,11 +75,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ authenticated: false }, { status: 403 });
   }
 
-  if (!isDemoModeEnabled()) {
-    return createDisabledResponse();
-  }
-
-  if (!isDemoPersistenceConfigured()) {
+  if (!isDemoPersistenceConfigured() || !hasDemoSessionSigningSecret()) {
     return createUnavailableResponse();
   }
 

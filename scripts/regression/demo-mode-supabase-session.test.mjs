@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 
 const source = readFileSync('src/lib/supabase/middleware.ts', 'utf8');
 
-const previousDemoModeDecision = ({ isDemoEnabled, hasDemoCookie, hasSupabaseUser, pathname }) => {
+const previousModeGatedDecision = ({ isDemoEnabled, hasDemoCookie, hasSupabaseUser, pathname }) => {
   if (hasDemoCookie) return pathname === '/login' ? 'redirect:/app' : 'allow';
   if (isDemoEnabled) {
     if (pathname.startsWith('/app')) return 'redirect:/login';
@@ -13,7 +13,7 @@ const previousDemoModeDecision = ({ isDemoEnabled, hasDemoCookie, hasSupabaseUse
   return 'allow';
 };
 
-const fixedDemoModeDecision = ({ isDemoEnabled, hasDemoCookie, hasSupabaseUser, pathname }) => {
+const fixedGuestLoginDecision = ({ isDemoEnabled, hasDemoCookie, hasSupabaseUser, pathname }) => {
   if (hasDemoCookie) return pathname === '/login' ? 'redirect:/app' : 'allow';
   if (hasSupabaseUser) return pathname === '/login' ? 'redirect:/app' : 'allow';
   if ((isDemoEnabled || !hasSupabaseUser) && pathname.startsWith('/app')) return 'redirect:/login';
@@ -28,12 +28,12 @@ const supabaseSignupSessionRequest = {
 };
 
 assert.equal(
-  previousDemoModeDecision(supabaseSignupSessionRequest),
+  previousModeGatedDecision(supabaseSignupSessionRequest),
   'redirect:/login',
-  '再現: DEMO_MODE 有効時の旧分岐は Supabase セッション確認前に /app を /login へ戻します。',
+  '再現: guest login実装前の旧mode分岐は Supabase セッション確認前に /app を /login へ戻します。',
 );
 assert.equal(
-  fixedDemoModeDecision(supabaseSignupSessionRequest),
+  fixedGuestLoginDecision(supabaseSignupSessionRequest),
   'allow',
   '修正: demo cookie がなくても Supabase セッションが有効なら /app を許可してください。',
 );
@@ -51,7 +51,7 @@ assert.match(
 assert.doesNotMatch(
   source,
   /if \(isDemoEnabled\) \{[\s\S]*?if \(pathname\.startsWith\("\/app"\)\) \{[\s\S]*?NextResponse\.redirect[\s\S]*?const supabase = createServerClient/,
-  'DEMO_MODE 有効時に Supabase user 確認より前へ /app redirect を戻さないでください。',
+  'guest loginで Supabase user 確認より前へ /app redirect を戻さないでください。',
 );
 assert.match(
   source,

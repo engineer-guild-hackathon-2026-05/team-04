@@ -107,30 +107,28 @@ assert.match(
   'signout は Supabase env 欠落時に Supabase を呼ばず、cookie clear 済み response を返してください。',
 );
 
-const previousAuthDemoCookieDecision = ({ isDemoEnabled, demoCookieValue, isValidDemoCookie }) => {
-  if (demoCookieValue && !isDemoEnabled) return 'clear-cookie';
-  if (demoCookieValue && isDemoEnabled && !isValidDemoCookie) return 'keep-invalid-cookie';
+const previousAuthDemoCookieDecision = ({ demoCookieValue, isValidDemoCookie }) => {
+  if (demoCookieValue && !isValidDemoCookie) return 'keep-invalid-cookie';
   return 'keep-cookie-state';
 };
-const fixedAuthDemoCookieDecision = ({ isDemoEnabled, demoCookieValue, isValidDemoCookie, method = 'GET' }) => {
-  if (method === 'POST' && isDemoEnabled) return 'route-handler-overwrites-cookie';
-  if (demoCookieValue && (!isDemoEnabled || !isValidDemoCookie)) return 'clear-cookie';
+const fixedAuthDemoCookieDecision = ({ demoCookieValue, isValidDemoCookie, method = 'GET' }) => {
+  if (method === 'POST') return 'route-handler-overwrites-cookie';
+  if (demoCookieValue && !isValidDemoCookie) return 'clear-cookie';
   return 'keep-cookie-state';
 };
 
 assert.equal(
-  previousAuthDemoCookieDecision({ isDemoEnabled: true, demoCookieValue: 'invalid', isValidDemoCookie: false }),
+  previousAuthDemoCookieDecision({ demoCookieValue: 'invalid', isValidDemoCookie: false }),
   'keep-invalid-cookie',
-  '再現: /auth/demo は demo mode 有効時の invalid demo cookie を消しません。',
+  '再現: /auth/demo は invalid guest cookie を消しません。',
 );
 assert.equal(
-  fixedAuthDemoCookieDecision({ isDemoEnabled: true, demoCookieValue: 'invalid', isValidDemoCookie: false }),
+  fixedAuthDemoCookieDecision({ demoCookieValue: 'invalid', isValidDemoCookie: false }),
   'clear-cookie',
-  '修正: /auth/demo は demo mode 有効時でも invalid demo cookie を clear してください。',
+  '修正: /auth/demo は invalid guest cookie を clear してください。',
 );
 assert.equal(
   fixedAuthDemoCookieDecision({
-    isDemoEnabled: true,
     demoCookieValue: 'invalid',
     isValidDemoCookie: false,
     method: 'POST',
@@ -140,8 +138,8 @@ assert.equal(
 );
 assert.match(
   middlewareSource,
-  /const shouldClearInvalidDemoCookie = Boolean\(demoCookieValue\) && isDemoEnabled && !isDemoAuthenticated;/,
-  'middleware は demo mode 有効時の invalid demo cookie を検出してください。',
+  /const shouldClearInvalidDemoCookie = Boolean\(demoCookieValue\) && !isDemoAuthenticated;/,
+  'middleware は invalid guest cookie を検出してください。',
 );
 assert.match(
   middlewareSource,

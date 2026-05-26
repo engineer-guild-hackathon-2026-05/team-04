@@ -10,10 +10,6 @@ import { DEMO_SESSION_STORAGE_KEY, LEGACY_DEMO_PROFILE_STORAGE_KEY } from '@/lib
 
 type AuthMode = 'signin' | 'signup';
 
-const isDemoLoginEnabled = ['true', '1', 'yes', 'on'].includes(
-  (process.env.NEXT_PUBLIC_DEMO_MODE ?? '').toLowerCase(),
-);
-
 export default function LoginPage() {
   return (
     <Suspense fallback={<main className="auth-page-shell"><section className="auth-card">読み込み中...</section></main>}>
@@ -28,9 +24,7 @@ type DemoSignInResult = {
   sessionId: string;
   isNew: boolean;
 } | {
-  status: 'disabled' | 'failed';
-} | {
-  status: 'unavailable';
+  status: 'failed' | 'unavailable';
   message?: string;
 };
 
@@ -49,7 +43,6 @@ async function tryDemoSignIn(): Promise<DemoSignInResult> {
   }).catch(() => null);
 
   if (!response) return { status: 'failed' };
-  if (response.status === 404) return { status: 'disabled' };
   if (response.status === 503) {
     const data = await response.json().catch(() => null) as { error?: string } | null;
     return { status: 'unavailable', message: data?.error };
@@ -98,13 +91,8 @@ function LoginForm() {
         return;
       }
 
-      if (demoSignInResult.status === 'disabled') {
-        setErrorMessage('デモログインは現在利用できません。NEXT_PUBLIC_DEMO_MODE=true と DEMO_MODE=true を設定してサーバーを再起動してください。');
-        return;
-      }
-
       if (demoSignInResult.status === 'unavailable') {
-        setErrorMessage(demoSignInResult.message ?? 'デモログイン設定が不足しています。SUPABASE_SERVICE_ROLE_KEY と DEMO_SESSION_SECRET を設定してください。');
+        setErrorMessage(demoSignInResult.message ?? 'ゲストログイン設定が不足しています。SUPABASE_SERVICE_ROLE_KEY と DEMO_SESSION_SECRET を設定してください。');
         return;
       }
 
@@ -201,7 +189,7 @@ function LoginForm() {
         </div>
 
 
-        {mode === 'signin' && isDemoLoginEnabled && (
+        {mode === 'signin' && (
           <div className="auth-demo-box">
             <button className="auth-demo-btn" type="button" onClick={handleDemoSignIn} disabled={isSubmitting || isDemoSubmitting}>
               {isDemoSubmitting ? <Loader2 size={18} className="auth-spin" /> : <PlayCircle size={18} />}

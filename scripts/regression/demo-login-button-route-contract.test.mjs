@@ -4,34 +4,34 @@ import { readFileSync } from 'node:fs';
 const loginSource = readFileSync('src/app/login/page.tsx', 'utf8');
 const authDemoRoute = readFileSync('src/app/auth/demo/route.ts', 'utf8');
 const demoModeSource = readFileSync('src/lib/demoMode.ts', 'utf8');
+const middlewareSource = readFileSync('src/lib/supabase/middleware.ts', 'utf8');
 const envExample = readFileSync('.env.local.example', 'utf8');
 const authDocs = readFileSync('docs/auth.md', 'utf8');
 
 assert.match(
   authDemoRoute,
   /export async function POST\(request: NextRequest\)/,
-  '/auth/demo は demo login button 用の POST route handler を維持してください。',
+  '/auth/demo は guest login button 用の POST route handler を維持してください。',
 );
-
-const disabledRouteReturns404 = /function createDisabledResponse\(\)[\s\S]*status:\s*404/.test(authDemoRoute);
-const demoButtonIsPubliclyGated =
-  /NEXT_PUBLIC_DEMO_MODE|isDemoLoginEnabled|showDemoLogin/.test(loginSource) &&
-  /mode === 'signin'\s*&&\s*isDemoLoginEnabled\s*&&\s*\(/.test(loginSource);
-
-assert.ok(
-  !disabledRouteReturns404 || demoButtonIsPubliclyGated,
-  'POST /auth/demo が disabled 時に 404 を返す場合、ログイン画面の「デモで体験する」ボタンは公開envで表示制御し、常時クリック可能にしないでください。',
+assert.doesNotMatch(
+  authDemoRoute,
+  /createDisabledResponse|status:\s*404|isDemoModeEnabled\(\)/,
+  '/auth/demo は旧demo mode flagでguest loginを404無効化しないでください。',
 );
-
 assert.match(
-  demoModeSource,
-  /process\.env\.DEMO_MODE[\s\S]*process\.env\.NEXT_PUBLIC_DEMO_MODE|process\.env\.NEXT_PUBLIC_DEMO_MODE[\s\S]*process\.env\.DEMO_MODE/,
-  'server-side demo mode 判定は公開UIフラグと server route フラグの設定ずれを避けられるよう NEXT_PUBLIC_DEMO_MODE も読んでください。',
+  authDemoRoute,
+  /if \(!isDemoPersistenceConfigured\(\) \|\| !hasDemoSessionSigningSecret\(\)\) \{[\s\S]*createUnavailableResponse\(\)/,
+  '/auth/demo はmodeではなくDB永続化/admin設定不足を503として扱ってください。',
 );
 assert.match(
   loginSource,
-  /status:\s*'unavailable'[\s\S]*message\?: string/,
-  'demo persistence 設定不足は generic failure ではなく unavailable として扱ってください。',
+  /mode === 'signin' && \(\s*<div className="auth-demo-box">/,
+  'login page は guest login button を旧mode flagなしで表示してください。',
+);
+assert.doesNotMatch(
+  loginSource,
+  /NEXT_PUBLIC_DEMO_MODE|isDemoLoginEnabled|showDemoLogin|status:\s*'disabled'/,
+  'guest login button は公開demo mode flagやdisabled 404状態に依存しないでください。',
 );
 assert.match(
   loginSource,
@@ -40,18 +40,44 @@ assert.match(
 );
 assert.match(
   loginSource,
-  /NEXT_PUBLIC_DEMO_MODE=true[\s\S]*DEMO_MODE=true|DEMO_MODE=true[\s\S]*NEXT_PUBLIC_DEMO_MODE=true/s,
-  'login page は demo を有効化するenvの組み合わせを開発者が追跡できる文言を持ってください。',
+  /SUPABASE_SERVICE_ROLE_KEY と DEMO_SESSION_SECRET/,
+  'guest login の設定不足は必要なserver-only envを案内してください。',
+);
+assert.doesNotMatch(
+  demoModeSource + middlewareSource,
+  /process\.env\.DEMO_MODE|process\.env\.NEXT_PUBLIC_DEMO_MODE|isDemoModeEnabled/,
+  'guest login cookie authority とmiddleware は旧demo mode envを参照しないでください。',
+);
+
+assert.doesNotMatch(
+  demoModeSource,
+  /SUPABASE_SERVICE_ROLE_KEY|SUPABASE_SECRET_KEY/,
+  'guest login cookie署名はservice role keyをfallback利用せず、DEMO_SESSION_SECRETに分離してください。',
+);
+assert.match(
+  demoModeSource,
+  /process\.env\.DEMO_SESSION_SECRET/,
+  'guest login cookie署名は専用のDEMO_SESSION_SECRETを使ってください。',
 );
 assert.match(
   envExample,
-  /NEXT_PUBLIC_DEMO_MODE=false[\s\S]*DEMO_MODE=false|DEMO_MODE=false[\s\S]*NEXT_PUBLIC_DEMO_MODE=false/s,
-  '.env.local.example は button 表示用公開フラグと server route 用フラグを併記してください。',
+  /DB-backed guest session[\s\S]*旧DEMO_MODEでは制御しません[\s\S]*SUPABASE_SERVICE_ROLE_KEYまたはDEMO_SESSION_SECRET/s,
+  '.env.local.example はguest loginがmode flagではなくserver-only admin設定で動くことを説明してください。',
+);
+assert.doesNotMatch(
+  envExample,
+  /NEXT_PUBLIC_DEMO_MODE|^DEMO_MODE=/m,
+  '.env.local.example はguest login用にDEMO_MODE/NEXT_PUBLIC_DEMO_MODEを案内しないでください。',
 );
 assert.match(
   authDocs,
-  /NEXT_PUBLIC_DEMO_MODE=true[\s\S]*DEMO_MODE=true|DEMO_MODE=true[\s\S]*NEXT_PUBLIC_DEMO_MODE=true/s,
-  'docs/auth.md は demo button 表示と /auth/demo route 有効化に必要なenvを同じセットで説明してください。',
+  /旧 `DEMO_MODE` のような特殊モードではなく、DB-backed guest login/s,
+  'docs/auth.md は新guest loginと旧demo mode flagを明確に分離してください。',
+);
+assert.doesNotMatch(
+  authDocs,
+  /NEXT_PUBLIC_DEMO_MODE=true|\nDEMO_MODE=true/,
+  'docs/auth.md はguest login有効化手順にmode flagを要求しないでください。',
 );
 
-console.log('demo login button route contract regression checks passed');
+console.log('guest login route contract regression checks passed');
