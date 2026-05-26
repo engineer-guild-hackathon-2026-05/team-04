@@ -231,21 +231,17 @@ button, input {
   outline-offset: 6px;
 }
 
-.logo-svg {
-  height: 36px;
-  width: auto;
-  display: block;
+.brand-name {
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--forest-green);
+  white-space: nowrap;
+  transition: color 0.2s ease;
 }
 
-.brand-tagline {
-  font-size: 0.78rem;
-  color: var(--text-muted);
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  border-left: 1px solid #d6d3d1;
-  padding-left: 10px;
-  margin-left: 2px;
-  white-space: nowrap;
+.brand-logo:hover .brand-name {
+  color: var(--forest-hover);
 }
 
 .navbar-actions {
@@ -457,6 +453,17 @@ button, input {
   max-width: 800px;
   margin: 0 auto;
   padding: 20px 0;
+}
+
+.hero-logo-wrapper {
+  margin-bottom: 32px;
+}
+
+.hero-logo {
+  width: 100%;
+  max-width: 480px;
+  height: auto;
+  display: inline-block;
 }
 
 .hero-badge {
@@ -1968,8 +1975,8 @@ button, input {
   .navbar-container {
     padding: 0 16px;
   }
-  .brand-tagline {
-    display: none; /* スマホではキャッチコピー非表示 */
+  .brand-name {
+    font-size: 0.85rem;
   }
   
   .main-content {

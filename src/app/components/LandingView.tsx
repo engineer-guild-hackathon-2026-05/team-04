@@ -13,8 +13,12 @@ export default function LandingView({ onSignIn, previewRecipes = [] }: LandingVi
   return (
     <div className="landing-container">
       <section className="landing-hero" aria-labelledby="hero-title">
+        <div className="hero-logo-wrapper">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.svg" alt="GlobalBites" className="hero-logo" />
+        </div>
         <h1 id="hero-title" className="hero-title-main">
-          食べられる料理で、<br /><span className="text-gradient">世界を旅する。</span>
+          食べられる料理で、<span className="text-gradient">世界を旅する。</span>
         </h1>
         <p className="hero-subtitle">
           「食べられないものがあるから」と、諦めてきた料理がある。<br />

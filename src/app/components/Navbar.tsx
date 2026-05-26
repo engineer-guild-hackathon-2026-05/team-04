@@ -170,9 +170,7 @@ export default function Navbar({
           onClick={handleLogoClick}
           title="メインページへ戻る"
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.svg" alt="GlobalBites ロゴ" className="logo-svg" />
-          <span className="brand-tagline">新しい世界、いただきます</span>
+          <span className="brand-name">新しい世界、いただきます</span>
         </button>
 
         <div className="navbar-actions">
