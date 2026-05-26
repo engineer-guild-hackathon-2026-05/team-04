@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     secure: process.env.NODE_ENV === "production",
   });
 
-  if (hasDemoAuthCookie(request.cookies.get(DEMO_AUTH_COOKIE)?.value)) {
+  if (await hasDemoAuthCookie(request.cookies.get(DEMO_AUTH_COOKIE)?.value)) {
     return response;
   }
 

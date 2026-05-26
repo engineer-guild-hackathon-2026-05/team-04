@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import type { User } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
-import { DEMO_AUTH_COOKIE, hasDemoAuthCookie, isDemoModeEnabled } from "@/lib/demoMode";
+import { DEMO_AUTH_COOKIE, getDemoSessionIdFromAuthCookie, isDemoModeEnabled } from "@/lib/demoMode";
 import { getSupabaseConfig } from "@/lib/supabase/config";
 
 // Next.js middleware から呼ばれ、リクエストごとにセッション Cookie を更新する。
@@ -21,7 +21,8 @@ export async function updateSession(request: NextRequest) {
   const demoCookieValue = request.cookies.get(DEMO_AUTH_COOKIE)?.value;
   const isDemoEnabled = isDemoModeEnabled();
   const shouldClearDemoCookie = Boolean(demoCookieValue) && !isDemoEnabled;
-  const isDemoAuthenticated = hasDemoAuthCookie(demoCookieValue);
+  const demoSessionId = await getDemoSessionIdFromAuthCookie(demoCookieValue);
+  const isDemoAuthenticated = Boolean(demoSessionId);
   const shouldClearInvalidDemoCookie = Boolean(demoCookieValue) && isDemoEnabled && !isDemoAuthenticated;
 
   if (pathname === "/auth/demo") {

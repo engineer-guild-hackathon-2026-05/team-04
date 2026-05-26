@@ -3,9 +3,10 @@
 import { FormEvent, Suspense, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Globe, Loader2, LogIn, UserPlus } from 'lucide-react';
+import { Globe, Loader2, LogIn, PlayCircle, UserPlus } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { sanitizeAuthRedirect } from '@/lib/authRedirect';
+import { DEMO_SESSION_STORAGE_KEY, LEGACY_DEMO_PROFILE_STORAGE_KEY } from '@/lib/demoSessionKeys';
 
 type AuthMode = 'signin' | 'signup';
 
@@ -18,31 +19,37 @@ export default function LoginPage() {
 }
 
 const PASSWORD_PATTERN = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[!@#$%^&*()_+\\-=\\[\\]{};':\"|<>?,./`~]).{12,}$";
-const DEMO_PROFILE_STORAGE_KEY = 'globalbites_demo_profile';
+type DemoSignInResult = {
+  status: 'authenticated';
+  sessionId: string;
+  isNew: boolean;
+} | {
+  status: 'disabled' | 'failed';
+};
 
-type DemoSignInResult = 'authenticated' | 'disabled' | 'failed';
-
-async function tryDemoSignIn(email: string): Promise<DemoSignInResult> {
+async function tryDemoSignIn(): Promise<DemoSignInResult> {
+  const existingSessionId = localStorage.getItem(DEMO_SESSION_STORAGE_KEY);
   const response = await fetch('/auth/demo', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email }),
+    body: JSON.stringify({ sessionId: existingSessionId || undefined }),
   }).catch(() => null);
 
-  if (!response) return 'failed';
-  if (response.status === 404) return 'disabled';
-  if (!response.ok) return 'failed';
+  if (!response) return { status: 'failed' };
+  if (response.status === 404) return { status: 'disabled' };
+  if (!response.ok) return { status: 'failed' };
 
-  const data = await response.json().catch(() => ({ userName: 'デモユーザー' }));
-  localStorage.setItem(
-    DEMO_PROFILE_STORAGE_KEY,
-    JSON.stringify({
-      email,
-      userName: data.userName || email.split('@')[0] || 'デモユーザー',
-    }),
-  );
+  const data = await response.json().catch(() => null) as { sessionId?: string; isNew?: boolean } | null;
+  if (!data?.sessionId) return { status: 'failed' };
 
-  return 'authenticated';
+  localStorage.setItem(DEMO_SESSION_STORAGE_KEY, data.sessionId);
+  localStorage.removeItem(LEGACY_DEMO_PROFILE_STORAGE_KEY);
+
+  return {
+    status: 'authenticated',
+    sessionId: data.sessionId,
+    isNew: Boolean(data.isNew),
+  };
 }
 
 function LoginForm() {
@@ -59,6 +66,31 @@ function LoginForm() {
   const [password, setPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState(initialError);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDemoSubmitting, setIsDemoSubmitting] = useState(false);
+
+
+  const handleDemoSignIn = async () => {
+    setErrorMessage('');
+    setIsDemoSubmitting(true);
+
+    try {
+      const demoSignInResult = await tryDemoSignIn();
+      if (demoSignInResult.status === 'authenticated') {
+        router.replace(demoSignInResult.isNew ? '/app?view=profile' : redirectTo);
+        router.refresh();
+        return;
+      }
+
+      if (demoSignInResult.status === 'disabled') {
+        setErrorMessage('デモログインは現在利用できません。');
+        return;
+      }
+
+      setErrorMessage('デモログインに失敗しました。時間をおいてもう一度お試しください。');
+    } finally {
+      setIsDemoSubmitting(false);
+    }
+  };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -73,17 +105,6 @@ function LoginForm() {
 
     try {
       if (mode === 'signin') {
-        const demoSignInResult = await tryDemoSignIn(email);
-        if (demoSignInResult === 'authenticated') {
-          router.replace(redirectTo);
-          router.refresh();
-          return;
-        }
-
-        if (demoSignInResult === 'failed') {
-          console.warn('Demo login probe failed. Falling back to Supabase password auth.');
-        }
-
         const supabase = createClient();
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) {
@@ -154,6 +175,17 @@ function LoginForm() {
               : 'アレルギーや好みをアカウントに紐づけて、次回以降も安心して使えます。'}
           </p>
         </div>
+
+
+        {mode === 'signin' && (
+          <div className="auth-demo-box">
+            <button className="auth-demo-btn" type="button" onClick={handleDemoSignIn} disabled={isSubmitting || isDemoSubmitting}>
+              {isDemoSubmitting ? <Loader2 size={18} className="auth-spin" /> : <PlayCircle size={18} />}
+              <span>デモで体験する</span>
+            </button>
+            <p>登録なしでプロフィール保存まで試せます。</p>
+          </div>
+        )}
 
         <form className="auth-form" onSubmit={handleSubmit}>
           {mode === 'signup' && (

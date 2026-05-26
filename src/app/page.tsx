@@ -9,6 +9,7 @@ import ProfileView from './components/ProfileView';
 import RecipeModal from './components/RecipeModal';
 import { INGREDIENT_MASTER, type IngredientMaster, type Recipe } from '@/lib/mockData';
 import type { IngredientsResponse, ProfileFallbackField, ProfilePayload, ProfileResponse, RecipesResponse, RestrictionReason } from '@/lib/apiTypes';
+import { DEMO_SESSION_STORAGE_KEY, LEGACY_DEMO_PROFILE_STORAGE_KEY } from '@/lib/demoSessionKeys';
 
 type CurrentView = 'landing' | 'list' | 'profile';
 type AuthStatus = 'checking' | 'authenticated' | 'unauthenticated';
@@ -28,7 +29,6 @@ type ProfileSaveErrorResponse = {
 };
 
 const PROFILE_STORAGE_KEY = 'globalbites_profile';
-const DEMO_PROFILE_STORAGE_KEY = 'globalbites_demo_profile';
 const DEFAULT_USER_NAME = 'ゲスト愛好家';
 
 class ProfileSaveValidationError extends Error {
@@ -55,24 +55,30 @@ function writeStoredProfile(updates: StoredProfile) {
   localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify({ ...current, ...updates }));
 }
 
-function readDemoProfile() {
-  return readStoredProfile(DEMO_PROFILE_STORAGE_KEY, 'demo profile');
-}
-
-function writeDemoProfile(updates: StoredProfile) {
-  const current = readDemoProfile() ?? {};
-  localStorage.setItem(DEMO_PROFILE_STORAGE_KEY, JSON.stringify({ ...current, ...updates }));
-}
-
 type DemoSessionStatus = 'authenticated' | 'unauthenticated' | 'disabled' | 'failed';
 
-async function fetchDemoSession(): Promise<DemoSessionStatus> {
+type DemoSessionResult = {
+  status: 'authenticated';
+  sessionId: string;
+  userName?: string;
+} | {
+  status: Exclude<DemoSessionStatus, 'authenticated'>;
+};
+
+async function fetchDemoSession(): Promise<DemoSessionResult> {
   const response = await fetch('/auth/demo', { cache: 'no-store' }).catch(() => null);
-  if (!response) return 'failed';
-  if (response.ok) return 'authenticated';
-  if (response.status === 401) return 'unauthenticated';
-  if (response.status === 404) return 'disabled';
-  return 'failed';
+  if (!response) return { status: 'failed' };
+  if (response.ok) {
+    const data = await response.json().catch(() => null) as { sessionId?: string; userName?: string } | null;
+    if (data?.sessionId) {
+      localStorage.setItem(DEMO_SESSION_STORAGE_KEY, data.sessionId);
+      return { status: 'authenticated', sessionId: data.sessionId, userName: data.userName };
+    }
+    return { status: 'failed' };
+  }
+  if (response.status === 401) return { status: 'unauthenticated' };
+  if (response.status === 404) return { status: 'disabled' };
+  return { status: 'failed' };
 }
 
 async function fetchProfileFromApi() {
@@ -124,9 +130,9 @@ function buildRestrictionReasons(
 function mergeProfile(localProfile: StoredProfile | null, remoteProfile: ProfileResponse | null): ProfilePayload {
   const fallbackFields = getProfileFallbackFields(remoteProfile);
   const shouldUseLocalRestrictions = fallbackFields.has('restrictedIngredients');
-  const preserveLocalIngredientCodes = remoteProfile?.source === 'demo';
-  const shouldUseLocalUserName = fallbackFields.has('userName') || preserveLocalIngredientCodes;
-  const shouldUseLocalPreferences = fallbackFields.has('preferences') || preserveLocalIngredientCodes;
+  const preserveLocalIngredientCodes = false;
+  const shouldUseLocalUserName = fallbackFields.has('userName');
+  const shouldUseLocalPreferences = fallbackFields.has('preferences');
   const restrictedIngredients = shouldUseLocalRestrictions
     ? localProfile?.restrictedIngredients ?? []
     : Array.from(new Set([
@@ -202,18 +208,18 @@ export default function Home() {
         void loadSharedData();
 
         const demoSession = await fetchDemoSession();
-        if (demoSession === 'authenticated') {
-          const demoProfile = readDemoProfile();
-          const merged = mergeProfile(demoProfile ?? null, {
-            userName: demoProfile?.userName || demoProfile?.email?.split('@')[0] || 'デモユーザー',
-            restrictedIngredients: demoProfile?.restrictedIngredients ?? [],
-            restrictedIngredientReasons: demoProfile?.restrictedIngredientReasons ?? {},
-            preferredDishes: demoProfile?.preferredDishes ?? [],
-            preferredCuisines: demoProfile?.preferredCuisines ?? [],
-            source: 'demo',
-          });
+        if (demoSession.status === 'authenticated') {
+          const remoteProfile = await fetchProfileFromApi();
+          if (!remoteProfile) {
+            setIsLoggedIn(false);
+            setCurrentView('landing');
+            setAuthStatus('unauthenticated');
+            return;
+          }
+
+          const merged = mergeProfile(null, remoteProfile);
           setIsLoggedIn(true);
-          setCurrentView('list');
+          setCurrentView(new URLSearchParams(window.location.search).get('view') === 'profile' ? 'profile' : 'list');
           setUserName(merged.userName);
           setRestrictedIngredients(merged.restrictedIngredients);
           setRestrictedIngredientReasons(merged.restrictedIngredientReasons);
@@ -223,7 +229,7 @@ export default function Home() {
           return;
         }
 
-        if (demoSession === 'failed') {
+        if (demoSession.status === 'failed') {
           console.error('Demo session check failed. Falling back to profile API auth.');
         }
 
@@ -235,8 +241,7 @@ export default function Home() {
           return;
         }
 
-        const sourceProfile = remoteProfile.source === 'demo' ? readDemoProfile() : parsed;
-        const merged = mergeProfile(sourceProfile, remoteProfile);
+        const merged = mergeProfile(parsed, remoteProfile);
         setIsLoggedIn(true);
         setCurrentView('list');
         setUserName(merged.userName);
@@ -244,11 +249,7 @@ export default function Home() {
         setRestrictedIngredientReasons(merged.restrictedIngredientReasons);
         setPreferredDishes(merged.preferredDishes);
         setPreferredCuisines(merged.preferredCuisines);
-        if (remoteProfile.source === 'demo') {
-          writeDemoProfile(merged);
-        } else {
-          writeStoredProfile(merged);
-        }
+        writeStoredProfile(merged);
         setAuthStatus('authenticated');
       } catch (error) {
         console.error('Auth/profile sync failed. Treating the user as signed out.', error);
@@ -303,7 +304,8 @@ export default function Home() {
     setPreferredDishes([]);
     setPreferredCuisines([]);
     localStorage.removeItem(PROFILE_STORAGE_KEY);
-    localStorage.removeItem(DEMO_PROFILE_STORAGE_KEY);
+    localStorage.removeItem(DEMO_SESSION_STORAGE_KEY);
+    localStorage.removeItem(LEGACY_DEMO_PROFILE_STORAGE_KEY);
     setCurrentView('landing');
     setAuthStatus('unauthenticated');
     router.push('/');
@@ -327,12 +329,7 @@ export default function Home() {
     setCurrentView('list');
 
     const demoSession = await fetchDemoSession();
-    if (demoSession === 'authenticated') {
-      writeDemoProfile(profile);
-      return;
-    }
-
-    if (demoSession === 'failed') {
+    if (demoSession.status === 'failed') {
       console.error('Demo session check failed while saving profile. Falling back to profile API.');
     }
 
@@ -348,9 +345,7 @@ export default function Home() {
       setRestrictedIngredientReasons(merged.restrictedIngredientReasons);
       setPreferredDishes(merged.preferredDishes);
       setPreferredCuisines(merged.preferredCuisines);
-      if (savedProfile.source === 'demo') {
-        writeDemoProfile(merged);
-      } else {
+      if (savedProfile.source !== 'demo') {
         writeStoredProfile(merged);
       }
     } catch (dbErr) {
@@ -364,7 +359,7 @@ export default function Home() {
         console.warn('Profile API rejected unknown restricted ingredient codes.', dbErr.unknownCodes);
         return;
       }
-      if (demoSession !== 'failed') {
+      if (demoSession.status !== 'failed') {
         saveToLocalStorage(profile);
       }
       console.warn('Profile API update failed. Synchronized locally.', dbErr);

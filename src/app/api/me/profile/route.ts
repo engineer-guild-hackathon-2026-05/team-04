@@ -1,8 +1,9 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { cookies } from 'next/headers';
-import { DEMO_AUTH_COOKIE, hasDemoAuthCookie } from '@/lib/demoMode';
+import { DEMO_AUTH_COOKIE, getDemoSessionIdFromAuthCookie } from '@/lib/demoMode';
 import { isIngredientCodeFormat, toIngredientCodeFromDbRow } from '@/lib/ingredientCodes';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
+import { DEMO_SESSION_HEADER, getDemoSession, isDemoPersistenceConfigured } from '@/lib/demoSession';
 import type { ProfileFallbackField, ProfilePayload, ProfileResponse, RestrictionReason } from '@/lib/apiTypes';
 
 type PreferenceRow = {
@@ -76,10 +77,18 @@ function inferRestrictionReason(code: string): RestrictionReason {
   return 'allergy';
 }
 
-async function isDemoAuthenticated() {
-  const cookieStore = await cookies();
-  return hasDemoAuthCookie(cookieStore.get(DEMO_AUTH_COOKIE)?.value);
+async function getDemoSessionIdForRequest(request: NextRequest) {
+  const sessionId = await getDemoSessionIdFromAuthCookie(request.cookies.get(DEMO_AUTH_COOKIE)?.value);
+  if (!sessionId) return null;
+
+  const hintedSessionId = request.headers.get(DEMO_SESSION_HEADER);
+  if (hintedSessionId && hintedSessionId !== sessionId) {
+    return 'mismatch';
+  }
+
+  return sessionId;
 }
+
 
 async function restoreRestrictedIngredientRows(
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -179,9 +188,180 @@ async function replaceRestrictedIngredients(
   return { savedCodes: ingredientCodes, savedReasons, existingRows: existingRows ?? [] };
 }
 
-export async function GET() {
-  if (await isDemoAuthenticated()) {
-    return NextResponse.json({ ...EMPTY_PROFILE, userName: DEMO_PROFILE_NAME, source: 'demo' } satisfies ProfileResponse);
+
+async function replaceDemoRestrictedIngredients(
+  supabase: ReturnType<typeof createAdminClient>,
+  sessionId: string,
+  restrictionRequest: ResolvedRestrictedIngredientRequest,
+  restrictionReasons: Record<string, RestrictionReason>,
+) {
+  const { ingredientCodes, resolvedIngredients } = restrictionRequest;
+  const { data: existingRows, error: existingError } = await supabase
+    .from('demo_restricted_ingredients')
+    .select('ingredient_id, reason')
+    .eq('session_id', sessionId);
+  if (existingError) throw existingError;
+
+  const { error: deleteError } = await supabase
+    .from('demo_restricted_ingredients')
+    .delete()
+    .eq('session_id', sessionId);
+  if (deleteError) throw deleteError;
+
+  const existingReasonByIngredientId = new Map(
+    ((existingRows ?? []) as RestrictedJoinRow[]).map((row) => [row.ingredient_id, row.reason] as const),
+  );
+  const savedReasons: Record<string, RestrictionReason> = {};
+  const inserts = resolvedIngredients.map((ingredient) => {
+    const code = ingredient.ingredient_code ?? null;
+    const existingReason = existingReasonByIngredientId.get(ingredient.id);
+    const reason = code
+      ? restrictionReasons[code] ?? (isRestrictionReason(existingReason) ? existingReason : inferRestrictionReason(code))
+      : 'allergy';
+    if (code) savedReasons[code] = reason;
+
+    return {
+      session_id: sessionId,
+      ingredient_id: ingredient.id,
+      reason,
+    };
+  });
+
+  if (inserts.length > 0) {
+    const { error: insertError } = await supabase.from('demo_restricted_ingredients').insert(inserts);
+    if (insertError) throw insertError;
+  }
+
+  return { savedCodes: ingredientCodes, savedReasons };
+}
+
+async function readDemoProfile(sessionId: string) {
+  const supabase = createAdminClient();
+  const session = await getDemoSession(sessionId, supabase);
+  if (!session) return null;
+
+  const { data: profile, error: profileError } = await supabase
+    .from('demo_profiles')
+    .select('name, preferred_dishes, preferred_cuisines, non_ingredient_restrictions, non_ingredient_restriction_reasons')
+    .eq('session_id', sessionId)
+    .maybeSingle();
+  if (profileError) throw profileError;
+
+  const { data: restrictedRows, error: restrictedError } = await supabase
+    .from('demo_restricted_ingredients')
+    .select('ingredient_id, reason, ingredients ( ingredient_code, name_ja )')
+    .eq('session_id', sessionId);
+  if (restrictedError) throw restrictedError;
+
+  const profileRow = (profile ?? {}) as PreferenceRow & { name?: string | null };
+  const restrictedIngredients = ((restrictedRows ?? []) as RestrictedJoinRow[])
+    .map((row) => toIngredientCodeFromDbRow(row.ingredients ?? {}))
+    .filter((code): code is string => Boolean(code));
+  const restrictedIngredientReasons = Object.fromEntries(
+    ((restrictedRows ?? []) as RestrictedJoinRow[])
+      .map((row) => {
+        const code = toIngredientCodeFromDbRow(row.ingredients ?? {});
+        if (!code) return null;
+        return [code, isRestrictionReason(row.reason) ? row.reason : inferRestrictionReason(code)] as const;
+      })
+      .filter((entry): entry is readonly [string, RestrictionReason] => Boolean(entry)),
+  );
+  const nonIngredientRestrictions = normalizeStringArray(profileRow.non_ingredient_restrictions);
+  const nonIngredientRestrictionReasons = normalizeRestrictionReasonMap(profileRow.non_ingredient_restriction_reasons);
+
+  return {
+    userName: profileRow.name || session.display_name,
+    restrictedIngredients: [
+      ...restrictedIngredients,
+      ...nonIngredientRestrictions.filter((id) => !restrictedIngredients.includes(id)),
+    ],
+    restrictedIngredientReasons: {
+      ...restrictedIngredientReasons,
+      ...nonIngredientRestrictionReasons,
+    },
+    preferredDishes: profileRow.preferred_dishes ?? [],
+    preferredCuisines: profileRow.preferred_cuisines ?? [],
+    source: 'demo',
+  } satisfies ProfileResponse;
+}
+
+async function saveDemoProfile(sessionId: string, payload: ProfilePayload) {
+  const supabase = createAdminClient();
+  const session = await getDemoSession(sessionId, supabase);
+  if (!session) return null;
+
+  const userName = payload.userName.trim() || session.display_name;
+  const preferredDishes = normalizeStringArray(payload.preferredDishes);
+  const preferredCuisines = normalizeStringArray(payload.preferredCuisines);
+  const requestedRestrictedIngredients = normalizeStringArray(payload.restrictedIngredients);
+  const requestedRestrictionReasons = normalizeRestrictionReasonMap(payload.restrictedIngredientReasons);
+
+  let resolvedRestrictedIngredients: ResolvedRestrictedIngredientRequest;
+  try {
+    resolvedRestrictedIngredients = await resolveRestrictedIngredients(supabase, requestedRestrictedIngredients);
+  } catch (error) {
+    if (error instanceof UnknownRestrictedIngredientCodesError) {
+      return NextResponse.json({
+        error: 'Unknown restricted ingredient codes.',
+        unknownCodes: error.codes,
+      }, { status: 400 });
+    }
+    throw error;
+  }
+
+  const localOnlyRestrictions = requestedRestrictedIngredients.filter((code) => !code.startsWith('ing-'));
+  const localOnlyRestrictionReasons = Object.fromEntries(
+    localOnlyRestrictions.map((code) => [code, requestedRestrictionReasons[code] ?? inferRestrictionReason(code)]),
+  ) as Record<string, RestrictionReason>;
+
+  const { error: profileError } = await supabase
+    .from('demo_profiles')
+    .upsert({
+      session_id: sessionId,
+      name: userName,
+      preferred_dishes: preferredDishes,
+      preferred_cuisines: preferredCuisines,
+      non_ingredient_restrictions: localOnlyRestrictions,
+      non_ingredient_restriction_reasons: localOnlyRestrictionReasons,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'session_id' });
+  if (profileError) throw profileError;
+
+  const { savedCodes, savedReasons } = await replaceDemoRestrictedIngredients(
+    supabase,
+    sessionId,
+    resolvedRestrictedIngredients,
+    requestedRestrictionReasons,
+  );
+
+  return NextResponse.json({
+    userName,
+    restrictedIngredients: [
+      ...savedCodes,
+      ...localOnlyRestrictions,
+    ],
+    restrictedIngredientReasons: {
+      ...savedReasons,
+      ...localOnlyRestrictionReasons,
+    },
+    preferredDishes,
+    preferredCuisines,
+    source: 'demo',
+  } satisfies ProfileResponse);
+}
+
+export async function GET(request: NextRequest) {
+  const demoSessionId = await getDemoSessionIdForRequest(request);
+  if (demoSessionId === 'mismatch') {
+    return NextResponse.json({ error: 'Invalid demo session.' }, { status: 403 });
+  }
+  if (demoSessionId) {
+    if (!isDemoPersistenceConfigured()) {
+      return NextResponse.json({ error: 'Demo persistence is not configured.' }, { status: 503 });
+    }
+    const demoProfile = await readDemoProfile(demoSessionId);
+    if (!demoProfile) return NextResponse.json({ error: 'Demo session not found.' }, { status: 401 });
+    return NextResponse.json(demoProfile);
   }
 
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
@@ -289,15 +469,23 @@ export async function PUT(request: NextRequest) {
   const requestedRestrictedIngredients = normalizeStringArray(payload.restrictedIngredients);
   const requestedRestrictionReasons = normalizeRestrictionReasonMap(payload.restrictedIngredientReasons);
 
-  if (await isDemoAuthenticated()) {
-    return NextResponse.json({
+  const demoSessionId = await getDemoSessionIdForRequest(request);
+  if (demoSessionId === 'mismatch') {
+    return NextResponse.json({ error: 'Invalid demo session.' }, { status: 403 });
+  }
+  if (demoSessionId) {
+    if (!isDemoPersistenceConfigured()) {
+      return NextResponse.json({ error: 'Demo persistence is not configured.' }, { status: 503 });
+    }
+    const demoResponse = await saveDemoProfile(demoSessionId, {
       userName: requestedUserName,
       restrictedIngredients: requestedRestrictedIngredients,
       restrictedIngredientReasons: requestedRestrictionReasons,
       preferredDishes,
       preferredCuisines,
-      source: 'demo',
-    } satisfies ProfileResponse);
+    });
+    if (!demoResponse) return NextResponse.json({ error: 'Demo session not found.' }, { status: 401 });
+    return demoResponse;
   }
 
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {

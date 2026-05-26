@@ -1,10 +1,15 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { DEMO_AUTH_COOKIE, hasDemoAuthCookie, isDemoModeEnabled } from '@/lib/demoMode';
-
-const DEMO_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 7;
+import {
+  DEMO_AUTH_COOKIE,
+  DEMO_AUTH_COOKIE_MAX_AGE_SECONDS,
+  createDemoAuthCookieValue,
+  getDemoSessionIdFromAuthCookie,
+  isDemoModeEnabled,
+} from '@/lib/demoMode';
+import { DEMO_SESSION_STORAGE_KEY, getDemoSession, isDemoPersistenceConfigured, restoreOrCreateDemoSession } from '@/lib/demoSession';
 
 type DemoLoginPayload = {
-  email?: string;
+  sessionId?: string;
 };
 
 function clearDemoCookie(response: NextResponse) {
@@ -22,8 +27,24 @@ function createDisabledResponse() {
   return response;
 }
 
+function createUnavailableResponse() {
+  const response = NextResponse.json({ authenticated: false, error: 'Demo persistence is not configured.' }, { status: 503 });
+  clearDemoCookie(response);
+  return response;
+}
+
 function isSameOriginRequest(request: NextRequest) {
   return request.headers.get('origin') === request.nextUrl.origin;
+}
+
+function setDemoCookie(response: NextResponse, cookieValue: string) {
+  response.cookies.set(DEMO_AUTH_COOKIE, cookieValue, {
+    path: '/',
+    httpOnly: true,
+    maxAge: DEMO_AUTH_COOKIE_MAX_AGE_SECONDS,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+  });
 }
 
 export async function GET(request: NextRequest) {
@@ -31,11 +52,25 @@ export async function GET(request: NextRequest) {
     return createDisabledResponse();
   }
 
-  if (!hasDemoAuthCookie(request.cookies.get(DEMO_AUTH_COOKIE)?.value)) {
+  if (!isDemoPersistenceConfigured()) {
+    return createUnavailableResponse();
+  }
+
+  const sessionId = await getDemoSessionIdFromAuthCookie(request.cookies.get(DEMO_AUTH_COOKIE)?.value);
+  if (!sessionId) {
     return NextResponse.json({ authenticated: false }, { status: 401 });
   }
 
-  return NextResponse.json({ authenticated: true });
+  const session = await getDemoSession(sessionId);
+  if (!session) {
+    return NextResponse.json({ authenticated: false }, { status: 401 });
+  }
+
+  return NextResponse.json({
+    authenticated: true,
+    sessionId: session.id,
+    userName: session.display_name,
+  });
 }
 
 export async function POST(request: NextRequest) {
@@ -47,21 +82,22 @@ export async function POST(request: NextRequest) {
     return createDisabledResponse();
   }
 
+  if (!isDemoPersistenceConfigured()) {
+    return createUnavailableResponse();
+  }
+
   const payload = await request.json().catch((): DemoLoginPayload => ({}));
-  const fallbackName = payload.email?.split('@')[0] || 'デモユーザー';
+  const { session, isNew } = await restoreOrCreateDemoSession(payload.sessionId);
+  const cookieValue = await createDemoAuthCookieValue(session.id);
   const response = NextResponse.json({
     authenticated: true,
-    userName: fallbackName,
+    sessionId: session.id,
+    sessionStorageKey: DEMO_SESSION_STORAGE_KEY,
+    userName: session.display_name,
+    isNew,
   });
 
-  response.cookies.set(DEMO_AUTH_COOKIE, '1', {
-    path: '/',
-    httpOnly: true,
-    maxAge: DEMO_COOKIE_MAX_AGE_SECONDS,
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
-  });
-
+  setDemoCookie(response, cookieValue);
   return response;
 }
 

@@ -26,7 +26,7 @@ SUPABASE_SERVICE_ROLE_KEY=<service role key>
 
 service role clientを作る場合は通常のユーザー操作に使わない。
 RLSをバイパスするため、`source_type = 'ai'` / `'api'` のレシピ保存など、サーバーが所有する書き込みに限定する。
-`/api/me/profile` の取得・更新は本人確認済みセッションで行い、service roleを使わない。
+`/api/me/profile` の通常ユーザー取得・更新は本人確認済みセッションで行い、service roleを使わない。DB-backed デモセッションだけは `auth.users` に紐づかない専用テーブルを Route Handler 経由で扱うため、server-only の admin client を使う。
 
 ## メール + パスワードでサインアップ
 
@@ -61,6 +61,26 @@ if (error) {
 ```
 
 成功するとセッション Cookie が立ち、`/login` から `redirect` パラメータ（既定 `/app`）へ遷移する。
+
+
+## DB-backed デモログイン
+
+発表・試用向けに、ログイン画面ではメール/パスワードとは別に「デモで体験する」ボタンを表示する。`DEMO_MODE=true` のときだけ有効になり、`POST /auth/demo` が `demo_sessions` に専用セッションを作成または復元する。
+
+- ブラウザの `localStorage` には `globalbites_demo_session_id` だけを保存し、これは復元ヒントとしてのみ使う
+- 実際の認証状態は server-issued の `globalbites_demo_auth` httpOnly 署名 Cookie で判定する
+- 新規デモセッションは `demo-user-001` のようなDB生成表示名を持ち、初回は `/app?view=profile` へ遷移してプロフィール設定を体験する
+- デモプロフィール、好み、NG材料は `/api/me/profile` 経由で `demo_profiles` / `demo_restricted_ingredients` に保存する
+- デモ用テーブルはRLSを有効化し、anon/authenticated向けの直接アクセスポリシーは作らない
+
+必要な環境変数:
+
+```
+DEMO_MODE=true
+SUPABASE_SERVICE_ROLE_KEY=<service role key>
+# 推奨: Cookie署名専用の長いランダム値。未設定時はservice role keyを署名にも使う。
+DEMO_SESSION_SECRET=<random secret>
+```
 
 ## 認証方式の判断
 
@@ -101,8 +121,8 @@ const { data: { user } } = await supabase.auth.getUser();
 
 | メソッド | 用途 | service role |
 |---|---|---|
-| `GET /api/me/profile` | `profiles`・`user_preferences`・NG材料設定を取得 | 使わない |
-| `PUT /api/me/profile` | 表示名・好み・NG材料設定を更新 | 使わない |
+| `GET /api/me/profile` | `profiles`・`user_preferences`・NG材料設定を取得。demo cookie が有効な場合は `demo_profiles` 等を取得 | 通常ユーザーは使わない / demo branch はserver-only admin clientを使う |
+| `PUT /api/me/profile` | 表示名・好み・NG材料設定を更新。demo cookie が有効な場合はdemo専用テーブルへ保存 | 通常ユーザーは使わない / demo branch はserver-only admin clientを使う |
 
 レスポンスの中心フィールド：
 
@@ -149,7 +169,7 @@ API側で存在しないコードを除外または400エラーにし、DB内部
 
 ## マイグレーション
 
-`supabase/migrations/20260524000001_init_schema.sql` で基本テーブルと RLS を定義し、`20260524190000_harden_auth_rls.sql` で auth / RLS の hardening を行う。
+`supabase/migrations/20260524000001_init_schema.sql` で基本テーブルと RLS を定義し、`20260524190000_harden_auth_rls.sql` で auth / RLS の hardening を行う。DB-backed デモログインは `20260525234000_add_demo_sessions.sql` で `demo_sessions` / `demo_profiles` / `demo_restricted_ingredients` を追加する。
 
 - `auth.users` 作成時に trigger で `profiles` 行が自動生成される
 - RLS により自分の行のみ SELECT / UPDATE 可能
