@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import {
   DEMO_AUTH_COOKIE,
+  LEGACY_DEMO_AUTH_COOKIE,
   DEMO_AUTH_COOKIE_MAX_AGE_SECONDS,
   createDemoAuthCookieValue,
   getDemoSessionIdFromAuthCookie,
@@ -20,12 +21,14 @@ function getDemoLoginSessionId(payload: unknown) {
 }
 
 function clearDemoCookie(response: NextResponse) {
-  response.cookies.set(DEMO_AUTH_COOKIE, '', {
-    path: '/',
-    maxAge: 0,
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
-  });
+  for (const cookieName of [DEMO_AUTH_COOKIE, LEGACY_DEMO_AUTH_COOKIE]) {
+    response.cookies.set(cookieName, '', {
+      path: '/',
+      maxAge: 0,
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+    });
+  }
 }
 
 function createUnavailableResponse() {
@@ -52,6 +55,12 @@ function setDemoCookie(response: NextResponse, cookieValue: string) {
     sameSite: 'lax',
     secure: process.env.NODE_ENV === 'production',
   });
+  response.cookies.set(LEGACY_DEMO_AUTH_COOKIE, '', {
+    path: '/',
+    maxAge: 0,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+  });
 }
 
 export async function GET(request: NextRequest) {
@@ -59,7 +68,8 @@ export async function GET(request: NextRequest) {
     return createUnavailableResponse();
   }
 
-  const demoCookieValue = request.cookies.get(DEMO_AUTH_COOKIE)?.value;
+  const demoCookieValue = request.cookies.get(DEMO_AUTH_COOKIE)?.value
+    ?? request.cookies.get(LEGACY_DEMO_AUTH_COOKIE)?.value;
   const sessionId = await getDemoSessionIdFromAuthCookie(demoCookieValue);
   if (!sessionId) {
     return createUnauthenticatedResponse({ clearCookie: Boolean(demoCookieValue) });

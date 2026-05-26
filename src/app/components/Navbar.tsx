@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { LogIn, LogOut, Settings, User, UserPlus } from 'lucide-react';
 
@@ -168,9 +169,17 @@ export default function Navbar({
           type="button"
           className="brand-logo"
           onClick={handleLogoClick}
-          title="メインページへ戻る"
+          title="Edible メインページへ戻る"
+          aria-label="Edible メインページへ戻る"
         >
-          <span className="brand-name">新しい世界、いただきます</span>
+          <Image
+            src="/logo-cropped.png"
+            alt="Edible"
+            width={128}
+            height={50}
+            className="brand-logo-image"
+            priority
+          />
         </button>
 
         <div className="navbar-actions">

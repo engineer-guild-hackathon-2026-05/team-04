@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import React from 'react';
 import { Compass, CheckCircle2, ShieldAlert, Sparkles } from 'lucide-react';
 
@@ -7,6 +8,16 @@ export default function LandingView() {
   return (
     <div className="landing-container">
       <section className="landing-hero" aria-labelledby="hero-title">
+        <div className="hero-logo-wrapper">
+          <Image
+            src="/logo-cropped.png"
+            alt="Edible"
+            width={569}
+            height={223}
+            className="hero-logo"
+            priority
+          />
+        </div>
         <div className="hero-badge">
           <Sparkles size={14} className="badge-icon" />
           <span>新しい食の出会いを、すべてのひとに</span>
@@ -17,7 +28,7 @@ export default function LandingView() {
         </h1>
         <p className="hero-subtitle">
           「食べられないものがあるから、外食や新しい料理を諦めがち…」<br />
-          GlobalBitesは、<strong>食事制限や好みに合う海外料理レシピ</strong>を探せる場所です。<br />
+          Edibleは、<strong>食事制限や好みに合う海外料理レシピ</strong>を探せる場所です。<br />
           食の選択肢を広げたい人と海外料理が好きな人が、条件に合うレシピを見つけられます。
         </p>
       </section>

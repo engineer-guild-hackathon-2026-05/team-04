@@ -25,7 +25,7 @@ assert.deepEqual(
 
 assert.match(
   loginSource,
-  /async function clearDemoAuthState\(\)[\s\S]*localStorage\.removeItem\(DEMO_SESSION_STORAGE_KEY\)[\s\S]*localStorage\.removeItem\(LEGACY_DEMO_PROFILE_STORAGE_KEY\)[\s\S]*fetch\('\/auth\/demo', \{\s*method: 'DELETE'\s*\}\)\.catch\(\(\) => null\)/,
+  /async function clearDemoAuthState\(\)[\s\S]*localStorage\.removeItem\(DEMO_SESSION_STORAGE_KEY\)[\s\S]*localStorage\.removeItem\(LEGACY_DEMO_SESSION_STORAGE_KEY\)[\s\S]*localStorage\.removeItem\(LEGACY_DEMO_PROFILE_STORAGE_KEY\)[\s\S]*fetch\('\/auth\/demo', \{\s*method: 'DELETE'\s*\}\)\.catch\(\(\) => null\)/,
   'login page は httpOnly demo cookie と localStorage demo hints を消す helper を持ってください。',
 );
 

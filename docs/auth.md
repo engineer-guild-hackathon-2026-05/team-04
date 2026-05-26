@@ -64,8 +64,8 @@ if (error) {
 
 発表・試用向けに、ログイン画面ではメール/パスワードとは別に「デモで体験する」ボタンを常時表示する。これは旧 `DEMO_MODE` のような特殊モードではなく、DB-backed guest login として扱い、`POST /auth/demo` が `demo_sessions` に専用セッションを作成または復元する。
 
-- ブラウザの `localStorage` には `globalbites_demo_session_id` だけを保存し、これは復元ヒントとしてのみ使う
-- 実際の認証状態は server-issued の `globalbites_demo_auth` httpOnly 署名 Cookie で判定する
+- ブラウザの `localStorage` には `edible_demo_session_id` だけを保存し、これは復元ヒントとしてのみ使う
+- 実際の認証状態は server-issued の `edible_demo_auth` httpOnly 署名 Cookie で判定する
 - 新規デモセッションは `demo-user-001` のようなDB生成表示名を持ち、初回は `/app?view=profile` へ遷移してプロフィール設定を体験する
 - デモプロフィール、好み、NG材料は `/api/me/profile` 経由で `demo_profiles` / `demo_restricted_ingredients` に保存する
 - デモ用テーブルはRLSを有効化し、anon/authenticated向けの直接アクセスポリシーは作らない

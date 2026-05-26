@@ -3,8 +3,8 @@ import type { ReactNode } from "react";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Team 04",
-  description: "Engineer Guild Hackathon 2026/05 Team 04 の Next.js アプリケーション",
+  title: "Edible",
+  description: "食の制約から世界の料理と出会うレシピプラットフォーム Edible",
 };
 
 export default function RootLayout({

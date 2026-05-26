@@ -246,7 +246,7 @@ assert.doesNotMatch(
 );
 assert.match(
   signoutRouteSource,
-  /response\.cookies\.set\(DEMO_AUTH_COOKIE[\s\S]*if \(!hasSupabaseConfig\(\)\) \{[\s\S]*return response;[\s\S]*const supabase = await createClient\(\);[\s\S]*await supabase\.auth\.signOut\(\);/,
+  /for \(const cookieName of \[DEMO_AUTH_COOKIE, LEGACY_DEMO_AUTH_COOKIE\]\) \{[\s\S]*response\.cookies\.set\(cookieName[\s\S]*if \(!hasSupabaseConfig\(\)\) \{[\s\S]*return response;[\s\S]*const supabase = await createClient\(\);[\s\S]*await supabase\.auth\.signOut\(\);/,
   'signout は常に demo cookie をclearし、Supabase設定がある場合は既存Supabase sessionも失効してください。',
 );
 

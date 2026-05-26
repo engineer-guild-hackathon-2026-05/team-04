@@ -35,7 +35,7 @@ assert.match(migration, /alter table public\.demo_profiles enable row level secu
 assert.match(migration, /alter table public\.demo_restricted_ingredients enable row level security/i, 'demo restricted ingredient table はRLSを有効化してください。');
 assert.doesNotMatch(migration, /create policy[\s\S]*(anon|authenticated)/i, 'demo tables にpublic anon/authenticated policyを作らないでください。');
 
-assert.match(authDocs, /## DB-backed デモログイン[\s\S]*globalbites_demo_session_id[\s\S]*globalbites_demo_auth[\s\S]*demo_profiles/, 'docs/auth.md はDB-backed demo loginの権限モデルと保存先を説明してください。');
+assert.match(authDocs, /## DB-backed デモログイン[\s\S]*edible_demo_session_id[\s\S]*edible_demo_auth[\s\S]*demo_profiles/, 'docs/auth.md はDB-backed demo loginの権限モデルと保存先を説明してください。');
 assert.match(authDocs, /DEMO_SESSION_SECRET/, 'docs/auth.md はdemo cookie署名secretを案内してください。');
 assert.match(envExample, /DB-backed guest login[\s\S]*SUPABASE_SERVICE_ROLE_KEY[\s\S]*guest login[\s\S]*DEMO_SESSION_SECRET|SUPABASE_SERVICE_ROLE_KEY[\s\S]*DEMO_SESSION_SECRET[\s\S]*DB-backed guest session/, '.env.local.example はDB-backed guest loginに必要なserver-only envを案内してください。');
 assert.doesNotMatch(envExample, /^DEMO_MODE=|NEXT_PUBLIC_DEMO_MODE/m, '.env.local.example はDB-backed guest loginを旧demo mode flagで制御しないでください。');
