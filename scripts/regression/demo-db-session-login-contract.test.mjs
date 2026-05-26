@@ -11,7 +11,8 @@ const envExample = readFileSync('.env.local.example', 'utf8');
 
 assert.match(authDemoRoute, /function isSameOriginRequest\(request: NextRequest\)[\s\S]*origin'\) === request\.nextUrl\.origin/, 'demo login/logout はsame-origin requestだけを受け付けてください。');
 assert.match(authDemoRoute, /if \(!isDemoPersistenceConfigured\(\) \|\| !hasDemoSessionSigningSecret\(\)\) \{[\s\S]*createUnavailableResponse\(\)/, 'demo login はDB永続化なしでmock認証へfallbackしないでください。');
-assert.match(authDemoRoute, /restoreOrCreateDemoSession\(payload\.sessionId\)/, 'one-click login はlocalStorage session idを復元ヒントとしてDB sessionを再利用してください。');
+assert.match(authDemoRoute, /function getDemoLoginSessionId\(payload: unknown\)[\s\S]*return typeof sessionId === 'string' \? sessionId : undefined;/, 'one-click login はlocalStorage session idを安全に検証して復元ヒントへ変換してください。');
+assert.match(authDemoRoute, /restoreOrCreateDemoSession\(getDemoLoginSessionId\(payload\)\)/, 'one-click login は検証済みlocalStorage session idを復元ヒントとしてDB sessionを再利用してください。');
 assert.match(authDemoRoute, /httpOnly:\s*true[\s\S]*sameSite:\s*'lax'/, '権限はlocalStorageではなくhttpOnly署名Cookieで保持してください。');
 
 assert.match(demoMode, /crypto\.subtle\.sign\('HMAC'/, 'demo auth cookie はHMAC署名してください。');

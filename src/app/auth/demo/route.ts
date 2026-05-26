@@ -12,6 +12,13 @@ type DemoLoginPayload = {
   sessionId?: string;
 };
 
+function getDemoLoginSessionId(payload: unknown) {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return undefined;
+
+  const sessionId = (payload as DemoLoginPayload).sessionId;
+  return typeof sessionId === 'string' ? sessionId : undefined;
+}
+
 function clearDemoCookie(response: NextResponse) {
   response.cookies.set(DEMO_AUTH_COOKIE, '', {
     path: '/',
@@ -79,8 +86,8 @@ export async function POST(request: NextRequest) {
     return createUnavailableResponse();
   }
 
-  const payload = await request.json().catch((): DemoLoginPayload => ({}));
-  const { session, isNew } = await restoreOrCreateDemoSession(payload.sessionId);
+  const payload = await request.json().catch((): unknown => ({}));
+  const { session, isNew } = await restoreOrCreateDemoSession(getDemoLoginSessionId(payload));
   const cookieValue = await createDemoAuthCookieValue(session.id);
   const response = NextResponse.json({
     authenticated: true,

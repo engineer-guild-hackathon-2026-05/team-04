@@ -155,4 +155,67 @@ assert.match(
   'demo profile PUT は session row が消えている場合に cookie clear 付き401を返してください。',
 );
 
+const previousDemoRestrictionReplaceFailure = ({ previousRows, insertSucceeds }) => {
+  const rowsAfterDelete = [...previousRows];
+  rowsAfterDelete.splice(0, rowsAfterDelete.length);
+  return insertSucceeds ? ['new-row'] : rowsAfterDelete;
+};
+const fixedDemoRestrictionReplaceFailure = ({ previousRows, insertSucceeds }) => {
+  const rowsAfterDelete = [];
+  return insertSucceeds ? ['new-row'] : rowsAfterDelete.concat(previousRows);
+};
+
+assert.deepEqual(
+  previousDemoRestrictionReplaceFailure({ previousRows: ['ing-egg'], insertSucceeds: false }),
+  [],
+  '再現: demo_restricted_ingredients の再insert失敗時に既存行が復元されず、制限情報が消えていました。',
+);
+assert.deepEqual(
+  fixedDemoRestrictionReplaceFailure({ previousRows: ['ing-egg'], insertSucceeds: false }),
+  ['ing-egg'],
+  '修正: demo_restricted_ingredients の再insert失敗時は既存行を復元してください。',
+);
+assert.match(
+  profileRouteSource,
+  /async function restoreDemoRestrictedIngredientRows\([\s\S]*\.from\('demo_restricted_ingredients'\)\.insert\([\s\S]*session_id: sessionId[\s\S]*ingredient_id: row\.ingredient_id[\s\S]*reason: row\.reason \?\? 'allergy'/,
+  'demo制限食材の再insert失敗に備え、既存 demo_restricted_ingredients 行を復元するhelperを持ってください。',
+);
+assert.match(
+  profileRouteSource,
+  /const \{ error: insertError \} = await supabase\.from\('demo_restricted_ingredients'\)\.insert\(inserts\);\s*if \(insertError\) \{\s*await restoreDemoRestrictedIngredientRows\(supabase, sessionId, \(existingRows \?\? \[\]\) as RestrictedJoinRow\[\]\);\s*throw insertError;\s*\}/,
+  'replaceDemoRestrictedIngredients は insert 失敗時に通常ユーザーpath同様、削除済みの既存行を復元してからthrowしてください。',
+);
+
+const previousDemoLoginSessionIdRead = (payload) => payload.sessionId;
+const fixedDemoLoginSessionIdRead = (payload) =>
+  payload && typeof payload === 'object' && !Array.isArray(payload) && typeof payload.sessionId === 'string'
+    ? payload.sessionId
+    : undefined;
+
+assert.throws(
+  () => previousDemoLoginSessionIdRead(null),
+  TypeError,
+  '再現: POST /auth/demo は JSON null payload で payload.sessionId 読み取り時に TypeError になっていました。',
+);
+assert.equal(
+  fixedDemoLoginSessionIdRead(null),
+  undefined,
+  '修正: POST /auth/demo の JSON null payload は sessionId hint なしとして扱ってください。',
+);
+assert.equal(
+  fixedDemoLoginSessionIdRead({ sessionId: 'demo-session-id' }),
+  'demo-session-id',
+  '修正: 有効な object payload の sessionId hint は保持してください。',
+);
+assert.match(
+  authDemoRouteSource,
+  /function getDemoLoginSessionId\(payload: unknown\)[\s\S]*if \(!payload \|\| typeof payload !== 'object' \|\| Array\.isArray\(payload\)\) return undefined;[\s\S]*return typeof sessionId === 'string' \? sessionId : undefined;/,
+  'POST /auth/demo は unknown payload を object guard してから sessionId を読む helper を持ってください。',
+);
+assert.match(
+  authDemoRouteSource,
+  /const payload = await request\.json\(\)\.catch\(\(\): unknown => \(\{\}\)\);\s*const \{ session, isNew \} = await restoreOrCreateDemoSession\(getDemoLoginSessionId\(payload\)\);/,
+  'POST /auth/demo は JSON null / 配列 / 非object を missing sessionId として restoreOrCreateDemoSession へ渡してください。',
+);
+
 console.log('PR #30 unresolved review regression checks passed');

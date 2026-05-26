@@ -123,6 +123,26 @@ async function restoreRestrictedIngredientRows(
   }
 }
 
+async function restoreDemoRestrictedIngredientRows(
+  supabase: ReturnType<typeof createAdminClient>,
+  sessionId: string,
+  rows: RestrictedJoinRow[],
+) {
+  if (rows.length === 0) return;
+
+  const { error } = await supabase.from('demo_restricted_ingredients').insert(
+    rows.map((row) => ({
+      session_id: sessionId,
+      ingredient_id: row.ingredient_id,
+      reason: row.reason ?? 'allergy',
+    })),
+  );
+
+  if (error) {
+    console.warn('Failed to restore demo restricted ingredient rows after profile API insert failure.', error);
+  }
+}
+
 async function resolveRestrictedIngredients(
   supabase: Awaited<ReturnType<typeof createClient>>,
   requestedCodes: string[],
@@ -242,7 +262,10 @@ async function replaceDemoRestrictedIngredients(
 
   if (inserts.length > 0) {
     const { error: insertError } = await supabase.from('demo_restricted_ingredients').insert(inserts);
-    if (insertError) throw insertError;
+    if (insertError) {
+      await restoreDemoRestrictedIngredientRows(supabase, sessionId, (existingRows ?? []) as RestrictedJoinRow[]);
+      throw insertError;
+    }
   }
 
   return { savedCodes: ingredientCodes, savedReasons };
