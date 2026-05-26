@@ -160,8 +160,8 @@ assert.match(
 );
 assert.match(
   openRouter,
-  /parseSelectedRecipeIds[\s\S]*uniqueIds\.length !== count[\s\S]*allowedIds\.has/,
-  'OpenRouter selection must validate exactly three unique ids from the provided candidate list.',
+  /parseSelectedRecipeIds[\s\S]*ids\.length === 0[\s\S]*ids\.length > count[\s\S]*allowedIds\.has/,
+  'OpenRouter selection must validate 1〜count existing ids from the provided candidate list.',
 );
 assert.match(
   openRouter,

@@ -191,13 +191,13 @@ export async function POST(request: NextRequest) {
       dietaryConstraints: restrictionContext.dietaryConstraints,
       preparationRestrictions: restrictionContext.preparationRestrictions,
     });
-    if (candidates.length < 3) {
-      return apiError(422, 'not_enough_recipe_candidates', '条件に合うレシピが3件未満です。プロフィールの制限を見直してください。');
+    if (candidates.length === 0) {
+      return apiError(422, 'not_enough_recipe_candidates', '条件に合うレシピがありません。プロフィールの制限を見直してください。');
     }
 
     const selectedRecipeIds = await selectRecipeIdsWithOpenRouter({
       mood,
-      count: 3,
+      count: Math.min(3, candidates.length),
       candidates,
     });
 

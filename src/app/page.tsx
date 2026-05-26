@@ -209,6 +209,7 @@ export default function Home() {
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [suggestStatus, setSuggestStatus] = useState<AiRequestStatus>('idle');
   const [suggestError, setSuggestError] = useState<string | null>(null);
+  const [suggestedRecipeCount, setSuggestedRecipeCount] = useState(0);
   const [substituteStatus, setSubstituteStatus] = useState<AiRequestStatus>('idle');
   const [substituteError, setSubstituteError] = useState<string | null>(null);
   const [substituteSuggestions, setSubstituteSuggestions] = useState<IngredientSubstitution[]>([]);
@@ -384,11 +385,13 @@ export default function Home() {
     if (!trimmedMood) {
       setSuggestStatus('error');
       setSuggestError('気分や食べたい雰囲気を入力してください。');
+      setSuggestedRecipeCount(0);
       return;
     }
 
     setSuggestStatus('loading');
     setSuggestError(null);
+    setSuggestedRecipeCount(0);
 
     try {
       const response = await fetch('/api/recipes/suggest', {
@@ -416,10 +419,12 @@ export default function Home() {
         if (!currentRecipe) return currentRecipe;
         return suggestedRecipes.find((recipe) => recipe.id === currentRecipe.id) ?? currentRecipe;
       });
+      setSuggestedRecipeCount(suggestedRecipes.length);
       setSuggestStatus('success');
     } catch (error) {
       setSuggestStatus('error');
       setSuggestError(error instanceof Error ? error.message : 'AIレシピ提案に失敗しました。');
+      setSuggestedRecipeCount(0);
     }
   };
 
@@ -624,6 +629,7 @@ export default function Home() {
             onSuggestRecipes={handleSuggestRecipes}
             suggestStatus={suggestStatus}
             suggestError={suggestError}
+            suggestedRecipeCount={suggestedRecipeCount}
           />
         )}
 

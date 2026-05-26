@@ -116,7 +116,7 @@ async function requestJsonFromOpenRouter(system: string, user: string, temperatu
 }
 
 function buildSelectionPrompt(input: SelectRecipeInput, retryReason?: string) {
-  const count = Math.max(1, Math.min(input.count, 3));
+  const count = Math.max(1, Math.min(input.count, 3, input.candidates.length));
   const retryInstruction = retryReason
     ? `\n前回の応答は ${retryReason} により利用できませんでした。候補IDだけから重複なしで${count}件を選び直してください。`
     : '';
@@ -129,6 +129,7 @@ function buildSelectionPrompt(input: SelectRecipeInput, retryReason?: string) {
     tags: recipe.tags,
     ingredients: recipe.ingredients.map((ingredient) => ingredient.name_ja),
   }));
+  const recipeIdFormat = Array.from({ length: count }, (_, index) => `"候補id${index + 1}"`).join(',');
 
   return `あなたは既存レシピ一覧から気分に合う料理を選ぶ推薦担当です。
 - 候補レシピはサーバー側で食材制限を除外済みです。
@@ -140,7 +141,7 @@ function buildSelectionPrompt(input: SelectRecipeInput, retryReason?: string) {
 気分・要望: ${input.mood}
 選ぶ件数: ${count}
 候補レシピJSON: ${JSON.stringify(candidates)}
-JSON形式: {"recipe_ids":["候補id1","候補id2","候補id3"]}`;
+JSON形式: {"recipe_ids":[${recipeIdFormat}]}`;
 }
 
 function parseSelectedRecipeIds(payload: unknown, candidates: Recipe[], count: number) {
@@ -152,22 +153,22 @@ function parseSelectedRecipeIds(payload: unknown, candidates: Recipe[], count: n
     throw new OpenRouterResponseError('OpenRouter selection did not include recipe_ids.');
   }
 
-  if (ids.length !== count || ids.some((id) => typeof id !== 'string')) {
+  if (ids.length === 0 || ids.length > count || ids.some((id) => typeof id !== 'string')) {
     throw new OpenRouterResponseError('OpenRouter selected invalid recipe ids.');
   }
 
   const allowedIds = new Set(candidates.map((recipe) => recipe.id));
   const selectedIds = ids as string[];
   const uniqueIds = Array.from(new Set(selectedIds));
-  if (uniqueIds.length !== count || uniqueIds.some((id) => !allowedIds.has(id))) {
+  if (uniqueIds.length === 0 || uniqueIds.length > count || uniqueIds.some((id) => !allowedIds.has(id))) {
     throw new OpenRouterResponseError('OpenRouter selected invalid recipe ids.');
   }
   return uniqueIds;
 }
 
 async function requestRecipeSelectionFromOpenRouter(input: SelectRecipeInput, retryReason?: string): Promise<string[]> {
-  const count = Math.max(1, Math.min(input.count, 3));
-  if (input.candidates.length < count) {
+  const count = Math.max(1, Math.min(input.count, 3, input.candidates.length));
+  if (input.candidates.length === 0) {
     throw new OpenRouterResponseError('Not enough edible recipe candidates.');
   }
 

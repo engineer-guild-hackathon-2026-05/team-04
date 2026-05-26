@@ -16,6 +16,7 @@ interface ListViewProps {
   onSuggestRecipes: (mood: string) => Promise<void>;
   suggestStatus: 'idle' | 'loading' | 'success' | 'error';
   suggestError: string | null;
+  suggestedRecipeCount: number;
 }
 
 const CUISINE_MATCH_TERMS: Record<string, string[]> = {
@@ -53,6 +54,7 @@ export default function ListView({
   onSuggestRecipes,
   suggestStatus,
   suggestError,
+  suggestedRecipeCount,
 }: ListViewProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [isMoodChatOpen, setIsMoodChatOpen] = useState(false);
@@ -392,7 +394,7 @@ export default function ListView({
             {suggestStatus !== 'idle' && (
               <p className="mood-chat-helper" role="status" aria-live="polite">
                 {suggestStatus === 'loading' && '食材制限に合うレシピから選んでいます。'}
-                {suggestStatus === 'success' && 'おすすめレシピを3件選びました。'}
+                {suggestStatus === 'success' && `おすすめレシピを${suggestedRecipeCount}件選びました。`}
               </p>
             )}
             {suggestStatus === 'error' && suggestError && (
