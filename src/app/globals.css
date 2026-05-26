@@ -444,7 +444,7 @@ button, input {
 .landing-container {
   display: flex;
   flex-direction: column;
-  gap: 28px;
+  gap: 20px;
   animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
@@ -456,12 +456,12 @@ button, input {
 }
 
 .hero-logo-wrapper {
-  margin-bottom: 14px;
+  margin-bottom: 10px;
 }
 
 .hero-logo {
   width: 100%;
-  max-width: 300px;
+  max-width: 560px;
   height: auto;
   display: inline-block;
 }
@@ -490,12 +490,12 @@ button, input {
 }
 
 .hero-title-main {
-  font-size: clamp(1.6rem, 3.5vw, 2.4rem);
+  font-size: clamp(1.3rem, 2.8vw, 1.9rem);
   line-height: 1.2;
   font-weight: 900;
   letter-spacing: -0.03em;
   color: var(--text-primary);
-  margin-bottom: 10px;
+  margin-bottom: 6px;
 }
 
 .text-gradient {
@@ -505,9 +505,9 @@ button, input {
 }
 
 .hero-subtitle {
-  font-size: 0.95rem;
+  font-size: 0.85rem;
   color: var(--text-muted);
-  line-height: 1.65;
+  line-height: 1.6;
   margin-bottom: 0;
 }
 
