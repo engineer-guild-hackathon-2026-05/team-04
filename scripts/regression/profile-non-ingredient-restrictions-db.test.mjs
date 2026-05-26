@@ -31,8 +31,33 @@ assert.match(
 );
 assert.match(
   route,
+  /import \{[^}]*isDietaryRestrictionId[^}]*\} from '@\/lib\/dietaryRestrictions'/,
+  'プロフィールPUTは diet-* の対応 ID を共有ルールで検証してください。',
+);
+assert.match(
+  route,
+  /import \{[^}]*isPreparationRestrictionId[^}]*\} from '@\/lib\/preparationRestrictions'/,
+  'プロフィールPUTは prep-* の対応 ID を共有ルールで検証してください。',
+);
+assert.match(
+  route,
+  /function isSupportedNonIngredientRestrictionId[\s\S]*isDietaryRestrictionId\(code\)[\s\S]*isPreparationRestrictionId\(code\)/,
+  'プロフィールPUTは非食材制限を diet-* / prep-* の対応 ID に限定してください。',
+);
+assert.match(
+  route,
+  /unknownNonIngredientRestrictionCodes[\s\S]*NextResponse\.json\([\s\S]*Unknown restricted ingredient codes\.[\s\S]*unknownCodes:[\s\S]*status:\s*400/,
+  '未対応の非食材制限 ID は user_preferences に保存せず unknownCodes 付き 400 で拒否してください。',
+);
+assert.match(
+  route,
+  /non_ingredient_restrictions: requestedNonIngredientRestrictions/,
+  'プロフィールPUTは検証済みの prep-* / diet-* だけを user_preferences に保存してください。',
+);
+assert.doesNotMatch(
+  route,
   /non_ingredient_restrictions: requestedRestrictedIngredients\.filter\(\(code\) => !code\.startsWith\('ing-'\)\)/,
-  'プロフィールPUTは prep-* / diet-* を user_preferences に保存してください。',
+  'プロフィールPUTは未検証の非食材制限 ID をそのまま保存してはいけません。',
 );
 assert.match(
   route,

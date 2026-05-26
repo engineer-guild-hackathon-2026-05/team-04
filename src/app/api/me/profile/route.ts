@@ -1,7 +1,9 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { cookies } from 'next/headers';
 import { DEMO_AUTH_COOKIE, hasDemoAuthCookie } from '@/lib/demoMode';
+import { isDietaryRestrictionId } from '@/lib/dietaryRestrictions';
 import { isIngredientCodeFormat, toIngredientCodeFromDbRow } from '@/lib/ingredientCodes';
+import { isPreparationRestrictionId } from '@/lib/preparationRestrictions';
 import { createClient } from '@/lib/supabase/server';
 import { hasSupabaseConfig } from '@/lib/supabase/config';
 import type { ProfileFallbackField, ProfilePayload, ProfileResponse, RestrictionReason } from '@/lib/apiTypes';
@@ -75,6 +77,20 @@ function inferRestrictionReason(code: string): RestrictionReason {
   if (RELIGIOUS_RESTRICTION_CODES.has(code)) return 'religious';
   if (!code.startsWith('ing-')) return 'dislike';
   return 'allergy';
+}
+
+function isSupportedNonIngredientRestrictionId(code: string) {
+  return isDietaryRestrictionId(code) || isPreparationRestrictionId(code);
+}
+
+function unsupportedNonIngredientRestrictionCodes(codes: string[]) {
+  return Array.from(new Set(
+    codes.filter((code) => !code.startsWith('ing-') && !isSupportedNonIngredientRestrictionId(code)),
+  ));
+}
+
+function supportedNonIngredientRestrictionCodes(codes: string[]) {
+  return Array.from(new Set(codes.filter(isSupportedNonIngredientRestrictionId)));
 }
 
 async function isDemoAuthenticated() {
@@ -289,6 +305,14 @@ export async function PUT(request: NextRequest) {
   const preferredCuisines = normalizeStringArray(payload.preferredCuisines);
   const requestedRestrictedIngredients = normalizeStringArray(payload.restrictedIngredients);
   const requestedRestrictionReasons = normalizeRestrictionReasonMap(payload.restrictedIngredientReasons);
+  const unknownNonIngredientRestrictionCodes = unsupportedNonIngredientRestrictionCodes(requestedRestrictedIngredients);
+  if (unknownNonIngredientRestrictionCodes.length > 0) {
+    return NextResponse.json({
+      error: 'Unknown restricted ingredient codes.',
+      unknownCodes: unknownNonIngredientRestrictionCodes,
+    }, { status: 400 });
+  }
+  const requestedNonIngredientRestrictions = supportedNonIngredientRestrictionCodes(requestedRestrictedIngredients);
 
   if (await isDemoAuthenticated()) {
     return NextResponse.json({
@@ -344,10 +368,9 @@ export async function PUT(request: NextRequest) {
       user_id: user.id,
       preferred_dishes: preferredDishes,
       preferred_cuisines: preferredCuisines,
-      non_ingredient_restrictions: requestedRestrictedIngredients.filter((code) => !code.startsWith('ing-')),
+      non_ingredient_restrictions: requestedNonIngredientRestrictions,
       non_ingredient_restriction_reasons: Object.fromEntries(
-        requestedRestrictedIngredients
-          .filter((code) => !code.startsWith('ing-'))
+        requestedNonIngredientRestrictions
           .map((code) => [code, requestedRestrictionReasons[code] ?? inferRestrictionReason(code)]),
       ),
       updated_at: new Date().toISOString(),
@@ -362,7 +385,7 @@ export async function PUT(request: NextRequest) {
     requestedRestrictionReasons,
   );
 
-  const localOnlyRestrictions = requestedRestrictedIngredients.filter((code) => !code.startsWith('ing-'));
+  const localOnlyRestrictions = requestedNonIngredientRestrictions;
   const localOnlyRestrictionReasons = Object.fromEntries(
     localOnlyRestrictions.map((code) => [code, requestedRestrictionReasons[code] ?? inferRestrictionReason(code)]),
   ) as Record<string, RestrictionReason>;
