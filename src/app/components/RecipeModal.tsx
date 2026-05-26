@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useEffect, useState, type KeyboardEvent } from 'react';
-import { X, Clock, Users, ShieldAlert, ChefHat } from 'lucide-react';
+import { X, Clock, Users, ShieldAlert, ChefHat, Sparkles } from 'lucide-react';
 import { Recipe, type RecipeCultureSectionKey, type RecipeStep } from '@/lib/mockData';
+import type { IngredientSubstitution } from '@/lib/apiTypes';
 import {
   DIETARY_RESTRICTION_RULES,
   getDietaryConflictingIngredients,
@@ -22,6 +23,11 @@ type ModalTab = {
   label: string;
 };
 
+type RestrictionTag = {
+  label: string;
+  tone: 'safe' | 'caution' | 'danger' | 'neutral';
+};
+
 type RelatedRecipeCard = {
   reference: Recipe['related_sections'][number]['recipes'][number];
   relatedRecipe: Recipe;
@@ -33,6 +39,10 @@ interface RecipeModalProps {
   onClose: () => void;
   onSelectRecipe: (recipe: Recipe) => void;
   restrictedIngredients: string[];
+  onSubstituteRecipe: (recipeId: string) => Promise<void>;
+  substituteStatus: 'idle' | 'loading' | 'success' | 'error';
+  substituteError: string | null;
+  substituteSuggestions: IngredientSubstitution[];
 }
 
 const MODAL_TABS: ModalTab[] = [
@@ -62,13 +72,59 @@ const RELIGIOUS_RESTRICTION_LABELS: Record<string, string> = {
 
 const ANIMAL_PRODUCT_DIETARY_TAG = 'animal-product';
 const GLUTEN_DIETARY_TAG = 'gluten';
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function isUuidBackedRecipeId(recipeId: string) {
+  return UUID_PATTERN.test(recipeId);
+}
 
 const getIngredientListKey = (
   recipeId: string,
   ingredient: Recipe['ingredients'][number],
 ) => `${recipeId}:${ingredient.id}:${ingredient.name_ja}:${ingredient.quantity}`;
 
-const getBaseIngredientName = (name: string) => name.split('（')[0].trim();
+const getBaseIngredientName = (name: string) => name.replace(/\s*[（(][^）)]*[）)]\s*$/, '').trim();
+
+const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+function findSubstitutionForIngredient(
+  ingredientName: string,
+  substitutions: IngredientSubstitution[],
+) {
+  const baseName = getBaseIngredientName(ingredientName);
+  return substitutions.find((item) =>
+    item.originalIngredientName === ingredientName ||
+    item.originalIngredientName === baseName ||
+    getBaseIngredientName(item.originalIngredientName) === baseName,
+  );
+}
+
+function renderSubstitutedStepText(text: string, substitutions: IngredientSubstitution[]) {
+  const activeSubstitutions = substitutions.filter((item) => item.originalIngredientName && item.substituteIngredient.name_ja);
+  if (activeSubstitutions.length === 0) return text;
+
+  const pattern = activeSubstitutions
+    .flatMap((item) => [item.originalIngredientName, getBaseIngredientName(item.originalIngredientName)])
+    .filter(Boolean)
+    .sort((a, b) => b.length - a.length)
+    .map(escapeRegExp)
+    .join('|');
+  if (!pattern) return text;
+
+  const regex = new RegExp(`(${pattern})`, 'g');
+  const chunks = text.split(regex).filter((chunk) => chunk.length > 0);
+
+  return chunks.map((chunk, index) => {
+    const substitution = findSubstitutionForIngredient(chunk, activeSubstitutions);
+    if (!substitution) return <React.Fragment key={`${chunk}-${index}`}>{chunk}</React.Fragment>;
+    return (
+      <span className="substituted-step-highlight" key={`${chunk}-${index}`}>
+        {substitution.substituteIngredient.name_ja}
+        <span className="substituted-step-original">（元: {chunk}）</span>
+      </span>
+    );
+  });
+}
 
 const getUniqueIngredientNames = (ingredients: Recipe['ingredients']) =>
   Array.from(new Set(ingredients.map(ing => getBaseIngredientName(ing.name_ja)).filter(Boolean)));
@@ -101,6 +157,10 @@ export default function RecipeModal({
   onClose,
   onSelectRecipe,
   restrictedIngredients,
+  onSubstituteRecipe,
+  substituteStatus,
+  substituteError,
+  substituteSuggestions,
 }: RecipeModalProps) {
   const [activeTab, setActiveTab] = useState<ModalTabKey>('basic');
 
@@ -158,7 +218,7 @@ export default function RecipeModal({
   const glutenIngredientNames = getUniqueIngredientNames(
     recipe.ingredients.filter(ing => ing.dietary_tags?.includes(GLUTEN_DIETARY_TAG)),
   );
-  const dietaryRestrictionTags = selectedDietaryRestrictionIds.length > 0
+  const dietaryRestrictionTags: RestrictionTag[] = selectedDietaryRestrictionIds.length > 0
     ? selectedDietaryRestrictionIds.map((restrictionId) => {
         const rule = DIETARY_RESTRICTION_RULES[restrictionId];
         const conflictNames = getUniqueIngredientNames(getDietaryConflictingIngredients(recipe, restrictionId));
@@ -174,7 +234,7 @@ export default function RecipeModal({
             ? { label: '完全ヴィーガン対応', tone: 'safe' }
             : { label: '食事制限要確認', tone: 'caution' },
       ];
-  const preparationRestrictionTags = selectedPreparationRestrictionIds.map((restrictionId) => {
+  const preparationRestrictionTags: RestrictionTag[] = selectedPreparationRestrictionIds.map((restrictionId) => {
     const rule = PREPARATION_RESTRICTION_RULES[restrictionId];
     const conflictNames = getUniqueIngredientNames(getPreparationConflictingIngredients(recipe, restrictionId));
 
@@ -187,18 +247,28 @@ export default function RecipeModal({
       getPreparationConflictingIngredients(recipe, restrictionId).map((ing) => getBaseIngredientName(ing.name_ja)),
     ),
   );
-  const glutenRestrictionTag = glutenIngredientNames.length > 0
+  const glutenRestrictionTag: RestrictionTag = glutenIngredientNames.length > 0
     ? { label: `グルテン含有: ${glutenIngredientNames.join(', ')}`, tone: 'danger' }
     : recipe.is_gluten_free
       ? { label: 'グルテンフリー対応', tone: 'safe' }
       : { label: 'グルテン要確認', tone: 'caution' };
-  const recipeRestrictionTags = [
+  const recipeRestrictionTags: RestrictionTag[] = [
     ...dietaryRestrictionTags,
     glutenRestrictionTag,
     ...preparationRestrictionTags,
-    ...matchedAllergens.map(ing => ({ label: `含有: ${getBaseIngredientName(ing.name_ja)}`, tone: 'danger' })),
-    ...matchedReligiousLabels.map(label => ({ label, tone: 'caution' })),
+    ...matchedAllergens.map(ing => ({ label: `含有: ${getBaseIngredientName(ing.name_ja)}`, tone: 'danger' as const })),
+    ...matchedReligiousLabels.map(label => ({ label, tone: 'caution' as const })),
   ];
+  const culturalBackground = recipe.cultural_background?.trim();
+  const hasActiveSubstitutions = substituteStatus === 'success' && substituteSuggestions.length > 0;
+  const canSubstituteRecipe = isUuidBackedRecipeId(recipe.id);
+  const isSubstituteLoading = substituteStatus === 'loading';
+  const primaryRecipeTag = recipe.tags[0] ?? '未分類';
+
+  const handleSubstituteClick = async () => {
+    if (!canSubstituteRecipe || isSubstituteLoading) return;
+    await onSubstituteRecipe(recipe.id);
+  };
 
   const focusTab = (tab: ModalTabKey) => {
     requestAnimationFrame(() => {
@@ -350,7 +420,7 @@ export default function RecipeModal({
                   </div>
                   <div className="meta-item">
                     <ChefHat size={16} />
-                    <span>カテゴリ: <strong>{recipe.tags[0]}</strong></span>
+                    <span>カテゴリ: <strong>{primaryRecipeTag}</strong></span>
                   </div>
                 </div>
 
@@ -367,6 +437,14 @@ export default function RecipeModal({
 
                 <p className="modal-recipe-desc">{recipe.description}</p>
 
+                {culturalBackground && (
+                  <section className="modal-cultural-background" aria-labelledby="modal-cultural-background-title">
+                    <p className="modal-cultural-eyebrow">文化的背景</p>
+                    <h2 id="modal-cultural-background-title">この料理の背景</h2>
+                    <p>{culturalBackground}</p>
+                  </section>
+                )}
+
                 <section className="modal-section" aria-labelledby="section-ingredients-title">
                   <div className="section-header">
                     <div className="section-dot green"></div>
@@ -376,21 +454,33 @@ export default function RecipeModal({
                   <ul className="modal-ingredient-list">
                     {recipe.ingredients.map((ing) => {
                       const isAllergen = restrictedIngredients.includes(ing.id);
+                      const substitution = findSubstitutionForIngredient(ing.name_ja, substituteSuggestions);
                       const hasPreparationConflict = preparationConflictNames.has(getBaseIngredientName(ing.name_ja));
                       return (
                         <li
                           key={getIngredientListKey(recipe.id, ing)}
-                          className={`ingredient-item ${isAllergen || hasPreparationConflict ? 'has-allergy' : ''}`}
+                          className={`ingredient-item ${isAllergen || hasPreparationConflict ? 'has-allergy' : ''} ${substitution ? 'is-substituted' : ''}`}
                         >
                           <div className="ingredient-left">
                             <span className="bullet">•</span>
-                            <span className="ingredient-name">{ing.name_ja}</span>
+                            {substitution ? (
+                              <span className="ingredient-name substituted-ingredient-name">
+                                <span className="substituted-original">{ing.name_ja}</span>
+                                <span className="substituted-arrow">→</span>
+                                <span className="substituted-replacement">{substitution.substituteIngredient.name_ja}</span>
+                              </span>
+                            ) : (
+                              <span className="ingredient-name">{ing.name_ja}</span>
+                            )}
 
                             {isAllergen && (
                               <span className="allergen-badge-tag">NG食材</span>
                             )}
                             {hasPreparationConflict && !isAllergen && (
                               <span className="allergen-badge-tag">調理状態NG</span>
+                            )}
+                            {substitution && (
+                              <span className="substitution-badge-tag">代替表示中</span>
                             )}
                           </div>
                           <span className="ingredient-qty">{ing.quantity}</span>
@@ -412,7 +502,7 @@ export default function RecipeModal({
                         <li key={`${recipe.id}-step-${normalizedStep.order}`} className="step-item">
                           <div className="step-number-bubble">{normalizedStep.order}</div>
                           <div className="step-text-content">
-                            <p>{normalizedStep.text}</p>
+                            <p>{hasActiveSubstitutions ? renderSubstitutedStepText(normalizedStep.text, substituteSuggestions) : normalizedStep.text}</p>
                           </div>
                         </li>
                       );
@@ -505,6 +595,43 @@ export default function RecipeModal({
         </div>
 
         <div className="modal-footer">
+          {canSubstituteRecipe && (
+            <div className="modal-substitute-area">
+              <button
+                type="button"
+                className="modal-substitute-btn"
+                onClick={handleSubstituteClick}
+                disabled={isSubstituteLoading}
+              >
+                <Sparkles size={16} />
+                <span>{isSubstituteLoading ? '再提案中...' : '日本の食材で再提案'}</span>
+              </button>
+              {substituteStatus === 'success' && (
+                <div className="modal-substitute-success" role="status">
+                  {substituteSuggestions.length > 0 ? (
+                    <>
+                      <p>日本のスーパーで見つけやすい代替候補です。</p>
+                      <ul className="modal-substitute-list">
+                        {substituteSuggestions.map((item) => (
+                          <li key={`${item.originalIngredientName}:${item.substituteIngredient.id}`}>
+                            <strong>{item.originalIngredientName}</strong>
+                            {item.originalQuantity && <span>（{item.originalQuantity}）</span>}
+                            <span> → {item.substituteIngredient.name_ja}</span>
+                            <small>{item.reason}{item.usageNote ? ` / ${item.usageNote}` : ''}</small>
+                          </li>
+                        ))}
+                      </ul>
+                    </>
+                  ) : (
+                    <p>置き換えが必要そうな材料は見つかりませんでした。</p>
+                  )}
+                </div>
+              )}
+              {substituteStatus === 'error' && substituteError && (
+                <p className="modal-substitute-error" role="alert">{substituteError}</p>
+              )}
+            </div>
+          )}
           <button className="modal-close-bottom-btn" onClick={onClose}>
             閉じる
           </button>

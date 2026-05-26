@@ -1,8 +1,11 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { cookies } from 'next/headers';
 import { DEMO_AUTH_COOKIE, hasDemoAuthCookie, isDemoModeEnabled } from '@/lib/demoMode';
+import { isDietaryRestrictionId } from '@/lib/dietaryRestrictions';
 import { isIngredientCodeFormat, toIngredientCodeFromDbRow } from '@/lib/ingredientCodes';
+import { isPreparationRestrictionId } from '@/lib/preparationRestrictions';
 import { createClient } from '@/lib/supabase/server';
+import { hasSupabaseConfig } from '@/lib/supabase/config';
 import type { ProfileFallbackField, ProfilePayload, ProfileResponse, RestrictionReason } from '@/lib/apiTypes';
 
 type PreferenceRow = {
@@ -74,6 +77,20 @@ function inferRestrictionReason(code: string): RestrictionReason {
   if (RELIGIOUS_RESTRICTION_CODES.has(code)) return 'religious';
   if (!code.startsWith('ing-')) return 'dislike';
   return 'allergy';
+}
+
+function isSupportedNonIngredientRestrictionId(code: string) {
+  return isDietaryRestrictionId(code) || isPreparationRestrictionId(code);
+}
+
+function unsupportedNonIngredientRestrictionCodes(codes: string[]) {
+  return Array.from(new Set(
+    codes.filter((code) => !code.startsWith('ing-') && !isSupportedNonIngredientRestrictionId(code)),
+  ));
+}
+
+function supportedNonIngredientRestrictionCodes(codes: string[]) {
+  return Array.from(new Set(codes.filter(isSupportedNonIngredientRestrictionId)));
 }
 
 async function isDemoAuthenticated() {
@@ -181,10 +198,15 @@ async function replaceRestrictedIngredients(
 
 export async function GET() {
   if (await isDemoAuthenticated()) {
-    return NextResponse.json({ ...EMPTY_PROFILE, userName: DEMO_PROFILE_NAME, source: 'demo' } satisfies ProfileResponse);
+    return NextResponse.json({
+      ...EMPTY_PROFILE,
+      userName: DEMO_PROFILE_NAME,
+      source: 'demo',
+      needsProfileSetup: false,
+    } satisfies ProfileResponse);
   }
 
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+  if (!hasSupabaseConfig()) {
     if (isDemoModeEnabled()) {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
     }
@@ -257,6 +279,7 @@ export async function GET() {
         })
         .filter((entry): entry is readonly [string, RestrictionReason] => Boolean(entry)),
     );
+  const needsProfileSetup = !preferencesError && !preferences;
   const preferenceRow = preferencesError ? {} as PreferenceRow : (preferences ?? {}) as PreferenceRow;
   const nonIngredientRestrictions = normalizeStringArray(preferenceRow.non_ingredient_restrictions);
   const nonIngredientRestrictionReasons = normalizeRestrictionReasonMap(preferenceRow.non_ingredient_restriction_reasons);
@@ -275,6 +298,7 @@ export async function GET() {
     preferredDishes: preferenceRow.preferred_dishes ?? [],
     preferredCuisines: preferenceRow.preferred_cuisines ?? [],
     source,
+    needsProfileSetup,
     ...(fallbackFields.length > 0 ? { fallbackFields } : {}),
   } satisfies ProfileResponse);
 }
@@ -291,6 +315,14 @@ export async function PUT(request: NextRequest) {
   const preferredCuisines = normalizeStringArray(payload.preferredCuisines);
   const requestedRestrictedIngredients = normalizeStringArray(payload.restrictedIngredients);
   const requestedRestrictionReasons = normalizeRestrictionReasonMap(payload.restrictedIngredientReasons);
+  const unknownNonIngredientRestrictionCodes = unsupportedNonIngredientRestrictionCodes(requestedRestrictedIngredients);
+  if (unknownNonIngredientRestrictionCodes.length > 0) {
+    return NextResponse.json({
+      error: 'Unknown restricted ingredient codes.',
+      unknownCodes: unknownNonIngredientRestrictionCodes,
+    }, { status: 400 });
+  }
+  const requestedNonIngredientRestrictions = supportedNonIngredientRestrictionCodes(requestedRestrictedIngredients);
 
   if (await isDemoAuthenticated()) {
     return NextResponse.json({
@@ -300,10 +332,11 @@ export async function PUT(request: NextRequest) {
       preferredDishes,
       preferredCuisines,
       source: 'demo',
+      needsProfileSetup: false,
     } satisfies ProfileResponse);
   }
 
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+  if (!hasSupabaseConfig()) {
     if (isDemoModeEnabled()) {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
     }
@@ -343,23 +376,6 @@ export async function PUT(request: NextRequest) {
     .upsert({ id: user.id, name: userName }, { onConflict: 'id' });
   if (profileError) throw profileError;
 
-  const { error: preferencesError } = await supabase
-    .from('user_preferences')
-    .upsert({
-      user_id: user.id,
-      preferred_dishes: preferredDishes,
-      preferred_cuisines: preferredCuisines,
-      non_ingredient_restrictions: requestedRestrictedIngredients.filter((code) => !code.startsWith('ing-')),
-      non_ingredient_restriction_reasons: Object.fromEntries(
-        requestedRestrictedIngredients
-          .filter((code) => !code.startsWith('ing-'))
-          .map((code) => [code, requestedRestrictionReasons[code] ?? inferRestrictionReason(code)]),
-      ),
-      updated_at: new Date().toISOString(),
-    }, { onConflict: 'user_id' });
-
-  if (preferencesError) throw preferencesError;
-
   const { savedCodes, savedReasons } = await replaceRestrictedIngredients(
     supabase,
     user.id,
@@ -367,7 +383,23 @@ export async function PUT(request: NextRequest) {
     requestedRestrictionReasons,
   );
 
-  const localOnlyRestrictions = requestedRestrictedIngredients.filter((code) => !code.startsWith('ing-'));
+  const { error: preferencesError } = await supabase
+    .from('user_preferences')
+    .upsert({
+      user_id: user.id,
+      preferred_dishes: preferredDishes,
+      preferred_cuisines: preferredCuisines,
+      non_ingredient_restrictions: requestedNonIngredientRestrictions,
+      non_ingredient_restriction_reasons: Object.fromEntries(
+        requestedNonIngredientRestrictions
+          .map((code) => [code, requestedRestrictionReasons[code] ?? inferRestrictionReason(code)]),
+      ),
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'user_id' });
+
+  if (preferencesError) throw preferencesError;
+
+  const localOnlyRestrictions = requestedNonIngredientRestrictions;
   const localOnlyRestrictionReasons = Object.fromEntries(
     localOnlyRestrictions.map((code) => [code, requestedRestrictionReasons[code] ?? inferRestrictionReason(code)]),
   ) as Record<string, RestrictionReason>;
@@ -387,5 +419,6 @@ export async function PUT(request: NextRequest) {
     preferredDishes,
     preferredCuisines,
     source: 'database',
+    needsProfileSetup: false,
   } satisfies ProfileResponse);
 }

@@ -20,8 +20,9 @@ interface ProfileViewProps {
     restrictedIngredientReasons: Record<string, RestrictionReason>;
     preferredDishes: string[];
     preferredCuisines: string[];
-  }) => void;
+  }) => void | Promise<void>;
   onBackToRecipes: () => void;
+  isSetupRequired?: boolean;
 }
 
 // 好みの料理の定義
@@ -210,6 +211,7 @@ export default function ProfileView({
   initialPreferredCuisines,
   onSaveProfile,
   onBackToRecipes,
+  isSetupRequired = false,
 }: ProfileViewProps) {
   const [userName, setUserName] = useState(initialUserName);
   const [selectedRestricted, setSelectedRestricted] = useState<string[]>(initialRestrictedIngredients);
@@ -225,6 +227,8 @@ export default function ProfileView({
   const [dishQuery, setDishQuery] = useState('');
   const [cuisineQuery, setCuisineQuery] = useState('');
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   const allergyOptions: SelectableOption[] = [...ingredientOptions]
     .sort((a, b) => {
@@ -400,30 +404,42 @@ export default function ProfileView({
     );
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSaveProfile({
-      userName,
-      restrictedIngredients: selectedRestricted,
-      restrictedIngredientReasons: Object.fromEntries(
-        selectedRestricted.map((id) => [id, getVisibleRestrictionReason(id)]),
-      ) as Record<string, RestrictionReason>,
-      preferredDishes: selectedDishes,
-      preferredCuisines: selectedCuisines
-    });
-    setSaveSuccess(true);
-    setTimeout(() => setSaveSuccess(false), 3000);
+    setIsSaving(true);
+    setSaveError(null);
+    setSaveSuccess(false);
+
+    try {
+      await onSaveProfile({
+        userName,
+        restrictedIngredients: selectedRestricted,
+        restrictedIngredientReasons: Object.fromEntries(
+          selectedRestricted.map((id) => [id, getVisibleRestrictionReason(id)]),
+        ) as Record<string, RestrictionReason>,
+        preferredDishes: selectedDishes,
+        preferredCuisines: selectedCuisines,
+      });
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : 'プロフィール設定の保存に失敗しました。');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
     <div className="profile-container">
       {/* 戻るボタンとヘッダー */}
-      <div className="profile-header-actions">
-        <button className="back-to-recipes-btn" onClick={onBackToRecipes}>
-          <ArrowLeft size={16} />
-          <span>レシピ一覧へ戻る</span>
-        </button>
-      </div>
+      {!isSetupRequired && (
+        <div className="profile-header-actions">
+          <button className="back-to-recipes-btn" onClick={onBackToRecipes}>
+            <ArrowLeft size={16} />
+            <span>レシピ一覧へ戻る</span>
+          </button>
+        </div>
+      )}
 
       <div className="profile-card">
         <div className="profile-card-header">
@@ -432,7 +448,11 @@ export default function ProfileView({
           </div>
           <div>
             <h2>プロフィール & 食の制限設定</h2>
-            <p>アレルギー食材や料理の好みをいつでもここでカスタマイズできます。</p>
+            <p>
+              {isSetupRequired
+                ? 'まずアレルギー食材や料理の好みを設定してください。保存後にレシピ一覧を表示します。'
+                : 'アレルギー食材や料理の好みをいつでもここでカスタマイズできます。'}
+            </p>
           </div>
         </div>
 
@@ -443,6 +463,13 @@ export default function ProfileView({
             <div className="save-success-alert">
               <Check size={16} />
               <span>設定を正常に更新しました！レシピ一覧に即座に適用されます。</span>
+            </div>
+          )}
+
+          {saveError && (
+            <div className="save-error-alert" role="alert">
+              <ShieldAlert size={16} />
+              <span>{saveError}</span>
             </div>
           )}
 
@@ -462,6 +489,7 @@ export default function ProfileView({
               placeholder="あなたの名前を入力..."
               className="profile-text-input"
               required
+              disabled={isSaving}
             />
           </div>
 
@@ -686,9 +714,9 @@ export default function ProfileView({
 
           {/* 送信アクション */}
           <div className="profile-submit-row">
-            <button type="submit" className="profile-save-btn" id="save-profile-btn">
+            <button type="submit" className="profile-save-btn" id="save-profile-btn" disabled={isSaving}>
               <Save size={18} />
-              <span>設定を保存する</span>
+              <span>{isSaving ? '保存中...' : '設定を保存する'}</span>
             </button>
           </div>
 

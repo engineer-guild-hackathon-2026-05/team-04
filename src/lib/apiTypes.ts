@@ -20,9 +20,44 @@ export type ProfileFallbackField = 'userName' | 'restrictedIngredients' | 'prefe
 export type ProfileResponse = ProfilePayload & {
   source: 'database' | 'demo' | 'local-fallback' | 'partial-fallback';
   fallbackFields?: ProfileFallbackField[];
+  needsProfileSetup: boolean;
 };
 
 export type RecipesResponse = {
   recipes: Recipe[];
   source: 'database';
+};
+
+export type ApiErrorResponse = {
+  error: string;
+  code: string;
+  details?: unknown;
+};
+
+export type RecipeSuggestRequest = {
+  mood: string;
+  locale?: 'ja';
+  restrictedIngredients?: string[];
+};
+
+export type RecipeSuggestResponse = {
+  recipes: Recipe[];
+  source: 'ai';
+};
+
+export type RecipeSubstituteRequest = {
+  restrictedIngredients?: string[];
+};
+
+export type IngredientSubstitution = {
+  originalIngredientName: string;
+  originalQuantity?: string;
+  substituteIngredient: IngredientMaster;
+  reason: string;
+  usageNote?: string;
+};
+
+export type RecipeSubstituteResponse = {
+  substitutions: IngredientSubstitution[];
+  source: 'ai';
 };

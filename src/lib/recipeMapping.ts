@@ -57,6 +57,8 @@ type RecipeDbRow = {
   is_vegan?: boolean | null;
   is_gluten_free?: boolean | null;
   tags?: string[] | null;
+  cultural_background?: string | null;
+  parent_recipe_id?: string | null;
   steps?: unknown;
   recipe_ingredients?: RecipeIngredientJoinRow[] | null;
   recipe_culture_sections?: RecipeCultureSectionJoinRow[] | null;
@@ -196,6 +198,8 @@ export function mapRecipeRowToRecipe(row: RecipeDbRow): Recipe | null {
     is_vegan: row.is_vegan ?? false,
     is_gluten_free: row.is_gluten_free ?? false,
     tags: row.tags ?? [],
+    cultural_background: row.cultural_background ?? null,
+    parent_recipe_id: row.parent_recipe_id ?? null,
     ingredients,
     steps,
     culture_sections: normalizeRecipeCultureSections(row.recipe_culture_sections),
