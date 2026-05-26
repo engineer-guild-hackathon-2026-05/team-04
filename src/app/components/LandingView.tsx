@@ -1,74 +1,82 @@
 'use client';
 
 import React from 'react';
-import { Compass, CheckCircle2, ShieldAlert, Sparkles } from 'lucide-react';
+import { Clock, ShieldCheck, Sparkles } from 'lucide-react';
+import { MOCK_RECIPES, type Recipe } from '@/lib/mockData';
 
 interface LandingViewProps {
   onSignIn: () => void;
+  previewRecipes?: Recipe[];
 }
 
-export default function LandingView({
-  onSignIn,
-}: LandingViewProps) {
+export default function LandingView({ onSignIn, previewRecipes = MOCK_RECIPES }: LandingViewProps) {
   return (
     <div className="landing-container">
-      {/* ヒーローセクション */}
       <section className="landing-hero" aria-labelledby="hero-title">
-        <div className="hero-badge">
-          <Sparkles size={14} className="badge-icon" />
-          <span>新しい食の出会いを、すべてのひとに</span>
-        </div>
-        <h1 id="hero-title" className="hero-title-main">
-          食べられる世界の料理を<br />
-          <span className="text-gradient">みんなで見つける</span>
-        </h1>
-        <p className="hero-subtitle">
-          「食べられないものがあるから、外食や新しい料理を諦めがち…」<br />
-          GlobalBitesは、<strong>食事制限や好みに合う海外料理レシピ</strong>を探せる場所です。<br />
-          食の選択肢を広げたい人と海外料理が好きな人が、条件に合うレシピを見つけられます。
-        </p>
-
-        <div className="hero-cta-box">
-          <p className="cta-text">まずはあなたのアレルギーや好みを選択してみましょう</p>
-          <button className="cta-signin-btn" onClick={onSignIn} id="landing-start-btn">
-            <Compass size={18} className="cta-icon" />
-            <span>食の制限を設定して始める</span>
-          </button>
+        <div className="hero-split">
+          <div className="hero-logo-wrapper">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.svg" alt="GlobalBites" className="hero-logo" />
+          </div>
+          <div className="hero-text">
+            <h1 id="hero-title" className="hero-title-main">
+              食べられる料理で、<span className="text-gradient">世界を旅する。</span>
+            </h1>
+            <p className="hero-subtitle">
+              「食べられないものがあるから」と、諦めてきた料理がある。<br />
+              あなたの食の制限を起点に、<strong>まだ知らない世界の味</strong>へ案内します。
+            </p>
+          </div>
         </div>
       </section>
 
-      {/* 3つのコンセプト特徴 */}
-      <section className="features-grid" aria-label="サービスの強み">
-        <div className="feature-card">
-          <div className="feature-icon-wrapper green">
-            <CheckCircle2 size={24} />
+      {previewRecipes.length > 0 && (
+        <section className="landing-preview-section" aria-label="アプリプレビュー">
+          <div className="landing-preview-heading">
+            <span className="landing-preview-badge">
+              <Sparkles size={12} />
+              アプリプレビュー
+            </span>
+            <p className="landing-preview-label">実際に見つかるレシピの一例です</p>
           </div>
-          <h3>伝統的なレシピがベース</h3>
-          <p>
-            既存の料理をヴィーガン風に無理やりアレンジするのではなく、世界の伝統的なヴィーガン料理や、アレルギー情報を確認しながら選べる海外料理をご提案。
-          </p>
-        </div>
 
-        <div className="feature-card">
-          <div className="feature-icon-wrapper orange">
-            <Compass size={24} />
-          </div>
-          <h3>好みから広がる海外料理</h3>
-          <p>
-            気になる国や料理の好みを登録すると、まだ知らなかった海外料理との出会いを広げられます。
-          </p>
-        </div>
+          <div className="landing-preview-grid">
+            {previewRecipes.slice(0, 3).map((recipe) => (
+              <div key={recipe.id} className="landing-preview-card">
+                <div className="landing-preview-card-header">
+                  <span className="landing-preview-title">{recipe.title.split('(')[0].trim()}</span>
+                  <span className="landing-preview-flag">{recipe.flag}</span>
+                </div>
 
-        <div className="feature-card">
-          <div className="feature-icon-wrapper red">
-            <ShieldAlert size={24} />
+                <div className="landing-preview-img-wrapper">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={recipe.image_url} alt={recipe.title} className="landing-preview-photo" />
+                  <span className="landing-preview-time">
+                    <Clock size={11} />
+                    {recipe.cook_time_min}分
+                  </span>
+                </div>
+
+                <div className="landing-preview-card-body">
+                  <p className="landing-preview-desc">{recipe.description}</p>
+                </div>
+
+                <div className="landing-preview-card-footer">
+                  <span className="landing-preview-safe">
+                    <ShieldCheck size={12} />
+                    制限設定で絞り込み可
+                  </span>
+                  <div className="landing-preview-tags">
+                    {recipe.tags.slice(0, 2).map((tag) => (
+                      <span key={tag} className="landing-preview-tag">{tag}</span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
-          <h3>条件に合うレシピ推薦</h3>
-          <p>
-            アレルギーや食べられない食材を登録すると、自分の条件に合うレシピを見つけやすくなります。
-          </p>
-        </div>
-      </section>
+        </section>
+      )}
     </div>
   );
 }

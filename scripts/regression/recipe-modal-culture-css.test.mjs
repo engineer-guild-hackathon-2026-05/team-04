@@ -42,8 +42,20 @@ assert.match(
 );
 
 
-const smallScreenBlock = source.match(/@media\s*\([^)]*max-width[\s\S]*?\n\}/)?.[0] ?? '';
-const mobileBookmarkTabsDefinitions = smallScreenBlock.match(/\.modal-bookmark-tabs\s*\{/g) ?? [];
+const maxWidthMediaStarts = [...source.matchAll(/@media\s*\([^)]*max-width[^)]*\)\s*\{/g)]
+  .map((match) => match.index ?? 0);
+const maxWidthMediaSections = maxWidthMediaStarts.map((start, index) =>
+  source.slice(start, maxWidthMediaStarts[index + 1] ?? source.length),
+);
+const modalSmallScreenBlock = maxWidthMediaSections.find((section) =>
+  /\.modal-bookmark-tabs\s*\{/.test(section) &&
+  /flex-direction:\s*column-reverse/.test(section),
+) ?? '';
+assert.ok(
+  modalSmallScreenBlock,
+  'bookmark tabs と modal body を同じ small screen media block で調整してください。',
+);
+const mobileBookmarkTabsDefinitions = modalSmallScreenBlock.match(/\.modal-bookmark-tabs\s*\{/g) ?? [];
 assert.equal(
   mobileBookmarkTabsDefinitions.length,
   1,
