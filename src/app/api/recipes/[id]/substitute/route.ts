@@ -113,6 +113,25 @@ function violatesPreparationCandidateConstraints(
   }, preparationRestrictions);
 }
 
+function assertSafeSubstituteIngredient(
+  ingredient: IngredientMaster,
+  restrictionContext: {
+    restrictions: RestrictionFact[];
+    dietaryConstraints: string[];
+    preparationRestrictions: string[];
+  },
+) {
+  if (includesRestrictedIngredientText([ingredient.id, ingredient.name_ja, ingredient.name_en], restrictionContext.restrictions)) {
+    throw new OpenRouterResponseError('AIの代替食材がNG材料に該当しました。');
+  }
+  if (isDietaryConflictIngredient(ingredient, restrictionContext.dietaryConstraints)) {
+    throw new OpenRouterResponseError('AIの代替食材が食制限に該当しました。');
+  }
+  if (violatesPreparationCandidateConstraints(ingredient, restrictionContext.preparationRestrictions)) {
+    throw new OpenRouterResponseError('AIの代替食材が調理状態の制限に該当しました。');
+  }
+}
+
 async function fetchSubstituteCandidateIngredients(input: {
   supabase: Awaited<ReturnType<typeof createClient>>;
   restrictions: RestrictionFact[];
@@ -233,6 +252,7 @@ export async function POST(
       if (!substituteIngredient) {
         throw new OpenRouterResponseError('AIの代替食材が候補外でした。');
       }
+      assertSafeSubstituteIngredient(substituteIngredient, restrictionContext);
       return {
         originalIngredientName: selection.originalIngredientName,
         ...(quantityByName.get(selection.originalIngredientName) ? { originalQuantity: quantityByName.get(selection.originalIngredientName) } : {}),

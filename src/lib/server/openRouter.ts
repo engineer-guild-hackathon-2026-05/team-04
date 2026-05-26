@@ -49,6 +49,8 @@ export type IngredientSubstitutionSelection = {
   usageNote?: string;
 };
 
+const MAX_INGREDIENT_SUBSTITUTION_RETRY_ATTEMPTS = 3;
+
 function getOpenRouterConfig() {
   const apiKey = process.env.OPENROUTER_API_KEY;
   const configuredModel = process.env.OPENROUTER_MODEL;
@@ -217,13 +219,16 @@ function parseIngredientSubstitutionSelections(
   if (!Array.isArray(substitutions)) {
     throw new OpenRouterResponseError('OpenRouter substitution response did not include substitutions.');
   }
+  if (substitutions.length > input.originalIngredients.length) {
+    throw new OpenRouterResponseError('OpenRouter selected invalid ingredient substitutions.');
+  }
 
   const allowedIngredientIds = new Set(input.candidates.map((ingredient) => ingredient.id));
   const originalNames = new Set(input.originalIngredients.map((ingredient) => ingredient.name_ja));
   const seenOriginalNames = new Set<string>();
   const parsed: IngredientSubstitutionSelection[] = [];
 
-  for (const item of substitutions.slice(0, input.originalIngredients.length)) {
+  for (const item of substitutions) {
     if (!item || typeof item !== 'object' || Array.isArray(item)) {
       throw new OpenRouterResponseError('OpenRouter substitution item was invalid.');
     }
@@ -239,9 +244,12 @@ function parseIngredientSubstitutionSelections(
     const substituteIngredientId = typeof candidate.substitute_ingredient_id === 'string'
       ? candidate.substitute_ingredient_id.trim()
       : '';
-    const reason = typeof candidate.reason === 'string' ? candidate.reason.trim().slice(0, 160) : '';
-    const usageNote = typeof candidate.usage_note === 'string' ? candidate.usage_note.trim().slice(0, 160) : '';
-
+    const reason = typeof candidate.reason === 'string'
+      ? candidate.reason.trim().slice(0, 160)
+      : '';
+    const usageNote = typeof candidate.usage_note === 'string'
+      ? candidate.usage_note.trim().slice(0, 160)
+      : '';
     if (
       !originalNames.has(originalIngredientName) ||
       seenOriginalNames.has(originalIngredientName) ||
@@ -289,10 +297,15 @@ export async function selectRecipeIdsWithOpenRouter(input: SelectRecipeInput): P
 export async function selectIngredientSubstitutionsWithOpenRouter(
   input: SelectIngredientSubstitutionInput,
 ): Promise<IngredientSubstitutionSelection[]> {
-  try {
-    return await requestIngredientSubstitutionsFromOpenRouter(input);
-  } catch (error) {
-    if (!(error instanceof OpenRouterResponseError)) throw error;
-    return requestIngredientSubstitutionsFromOpenRouter(input, error.message);
+  let retryReason: string | undefined;
+  for (let attempt = 1; attempt <= MAX_INGREDIENT_SUBSTITUTION_RETRY_ATTEMPTS; attempt += 1) {
+    try {
+      return await requestIngredientSubstitutionsFromOpenRouter(input, retryReason);
+    } catch (error) {
+      if (!(error instanceof OpenRouterResponseError)) throw error;
+      retryReason = error.message;
+    }
   }
+
+  throw new OpenRouterResponseError('OpenRouter selected invalid ingredient substitutions after retries.');
 }
