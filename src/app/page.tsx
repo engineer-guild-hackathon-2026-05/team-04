@@ -119,8 +119,9 @@ function getAiRecipeErrorMessage(status: number, body: ApiErrorResponse | null, 
 }
 
 function mergeRecipesById(currentRecipes: Recipe[], incomingRecipes: Recipe[]) {
+  const currentRecipeById = new Map(currentRecipes.map((recipe) => [recipe.id, recipe]));
   const seen = new Set<string>();
-  return [...incomingRecipes, ...currentRecipes].filter((recipe) => {
+  return [...incomingRecipes.map((recipe) => currentRecipeById.get(recipe.id) ?? recipe), ...currentRecipes].filter((recipe) => {
     if (seen.has(recipe.id)) return false;
     seen.add(recipe.id);
     return true;

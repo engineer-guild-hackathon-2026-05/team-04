@@ -84,10 +84,7 @@ function inferredPreparationTags(ingredient: IngredientMaster) {
     dietaryTags.has('fish') ||
     FISH_TERMS.test(text);
 
-  if (isShellfish || isFish) {
-    tags.add('raw');
-    tags.add('seafood');
-  }
+  if (isShellfish || isFish) tags.add('seafood');
   if (isShellfish) tags.add('shellfish');
   if (isFish) tags.add('fish');
 
@@ -246,16 +243,16 @@ export async function POST(
     });
 
     const ingredientsById = new Map(candidateIngredients.map((ingredient) => [ingredient.id, ingredient]));
-    const quantityByName = new Map(originalIngredients.map((ingredient) => [ingredient.name_ja, ingredient.quantity]));
     const substitutions = selections.map((selection) => {
       const substituteIngredient = ingredientsById.get(selection.substituteIngredientId);
       if (!substituteIngredient) {
         throw new OpenRouterResponseError('AIの代替食材が候補外でした。');
       }
       assertSafeSubstituteIngredient(substituteIngredient, restrictionContext);
+      const originalIngredient = originalIngredients[selection.originalIngredientIndex];
       return {
         originalIngredientName: selection.originalIngredientName,
-        ...(quantityByName.get(selection.originalIngredientName) ? { originalQuantity: quantityByName.get(selection.originalIngredientName) } : {}),
+        ...(originalIngredient?.quantity ? { originalQuantity: originalIngredient.quantity } : {}),
         substituteIngredient,
         reason: selection.reason,
         ...(selection.usageNote ? { usageNote: selection.usageNote } : {}),

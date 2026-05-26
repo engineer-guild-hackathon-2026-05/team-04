@@ -43,6 +43,7 @@ type SelectIngredientSubstitutionInput = {
 };
 
 export type IngredientSubstitutionSelection = {
+  originalIngredientIndex: number;
   originalIngredientName: string;
   substituteIngredientId: string;
   reason: string;
@@ -199,13 +200,49 @@ function buildIngredientSubstitutionPrompt(input: SelectIngredientSubstitutionIn
   return `あなたは日本のスーパーで買いやすい食材への置き換えを提案する料理アシスタントです。
 - 元レシピの材料のうち、日本の一般的なスーパーで通常入手しにくい材料だけを置き換えてください。
 - 置き換えが不要な材料は返さないでください。
+- 置き換え対象の元材料は必ず元レシピ材料JSONの index を original_ingredient_index に入れて指定してください。
 - 代替材料は必ず候補食材JSONに存在する id だけを使ってください。
 - 新しい食材名や候補外の id を作らないでください。
 - アレルギー安全性のため、候補外の材料や推測の材料を絶対に使わないでください。
 - JSON以外の文章を返さないでください。${retryInstruction}
 元レシピ材料JSON: ${JSON.stringify(originalIngredients)}
 候補食材JSON: ${JSON.stringify(candidates)}
-JSON形式: {"substitutions":[{"original_ingredient_name":"元材料名","substitute_ingredient_id":"候補id","reason":"短い理由","usage_note":"分量や使い方の短いメモ"}]}`;
+JSON形式: {"substitutions":[{"original_ingredient_index":1,"original_ingredient_name":"元材料名","substitute_ingredient_id":"候補id","reason":"短い理由","usage_note":"分量や使い方の短いメモ"}]}`;
+}
+
+function normalizeOriginalIngredientName(name: string) {
+  return name
+    .replace(/[（(][^（）()]*[）)]\s*$/u, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLocaleLowerCase();
+}
+
+function resolveOriginalIngredientIndex(
+  candidate: { original_ingredient_index?: unknown; original_ingredient_name?: unknown },
+  input: SelectIngredientSubstitutionInput,
+) {
+  if (
+    typeof candidate.original_ingredient_index === 'number' &&
+    Number.isInteger(candidate.original_ingredient_index)
+  ) {
+    const originalIngredientIndex = candidate.original_ingredient_index - 1;
+    return originalIngredientIndex >= 0 && originalIngredientIndex < input.originalIngredients.length
+      ? originalIngredientIndex
+      : null;
+  }
+
+  const originalIngredientName = typeof candidate.original_ingredient_name === 'string'
+    ? normalizeOriginalIngredientName(candidate.original_ingredient_name)
+    : '';
+  if (!originalIngredientName) return null;
+
+  const matchingIndexes = input.originalIngredients
+    .map((ingredient, index) => ({ index, name: normalizeOriginalIngredientName(ingredient.name_ja) }))
+    .filter((ingredient) => ingredient.name === originalIngredientName)
+    .map((ingredient) => ingredient.index);
+
+  return matchingIndexes.length === 1 ? matchingIndexes[0] : null;
 }
 
 function parseIngredientSubstitutionSelections(
@@ -224,8 +261,7 @@ function parseIngredientSubstitutionSelections(
   }
 
   const allowedIngredientIds = new Set(input.candidates.map((ingredient) => ingredient.id));
-  const originalNames = new Set(input.originalIngredients.map((ingredient) => ingredient.name_ja));
-  const seenOriginalNames = new Set<string>();
+  const seenOriginalIndexes = new Set<number>();
   const parsed: IngredientSubstitutionSelection[] = [];
 
   for (const item of substitutions) {
@@ -233,14 +269,13 @@ function parseIngredientSubstitutionSelections(
       throw new OpenRouterResponseError('OpenRouter substitution item was invalid.');
     }
     const candidate = item as {
+      original_ingredient_index?: unknown;
       original_ingredient_name?: unknown;
       substitute_ingredient_id?: unknown;
       reason?: unknown;
       usage_note?: unknown;
     };
-    const originalIngredientName = typeof candidate.original_ingredient_name === 'string'
-      ? candidate.original_ingredient_name.trim()
-      : '';
+    const originalIngredientIndex = resolveOriginalIngredientIndex(candidate, input);
     const substituteIngredientId = typeof candidate.substitute_ingredient_id === 'string'
       ? candidate.substitute_ingredient_id.trim()
       : '';
@@ -251,17 +286,18 @@ function parseIngredientSubstitutionSelections(
       ? candidate.usage_note.trim().slice(0, 160)
       : '';
     if (
-      !originalNames.has(originalIngredientName) ||
-      seenOriginalNames.has(originalIngredientName) ||
+      originalIngredientIndex === null ||
+      seenOriginalIndexes.has(originalIngredientIndex) ||
       !allowedIngredientIds.has(substituteIngredientId) ||
       !reason
     ) {
       throw new OpenRouterResponseError('OpenRouter selected invalid ingredient substitutions.');
     }
 
-    seenOriginalNames.add(originalIngredientName);
+    seenOriginalIndexes.add(originalIngredientIndex);
     parsed.push({
-      originalIngredientName,
+      originalIngredientIndex,
+      originalIngredientName: input.originalIngredients[originalIngredientIndex].name_ja,
       substituteIngredientId,
       reason,
       ...(usageNote ? { usageNote } : {}),

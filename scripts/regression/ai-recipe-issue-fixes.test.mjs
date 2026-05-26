@@ -170,8 +170,8 @@ assert.match(
 );
 assert.match(
   openRouter,
-  /parseIngredientSubstitutionSelections[\s\S]*originalNames\.has[\s\S]*allowedIngredientIds\.has/,
-  'OpenRouter ingredient substitutions must validate original ingredient names and existing candidate ids.',
+  /parseIngredientSubstitutionSelections[\s\S]*resolveOriginalIngredientIndex[\s\S]*allowedIngredientIds\.has/,
+  'OpenRouter ingredient substitutions must validate original ingredient indexes/names and existing candidate ids.',
 );
 
 assert.doesNotMatch(

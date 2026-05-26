@@ -19,6 +19,11 @@ process.env.OPENROUTER_API_KEY = 'test-openrouter-key';
 delete process.env.OPENROUTER_MODEL;
 
 const originalIngredients = [{ name_ja: 'パクチー', quantity: '1束' }];
+const parentheticalOriginalIngredients = [{ name_ja: 'くるみ (細かく刻む)', quantity: '20g' }];
+const duplicateOriginalIngredients = [
+  { name_ja: 'パクチー', quantity: '1束' },
+  { name_ja: 'パクチー', quantity: '少量' },
+];
 const candidates = [{
   id: 'ing-mitsuba',
   name_ja: '三つ葉',
@@ -50,6 +55,7 @@ async function runWithResponses(responses, fn) {
   assert.equal(calls.length, 2, 'DB外IDの初回応答は再生成されるべきです。');
   assert.match(calls[1].messages[1].content, /候補IDだけから選び直してください。/);
   assert.deepEqual(result, [{
+    originalIngredientIndex: 0,
     originalIngredientName: 'パクチー',
     substituteIngredientId: 'ing-mitsuba',
     reason: '香りが近い',
@@ -97,6 +103,32 @@ async function runWithResponses(responses, fn) {
     assert.equal(calls.length, 2, 'reason欠落は無効応答として再生成されるべきです。');
     assert.equal(result[0].reason, '香りが近い');
   });
+}
+
+{
+  const { result } = await runWithResponses([
+    { substitutions: [{ original_ingredient_index: 1, original_ingredient_name: 'くるみ', substitute_ingredient_id: 'ing-mitsuba', reason: '食感を補える' }] },
+  ], () => openRouter.selectIngredientSubstitutionsWithOpenRouter({
+    originalIngredients: parentheticalOriginalIngredients,
+    candidates,
+  }));
+
+  assert.equal(result[0].originalIngredientName, 'くるみ (細かく刻む)');
+  assert.equal(result[0].originalIngredientIndex, 0);
+}
+
+{
+  const { result } = await runWithResponses([
+    { substitutions: [
+      { original_ingredient_index: 1, original_ingredient_name: 'パクチー', substitute_ingredient_id: 'ing-mitsuba', reason: '香りの代替' },
+      { original_ingredient_index: 2, original_ingredient_name: 'パクチー', substitute_ingredient_id: 'ing-mitsuba', reason: '仕上げにも使える' },
+    ] },
+  ], () => openRouter.selectIngredientSubstitutionsWithOpenRouter({
+    originalIngredients: duplicateOriginalIngredients,
+    candidates,
+  }));
+
+  assert.deepEqual(result.map((item) => item.originalIngredientIndex), [0, 1]);
 }
 `;
 

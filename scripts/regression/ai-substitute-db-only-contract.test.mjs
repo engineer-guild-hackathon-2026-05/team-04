@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 const substituteRoute = readFileSync('src/app/api/recipes/[id]/substitute/route.ts', 'utf8');
 const openRouter = readFileSync('src/lib/server/openRouter.ts', 'utf8');
 const recipeModal = readFileSync('src/app/components/RecipeModal.tsx', 'utf8');
+const page = readFileSync('src/app/page.tsx', 'utf8');
 
 assert.match(
   substituteRoute,
@@ -24,6 +25,11 @@ assert.match(
   substituteRoute,
   /violatesPreparationCandidateConstraints\(ingredient, input\.preparationRestrictions\)/,
   '代替候補は生・半生NG等の調理状態制限でコードレベルに除外してください。',
+);
+assert.doesNotMatch(
+  substituteRoute,
+  /function\s+inferredPreparationTags[\s\S]*tags\.add\('raw'\)[\s\S]*return Array\.from\(tags\);/,
+  '代替候補の固定ingredient catalogには調理状態が無いため、魚介候補を一律raw扱いして調理済み可能な候補まで除外しないでください。',
 );
 assert.match(
   substituteRoute,
@@ -48,8 +54,13 @@ assert.match(
 );
 assert.match(
   openRouter,
-  /JSON形式:\s*\{"substitutions":\[\{"original_ingredient_name":"元材料名","substitute_ingredient_id":"候補id","reason":"短い理由","usage_note":"分量や使い方の短いメモ"\}\]\}/,
-  'OpenRouterの代替食材JSON契約は候補DB idと短いreason/usage_noteを返させてください。',
+  /original_ingredient_index[\s\S]*JSON形式:\s*\{"substitutions":\[\{"original_ingredient_index":1,"original_ingredient_name":"元材料名","substitute_ingredient_id":"候補id","reason":"短い理由","usage_note":"分量や使い方の短いメモ"\}\]\}/,
+  'OpenRouterの代替食材JSON契約は元材料index、候補DB id、短いreason/usage_noteを返させてください。',
+);
+assert.match(
+  openRouter,
+  /resolveOriginalIngredientIndex[\s\S]*normalizeOriginalIngredientName[\s\S]*original_ingredient_index/s,
+  '代替対象の元材料はexact nameだけではなくindexと正規化名で解決し、括弧表記や重複名に耐えてください。',
 );
 assert.match(
   openRouter,
@@ -76,6 +87,11 @@ assert.match(
   recipeModal,
   /item\.reason\}\{item\.usageNote \? ` \/ \$\{item\.usageNote\}` : ''\}/,
   'モーダルは検証済みレスポンスのreason/usageNoteを表示する前提を維持してください。',
+);
+assert.match(
+  page,
+  /currentRecipeById[\s\S]*incomingRecipes\.map\(\(recipe\) => currentRecipeById\.get\(recipe\.id\) \?\? recipe\)/,
+  'AI候補を既存リストへmergeする際は、同一IDなら文化情報などが豊富な既存recipe objectを保持してください。',
 );
 
 console.log('AI substitute DB-only contract regression checks passed');
