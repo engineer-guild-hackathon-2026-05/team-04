@@ -440,7 +440,9 @@ button, input {
 .landing-container {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  justify-content: center;
+  gap: 32px;
+  min-height: calc(100vh - 124px); /* 100vh - navbar(70px) - main padding top/bottom(54px) */
   animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
@@ -451,11 +453,11 @@ button, input {
 .hero-split {
   display: flex;
   align-items: center;
-  gap: 40px;
+  gap: 48px;
 }
 
 .hero-logo-wrapper {
-  flex: 0 0 52%;
+  flex: 0 0 50%;
 }
 
 .hero-logo {
