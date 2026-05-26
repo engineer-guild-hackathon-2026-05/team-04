@@ -403,7 +403,7 @@ export default function Home() {
 
       <main className="main-content">
         {authStatus === 'unauthenticated' && currentView === 'landing' && (
-          <LandingView onSignIn={handleSignIn} previewRecipes={recipes.slice(0, 3)} />
+          <LandingView onSignIn={handleSignIn} previewRecipes={recipes.length > 0 ? recipes.slice(0, 3) : undefined} />
         )}
 
         {currentView === 'list' && (
