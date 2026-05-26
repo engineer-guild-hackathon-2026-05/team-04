@@ -96,6 +96,17 @@ function LoginForm() {
         return;
       }
 
+      const demoSignUpResult = await tryDemoSignIn(email);
+      if (demoSignUpResult === 'authenticated') {
+        router.replace(redirectTo);
+        router.refresh();
+        return;
+      }
+
+      if (demoSignUpResult === 'failed') {
+        console.warn('Demo signup probe failed. Falling back to Supabase signup.');
+      }
+
       const supabase = createClient();
       const { data, error } = await supabase.auth.signUp({
         email,

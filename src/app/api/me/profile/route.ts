@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { cookies } from 'next/headers';
-import { DEMO_AUTH_COOKIE, hasDemoAuthCookie } from '@/lib/demoMode';
+import { DEMO_AUTH_COOKIE, hasDemoAuthCookie, isDemoModeEnabled } from '@/lib/demoMode';
 import { isIngredientCodeFormat, toIngredientCodeFromDbRow } from '@/lib/ingredientCodes';
 import { createClient } from '@/lib/supabase/server';
 import type { ProfileFallbackField, ProfilePayload, ProfileResponse, RestrictionReason } from '@/lib/apiTypes';
@@ -185,6 +185,9 @@ export async function GET() {
   }
 
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    if (isDemoModeEnabled()) {
+      return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
+    }
     return NextResponse.json({ error: 'Supabase is not configured.' }, { status: 503 });
   }
 
@@ -301,6 +304,9 @@ export async function PUT(request: NextRequest) {
   }
 
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    if (isDemoModeEnabled()) {
+      return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
+    }
     return NextResponse.json({ error: 'Supabase is not configured.' }, { status: 503 });
   }
 
