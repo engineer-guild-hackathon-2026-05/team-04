@@ -26,6 +26,12 @@ export type DemoProfileRow = {
 
 type DemoAdminClient = SupabaseClient;
 
+const DEMO_SESSION_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+export function isDemoSessionId(value?: string | null): value is string {
+  return typeof value === 'string' && DEMO_SESSION_ID_PATTERN.test(value);
+}
+
 export function isDemoPersistenceConfigured() {
   return hasSupabaseAdminConfig();
 }
@@ -35,7 +41,7 @@ function getDemoAdminClient(supabase?: DemoAdminClient) {
 }
 
 export async function getDemoSession(sessionId: string, supabase?: DemoAdminClient) {
-  if (!sessionId) return null;
+  if (!isDemoSessionId(sessionId)) return null;
 
   const admin = getDemoAdminClient(supabase);
   const { data, error } = await admin
@@ -74,7 +80,7 @@ export async function createDemoSession(supabase?: DemoAdminClient) {
 
 export async function restoreOrCreateDemoSession(sessionId?: string | null, supabase?: DemoAdminClient) {
   const admin = getDemoAdminClient(supabase);
-  const existingSession = sessionId ? await getDemoSession(sessionId, admin) : null;
+  const existingSession = isDemoSessionId(sessionId) ? await getDemoSession(sessionId, admin) : null;
 
   if (existingSession) {
     return { session: existingSession, isNew: false };

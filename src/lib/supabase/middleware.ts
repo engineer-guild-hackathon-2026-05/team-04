@@ -34,14 +34,6 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (isDemoAuthenticated) {
-    if (pathname === "/login") {
-      const url = request.nextUrl.clone();
-      url.pathname = "/app";
-      url.search = "";
-      const response = NextResponse.redirect(url);
-      return shouldClearDemoCookie ? clearDemoCookie(response) : response;
-    }
-
     return NextResponse.next({ request });
   }
 

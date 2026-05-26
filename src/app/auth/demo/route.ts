@@ -33,6 +33,12 @@ function createUnavailableResponse() {
   return response;
 }
 
+function createUnauthenticatedResponse({ clearCookie = false } = {}) {
+  const response = NextResponse.json({ authenticated: false }, { status: 401 });
+  if (clearCookie) clearDemoCookie(response);
+  return response;
+}
+
 function isSameOriginRequest(request: NextRequest) {
   return request.headers.get('origin') === request.nextUrl.origin;
 }
@@ -56,14 +62,15 @@ export async function GET(request: NextRequest) {
     return createUnavailableResponse();
   }
 
-  const sessionId = await getDemoSessionIdFromAuthCookie(request.cookies.get(DEMO_AUTH_COOKIE)?.value);
+  const demoCookieValue = request.cookies.get(DEMO_AUTH_COOKIE)?.value;
+  const sessionId = await getDemoSessionIdFromAuthCookie(demoCookieValue);
   if (!sessionId) {
-    return NextResponse.json({ authenticated: false }, { status: 401 });
+    return createUnauthenticatedResponse({ clearCookie: Boolean(demoCookieValue) });
   }
 
   const session = await getDemoSession(sessionId);
   if (!session) {
-    return NextResponse.json({ authenticated: false }, { status: 401 });
+    return createUnauthenticatedResponse({ clearCookie: true });
   }
 
   return NextResponse.json({

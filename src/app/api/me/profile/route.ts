@@ -40,7 +40,6 @@ class UnknownRestrictedIngredientCodesError extends Error {
   }
 }
 
-const DEMO_PROFILE_NAME = 'デモユーザー';
 
 const EMPTY_PROFILE: ProfilePayload = {
   userName: '旅するグルメ',
@@ -75,6 +74,20 @@ function inferRestrictionReason(code: string): RestrictionReason {
   if (RELIGIOUS_RESTRICTION_CODES.has(code)) return 'religious';
   if (!code.startsWith('ing-')) return 'dislike';
   return 'allergy';
+}
+
+function clearDemoCookie(response: NextResponse) {
+  response.cookies.set(DEMO_AUTH_COOKIE, '', {
+    path: '/',
+    maxAge: 0,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+  });
+  return response;
+}
+
+function createMissingDemoSessionResponse() {
+  return clearDemoCookie(NextResponse.json({ error: 'Demo session not found.' }, { status: 401 }));
 }
 
 async function getDemoSessionIdForRequest(request: NextRequest) {
@@ -360,7 +373,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Demo persistence is not configured.' }, { status: 503 });
     }
     const demoProfile = await readDemoProfile(demoSessionId);
-    if (!demoProfile) return NextResponse.json({ error: 'Demo session not found.' }, { status: 401 });
+    if (!demoProfile) return createMissingDemoSessionResponse();
     return NextResponse.json(demoProfile);
   }
 
@@ -463,7 +476,6 @@ export async function PUT(request: NextRequest) {
   const submittedUserName = typeof payload.userName === 'string' && payload.userName.trim()
     ? payload.userName.trim()
     : null;
-  const requestedUserName = submittedUserName ?? DEMO_PROFILE_NAME;
   const preferredDishes = normalizeStringArray(payload.preferredDishes);
   const preferredCuisines = normalizeStringArray(payload.preferredCuisines);
   const requestedRestrictedIngredients = normalizeStringArray(payload.restrictedIngredients);
@@ -478,13 +490,13 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Demo persistence is not configured.' }, { status: 503 });
     }
     const demoResponse = await saveDemoProfile(demoSessionId, {
-      userName: requestedUserName,
+      userName: submittedUserName ?? '',
       restrictedIngredients: requestedRestrictedIngredients,
       restrictedIngredientReasons: requestedRestrictionReasons,
       preferredDishes,
       preferredCuisines,
     });
-    if (!demoResponse) return NextResponse.json({ error: 'Demo session not found.' }, { status: 401 });
+    if (!demoResponse) return createMissingDemoSessionResponse();
     return demoResponse;
   }
 
