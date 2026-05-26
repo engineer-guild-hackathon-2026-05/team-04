@@ -611,7 +611,7 @@ export default function Home() {
 
       <main className="main-content">
         {authStatus === 'unauthenticated' && currentView === 'landing' && (
-          <LandingView />
+          <LandingView previewRecipes={recipes.length > 0 ? recipes.slice(0, 3) : undefined} />
         )}
 
         {currentView === 'list' && !isProfileSetupRequired && (
