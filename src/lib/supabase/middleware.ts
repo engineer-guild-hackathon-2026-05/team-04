@@ -42,7 +42,7 @@ export async function updateSession(request: NextRequest) {
   if (supabaseConfig) {
     const supabase = createServerClient(
       supabaseConfig.supabaseUrl,
-      supabaseConfig.supabaseAnonKey,
+      supabaseConfig.supabasePublishableKey,
       {
         cookies: {
           getAll() {

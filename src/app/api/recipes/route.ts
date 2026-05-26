@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { mapRecipeRowToRecipe } from '@/lib/recipeMapping';
+import { hasSupabaseConfig } from '@/lib/supabase/config';
 import { createPublicReadClient } from '@/lib/supabase/public';
 import type { RecipesResponse } from '@/lib/apiTypes';
 
@@ -8,7 +9,7 @@ function unavailableResponse() {
 }
 
 export async function GET() {
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+  if (!hasSupabaseConfig()) {
     return unavailableResponse();
   }
 
@@ -28,6 +29,8 @@ export async function GET() {
         is_vegan,
         is_gluten_free,
         tags,
+        cultural_background,
+        parent_recipe_id,
         steps,
         recipe_ingredients (
           quantity,
@@ -41,6 +44,12 @@ export async function GET() {
           label,
           title,
           body,
+          sort_order
+        ),
+        recipe_related_recipes!recipe_related_recipes_recipe_id_fkey (
+          section_key,
+          related_recipe_id,
+          reason_label,
           sort_order
         )
       `)

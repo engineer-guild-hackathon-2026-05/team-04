@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { INGREDIENT_MASTER } from '@/lib/mockData';
 import { normalizeIngredientOption } from '@/lib/ingredientCodes';
+import { hasSupabaseConfig } from '@/lib/supabase/config';
 import { createPublicReadClient } from '@/lib/supabase/public';
 import type { IngredientsResponse } from '@/lib/apiTypes';
 
@@ -9,7 +10,7 @@ function fallbackResponse() {
 }
 
 export async function GET() {
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+  if (!hasSupabaseConfig()) {
     return fallbackResponse();
   }
 

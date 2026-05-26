@@ -20,10 +20,14 @@ assert.match(
   /await\s+replaceRestrictedIngredients\(\s*supabase,\s*user\.id,\s*resolvedRestrictedIngredients,\s*requestedRestrictionReasons,\s*\);/,
 );
 
-assert.match(
-  routeSource,
-  /if\s*\(preferencesError\)\s*throw\s+preferencesError;[\s\S]*await\s+replaceRestrictedIngredients/,
-  'preferences 更新に失敗した場合は database 成功レスポンス扱いにせず、制限食材同期へ進まないでください。',
+const putStart = routeSource.indexOf('export async function PUT');
+const replaceIndex = routeSource.indexOf('await replaceRestrictedIngredients', putStart);
+const preferencesUpsertIndex = routeSource.indexOf(".from('user_preferences')", putStart);
+const preferencesErrorIndex = routeSource.indexOf('if (preferencesError) throw preferencesError;', putStart);
+assert.ok(
+  putStart !== -1 && replaceIndex !== -1 && preferencesUpsertIndex !== -1 && preferencesErrorIndex !== -1
+    && replaceIndex < preferencesUpsertIndex && preferencesUpsertIndex < preferencesErrorIndex,
+  'user_preferences は初回設定完了マーカーを兼ねるため、制限食材同期の成功後に保存し、失敗時は database 成功レスポンス扱いにしないでください。',
 );
 
 assert.match(
@@ -38,8 +42,8 @@ assert.match(
 );
 assert.match(
   pageSource,
-  /dbErr\s+instanceof\s+ProfileSaveValidationError[\s\S]*setCurrentView\('profile'\)[\s\S]*return;/,
-  'unknownCodes付き4xxでは通常localStorage fallbackへ進まず、プロフィール編集状態へ戻してください。',
+  /dbErr\s+instanceof\s+ProfileSaveValidationError[\s\S]*setCurrentView\('profile'\)[\s\S]*throw new Error/,
+  'unknownCodes付き4xxでは通常localStorage fallbackや成功トーストへ進まず、プロフィール編集状態へ戻して失敗を返してください。',
 );
 
 
