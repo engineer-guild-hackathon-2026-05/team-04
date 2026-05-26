@@ -25,6 +25,8 @@ erDiagram
         uuid user_id PK
         text[] preferred_dishes
         text[] preferred_cuisines
+        text[] non_ingredient_restrictions
+        jsonb non_ingredient_restriction_reasons
         timestamptz created_at
         timestamptz updated_at
     }
@@ -58,6 +60,7 @@ erDiagram
         uuid ingredient_id FK
         text quantity
         boolean is_optional
+        text[] preparation_tags
     }
 
     profiles ||--o{ user_restricted_ingredients : "登録する"
@@ -74,16 +77,16 @@ erDiagram
 `auth.users` の拡張テーブル。ユーザー登録時にトリガーで自動生成される。
 
 ### ingredients
-材料マスタ。日本のアレルギー表示基準に基づく28品目を初期データとしてシード済み。
+材料マスタ。日本のアレルギー表示基準（令和8年4月時点）に基づく29品目を初期データとしてシード済み。
 日本語名（`name_ja`）と英語名（`name_en`）を持ち、多言語対応のUIで出し分けられる。
 
 | カラム | 説明 |
 |---|---|
 | `ingredient_code` | API・フロント・AI連携で使う安定ID。表示名変更や多言語化の影響を受けない。例: `ing-shrimp`, `ing-wheat`, `ing-egg` |
-| `is_allergen` | `true` のものだけユーザーのNG材料選択UIに表示される。初期28品目は `true`、AIが追加する材料は `false` |
+| `is_allergen` | `true` のものだけユーザーのNG材料選択UIに表示される。初期29品目は `true`、AIが追加する材料は `false` |
 | `dietary_tags` | `vegan` / `gluten-free` 等のプリセット除外に使うタグ配列。例: `{meat, animal-product}` |
 
-`ingredient_code` は既存28品目などUIで選択する材料に必ず付与し、nullable + partial unique indexで管理する。AI/APIが後から追加する非選択材料は `ingredient_code` を持たない場合がある。APIはDBから返る `ing-*` 形式の `ingredient_code` を静的mock一覧で絞り込まず、そのままフロントへ返す。
+`ingredient_code` は既存29品目などUIで選択する材料に必ず付与し、nullable + partial unique indexで管理する。AI/APIが後から追加する非選択材料は `ingredient_code` を持たない場合がある。APIはDBから返る `ing-*` 形式の `ingredient_code` を静的mock一覧で絞り込まず、そのままフロントへ返す。
 UUIDの `id` はDB内部のFK用途に限定する。
 
 ### user_restricted_ingredients
@@ -93,13 +96,15 @@ UUIDの `id` はDB内部のFK用途に限定する。
 
 ### user_preferences
 ユーザーごとの料理の好みを保存する設定テーブル。`profiles.id` と1:1で紐づく。
-NG材料は既存の `user_restricted_ingredients` に保存し、API層で `ingredients.ingredient_code` に変換して返す。
+NG材料のうち、実在する食材 `ing-*` は既存の `user_restricted_ingredients` に保存し、API層で `ingredients.ingredient_code` に変換して返す。`diet-*` や `prep-*` のように `ingredients` に紐づかない条件制限は、このテーブルに保存する。
 
 | カラム | 説明 |
 |---|---|
 | `user_id` | `profiles.id` を参照する主キー |
 | `preferred_dishes` | ユーザーが好む料理タイプの配列。例: `soup`, `salad`, `spicy` |
 | `preferred_cuisines` | ユーザーが好む国・地域料理の配列。例: `india`, `mexico` |
+| `non_ingredient_restrictions` | `ingredients` に紐づかない制限IDの配列。例: `diet-vegan`, `prep-raw-ing-shrimp` |
+| `non_ingredient_restriction_reasons` | 非食材制限IDごとの reason map。例: `{"prep-raw-ing-shrimp":"dislike"}` |
 | `created_at` | 設定作成日時 |
 | `updated_at` | 設定更新日時 |
 
@@ -119,6 +124,10 @@ AI生成・外部API取得・ユーザー投稿のレシピをすべて格納す
 ### recipe_ingredients
 レシピと材料の中間テーブル。材料をJSONに埋め込まず正規化することで、NG材料の除外をSQLで完結させられる。
 
+| カラム | 説明 |
+|---|---|
+| `preparation_tags` | レシピ内での調理状態に依存する制限判定用タグ。例: `raw`, `fish`, `shellfish`, `seafood`。食材マスタのアレルゲン属性とは分離し、刺身・セビーチェ等を加熱済み魚介料理と区別する。 |
+
 ```sql
 -- NG材料を含まないレシピを取得するクエリ例
 SELECT r.*
@@ -132,49 +141,52 @@ WHERE r.id NOT IN (
 );
 ```
 
-## 書き込み権限とservice roleの運用
+## 書き込み権限とAI MVPの運用
 
 ### ロール別の書き込み可否
 
 | source_type | 書き込み主体 | 使用するロール | 経路 |
 |---|---|---|---|
-| `ai` | サーバーサイド | service role | Next.js API Route |
-| `api` | サーバーサイド | service role | Next.js API Route（将来） |
+| `api` | マイグレーション/seed | DB migration | curated seed data |
+| `ai` | 現在のMVPでは書き込みなし | なし | AI提案/代替APIは読み取り専用 |
 | `user` | クライアント | authenticated | Supabase JS Client |
 
-### なぜai/apiにRLS policyを設けないか
+### 現在のAI/APIレシピ保存方針
 
-`source_type = 'ai'` および `'api'` のレシピはサーバーサイド（Next.js API Route）からservice roleキーを使って書き込む。service roleはRLSをバイパスするため、クライアントからの不正書き込みを防ぎつつサーバーからの書き込みを可能にする。
+現在のMVPでは、AI提案は既存の公開/本人レシピから候補を選び、代替提案は既存の食材カタログから置換案を返すだけで、Route Handlerから `source_type = 'ai'` / `'api'` のレシピを保存しない。したがって、このMVPの通常セットアップにSupabase secret/service-role keyは不要。
 
 ### 必要な環境変数
 
 ```
 # .env.local（リポジトリにコミットしない）
 NEXT_PUBLIC_SUPABASE_URL=https://<project>.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon key>      # ブラウザにも公開される。RLS前提のクライアント/通常操作用
-SUPABASE_SERVICE_ROLE_KEY=<service role key>  # サーバーサイド専用・NEXT_PUBLIC_禁止・絶対に公開しない
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<publishable key>      # ブラウザにも公開される。RLS前提のクライアント/通常操作用
+OPENROUTER_API_KEY=<openrouter api key>                     # サーバーサイド専用・NEXT_PUBLIC_禁止
 ```
 
-service role keyはSupabaseダッシュボードの `Settings > API` から取得できる。
 `NEXT_PUBLIC_` 付きの値はブラウザに露出するため、RLSで許可された読み書きにだけ使う。
-`SUPABASE_SERVICE_ROLE_KEY` はRLSをバイパスするため、Route Handler内の信頼済み処理（例: AI/API由来レシピの保存）に限定する。
-プロフィール・ユーザー設定の更新は本人のCookieセッションとRLSで処理し、service roleを使わない。
+OpenRouterキーなどのサーバー専用キーはRoute Handler内だけで読み、ブラウザ向け環境変数には入れない。
+プロフィール・ユーザー設定の更新は本人のCookieセッションとRLSで処理する。
 
 ## マイグレーションファイル
 
 | ファイル | 内容 |
 |---|---|
 | `20260524000001_init_schema.sql` | テーブル定義・RLSポリシー・トリガー |
-| `20260524000002_seed_ingredients.sql` | 材料マスタ28品目の初期データ |
+| `20260524000002_seed_ingredients.sql` | 材料マスタ29品目の初期データ |
 | `20260524000003_add_dietary_support.sql` | `is_allergen`・`dietary_tags` 追加（プリセットはUI側で処理） |
 | `20260524190000_harden_auth_rls.sql` | RLSを `authenticated` / `(select auth.uid())` ベースへ強化し、ユーザー作成レシピの `recipe_ingredients` insert policy を追加 |
 | `20260525000000_align_frontend_contract.sql` | FE/API契約用の `ingredient_code`、`user_preferences`、レシピ表示メタ情報を追加 |
+| `20260525150000_add_recipe_ingredient_preparation_tags.sql` | 生・半生など調理状態に依存する制限判定用の `recipe_ingredients.preparation_tags` を追加 |
+| `20260525151000_persist_non_ingredient_restrictions.sql` | `diet-*` / `prep-*` など非食材プロフィール制限を `user_preferences` に永続化 |
 
 ## 今回追加済みのDB変更
 
-- `ingredients.ingredient_code text` と partial unique index を追加し、既存28品目に `ing-*` 形式の安定コードを付与する
+- `ingredients.ingredient_code text` と partial unique index を追加し、既存29品目に `ing-*` 形式の安定コードを付与する
 - `user_preferences` を追加し、`user_id`・`preferred_dishes`・`preferred_cuisines`・`created_at`・`updated_at` を持たせる
 - `user_preferences` はRLSで本人のみ `select` / `insert` / `update` 可能にする
+- `diet-*` / `prep-*` のような非食材制限は、`user_preferences.non_ingredient_restrictions` と `non_ingredient_restriction_reasons` に保存する
 - NG材料の `ingredient_code` 配列は、API側で `ingredients.id` に解決して `user_restricted_ingredients` に保存する
 - ユーザー作成レシピでは、所有者本人の `recipes` に紐づく `recipe_ingredients` だけ authenticated role で insert できる
-- `source_type = 'ai'` / `'api'` のレシピ保存は service role を使うサーバーサイドRoute Handlerに限定する
+- 生魚・生えび等の調理状態に依存する制限は、食材マスタの `is_allergen` ではなく `recipe_ingredients.preparation_tags` で判定する
+- 現在のAI提案/代替APIは読み取り専用で、Route Handlerから `source_type = 'ai'` / `'api'` のレシピ保存を行わない

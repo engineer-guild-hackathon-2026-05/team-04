@@ -20,8 +20,8 @@ assert.match(
 );
 assert.match(
   routeSource,
-  /if\s*\(preferencesError\)\s*\{?[\s\S]*?throw\s+preferencesError/,
-  'PUT /api/me/profile は user_preferences upsert 失敗時に database 成功レスポンスを返さないでください。',
+  /await\s+replaceRestrictedIngredients\([\s\S]*?if\s*\(preferencesError\)\s*\{?[\s\S]*?throw\s+preferencesError/,
+  'PUT /api/me/profile は制限食材の保存後に完了マーカーである user_preferences を保存し、その upsert 失敗時に database 成功レスポンスを返さないでください。',
 );
 
 const buildGetProfileResponse = ({ profileError, restrictedError, preferencesError, restrictedRows }) => {
@@ -60,10 +60,10 @@ assert.deepEqual(
 );
 
 const saveProfile = async ({ upsertPreferences, replaceRestrictedIngredients }) => {
+  await replaceRestrictedIngredients();
   const { error: preferencesError } = await upsertPreferences();
   if (preferencesError) throw preferencesError;
-  await replaceRestrictedIngredients();
-  return { source: 'database' };
+  return { source: 'database', needsProfileSetup: false };
 };
 
 let replaceCalls = 0;
@@ -78,6 +78,6 @@ await assert.rejects(
   preferencesFailure,
   'preferences upsert 失敗時は database 成功レスポンスを返さずエラーにしてください。',
 );
-assert.equal(replaceCalls, 0, 'preferences upsert 失敗後に成功扱いの restricted ingredient 同期へ進まないでください。');
+assert.equal(replaceCalls, 1, 'user_preferences 完了マーカーは制限食材同期が成功した後に保存してください。');
 
 console.log('profile partial failure source regression checks passed');

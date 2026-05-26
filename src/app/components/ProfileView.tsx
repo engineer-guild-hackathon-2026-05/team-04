@@ -20,8 +20,9 @@ interface ProfileViewProps {
     restrictedIngredientReasons: Record<string, RestrictionReason>;
     preferredDishes: string[];
     preferredCuisines: string[];
-  }) => void;
+  }) => void | Promise<void>;
   onBackToRecipes: () => void;
+  isSetupRequired?: boolean;
 }
 
 // 好みの料理の定義
@@ -60,11 +61,123 @@ const PREFERRED_CUISINES: SelectableOption[] = [
   { id: 'ethiopia', label: '🇪🇹 エチオピア', keywords: ['ethiopia', 'アフリカ'] },
 ];
 
+const ALLERGEN_DISPLAY_ORDER = [
+  'ing-shrimp',
+  'ing-cashew',
+  'ing-crab',
+  'ing-walnut',
+  'ing-wheat',
+  'ing-buckwheat',
+  'ing-egg',
+  'ing-milk',
+  'ing-peanut',
+  'ing-almond',
+  'ing-abalone',
+  'ing-squid',
+  'ing-roe',
+  'ing-orange',
+  'ing-kiwi',
+  'ing-beef',
+  'ing-sesame',
+  'ing-salmon',
+  'ing-mackerel',
+  'ing-soybean',
+  'ing-chicken',
+  'ing-banana',
+  'ing-pistachio',
+  'ing-pork',
+  'ing-macadamia',
+  'ing-peach',
+  'ing-yam',
+  'ing-apple',
+  'ing-gelatin',
+] as const;
+
+const ALLERGEN_DISPLAY_RANK = new Map<string, number>(
+  ALLERGEN_DISPLAY_ORDER.map((id, index) => [id, index]),
+);
+
+const ALLERGY_SEARCH_KEYWORDS: Record<string, string[]> = {
+  'ing-wheat': ['小麦粉', '薄力粉', '中力粉', '強力粉', '全粒粉', 'パン粉', '麩', 'ルウ', 'wheat flour', 'flour', 'gluten', '밀가루'],
+  'ing-peanut': ['ピーナッツ', 'peanuts'],
+  'ing-milk': ['牛乳', '乳製品', 'チーズ', 'バター', 'ヨーグルト', 'dairy', 'cheese', 'butter', 'yogurt'],
+  'ing-egg': ['鶏卵', '玉子'],
+  'ing-soybean': ['豆腐', '厚揚げ', '醤油', 'ソイ', 'soy'],
+  'ing-sesame': ['胡麻'],
+  'ing-roe': ['魚卵', 'salmon caviar'],
+  'ing-macadamia': ['マカデミアナッツ', 'macadamia'],
+  'ing-pistachio': ['pistachios'],
+};
+
 const VEGAN_LEVEL_OPTIONS: SelectableOption[] = [
   { id: 'diet-vegan', label: '完全ヴィーガン', description: '肉・魚・卵・乳・はちみつを避ける', keywords: ['vegan', 'ビーガン', '動物性'] },
   { id: 'diet-lacto-vegetarian', label: 'ラクト・ベジタリアン', description: '肉・魚・卵を避け、乳製品は可', keywords: ['vegetarian', '乳製品'] },
   { id: 'diet-ovo-vegetarian', label: 'オボ・ベジタリアン', description: '肉・魚・乳を避け、卵は可', keywords: ['vegetarian', '卵'] },
   { id: 'diet-pescatarian', label: 'ペスカタリアン', description: '肉を避け、魚介類は可', keywords: ['魚', 'pescatarian'] },
+];
+
+
+const PREPARATION_RESTRICTION_OPTIONS: SelectableOption[] = [
+  {
+    id: 'prep-raw-ing-shrimp',
+    label: '生・半生のえび（加熱済みは可）',
+    description: '生えび・加熱不足のえびだけを避ける。加熱済みのえび料理は残します。',
+    keywords: ['raw shrimp', 'undercooked shrimp', '生えび', '半生えび', 'エビ', '새우', '익힌 새우'],
+  },
+  {
+    id: 'prep-raw-ing-crab',
+    label: '生・半生のかに（加熱済みは可）',
+    description: '生かに・加熱不足のかにだけを避ける。',
+    keywords: ['raw crab', '生かに', '半生かに', 'カニ'],
+  },
+  {
+    id: 'prep-raw-ing-squid',
+    label: '生・半生のいか（加熱済みは可）',
+    description: '刺身・加熱不足のいかだけを避ける。',
+    keywords: ['raw squid', '刺身', '生いか', '半生いか', 'イカ', '오징어'],
+  },
+  {
+    id: 'prep-raw-ing-abalone',
+    label: '生・半生のあわび（加熱済みは可）',
+    description: '生・半生のあわびだけを避ける。',
+    keywords: ['raw abalone', '生あわび', '半生あわび', 'アワビ'],
+  },
+  {
+    id: 'prep-raw-ing-salmon',
+    label: '生・半生のさけ（加熱済みは可）',
+    description: '刺身用サーモンなど、生・半生のさけだけを避ける。',
+    keywords: ['raw salmon', 'sashimi salmon', '刺身', 'サーモン', '生鮭', '연어'],
+  },
+  {
+    id: 'prep-raw-ing-mackerel',
+    label: '生・半生のさば（加熱済みは可）',
+    description: '生・半生のさばだけを避ける。',
+    keywords: ['raw mackerel', 'sashimi', '刺身', '生さば', '鯖'],
+  },
+  {
+    id: 'prep-raw-ing-roe',
+    label: '生・半生のいくら',
+    description: 'いくらなど、加熱しない魚卵を避ける。',
+    keywords: ['salmon roe', 'raw roe', '魚卵', 'いくら'],
+  },
+  {
+    id: 'prep-raw-fish',
+    label: '生・半生の魚全般',
+    description: '刺身用魚、セビーチェ、寿司ネタの魚をまとめて避ける。',
+    keywords: ['raw fish', 'sashimi', 'ceviche', 'salmon', '刺身', '生魚'],
+  },
+  {
+    id: 'prep-raw-shellfish',
+    label: '生・半生の甲殻類・軟体類全般',
+    description: '生えび、生かに、生牡蠣、いか、あわび等をまとめて避ける。',
+    keywords: ['raw shrimp', 'raw shellfish', 'raw mollusk', '生えび', '生かに', '牡蠣', 'あわび', 'いか', '軟体類', '甲殻類'],
+  },
+  {
+    id: 'prep-raw-seafood',
+    label: '生・半生の魚介類すべて',
+    description: '魚・甲殻類・軟体類を含む、生・半生の魚介全般を避ける。',
+    keywords: ['raw seafood', 'undercooked seafood', '刺身', 'セビーチェ', '寿司', '생선회', '날것'],
+  },
 ];
 
 const RELIGIOUS_RESTRICTION_OPTIONS: SelectableOption[] = [
@@ -98,6 +211,7 @@ export default function ProfileView({
   initialPreferredCuisines,
   onSaveProfile,
   onBackToRecipes,
+  isSetupRequired = false,
 }: ProfileViewProps) {
   const [userName, setUserName] = useState(initialUserName);
   const [selectedRestricted, setSelectedRestricted] = useState<string[]>(initialRestrictedIngredients);
@@ -109,22 +223,35 @@ export default function ProfileView({
   const [allergyQuery, setAllergyQuery] = useState('');
   const [veganQuery, setVeganQuery] = useState('');
   const [religiousQuery, setReligiousQuery] = useState('');
+  const [preparationQuery, setPreparationQuery] = useState('');
   const [dishQuery, setDishQuery] = useState('');
   const [cuisineQuery, setCuisineQuery] = useState('');
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
-  const allergyOptions: SelectableOption[] = ingredientOptions.map(ingredient => ({
-    id: ingredient.id,
-    label: ingredient.name_ja,
-    description: ingredient.category,
-    keywords: [ingredient.name_en, ingredient.category],
-  }));
-  const visibleAllergyOptions = (allergyQuery
-    ? allergyOptions.filter(option => matchesOption(option, allergyQuery))
-    : allergyOptions.slice(0, 12)
-  );
+  const allergyOptions: SelectableOption[] = [...ingredientOptions]
+    .sort((a, b) => {
+      const aRank = ALLERGEN_DISPLAY_RANK.get(a.id) ?? Number.MAX_SAFE_INTEGER;
+      const bRank = ALLERGEN_DISPLAY_RANK.get(b.id) ?? Number.MAX_SAFE_INTEGER;
+      if (aRank !== bRank) return aRank - bRank;
+      return a.name_ja.localeCompare(b.name_ja, 'ja');
+    })
+    .map(ingredient => ({
+      id: ingredient.id,
+      label: ingredient.name_ja,
+      description: ingredient.category,
+      keywords: [
+        ingredient.name_en,
+        ingredient.category,
+        ...(ingredient.dietary_tags ?? []),
+        ...(ALLERGY_SEARCH_KEYWORDS[ingredient.id] ?? []),
+      ],
+    }));
+  const visibleAllergyOptions = allergyOptions.filter(option => matchesOption(option, allergyQuery));
   const visibleVeganOptions = VEGAN_LEVEL_OPTIONS.filter(option => matchesOption(option, veganQuery));
   const visibleReligiousOptions = RELIGIOUS_RESTRICTION_OPTIONS.filter(option => matchesOption(option, religiousQuery));
+  const visiblePreparationOptions = PREPARATION_RESTRICTION_OPTIONS.filter(option => matchesOption(option, preparationQuery));
   const recipeDishOptions: SelectableOption[] = recipeOptions.map(recipe => ({
     id: recipe.id,
     label: recipe.title.split('(')[0].trim(),
@@ -140,10 +267,35 @@ export default function ProfileView({
     : PREFERRED_CUISINES
   );
 
+  const getDefaultRestrictionReason = (id: string): RestrictionReason => {
+    if (id.startsWith('diet-') || id.startsWith('prep-')) return 'dislike';
+    return 'allergy';
+  };
+
+  const getRestrictionReason = (id: string) => selectedRestrictionReasons[id] ?? 'allergy';
+  const getVisibleRestrictionReason = (id: string) => {
+    const savedReason = getRestrictionReason(id);
+    return selectedRestrictionReasons[id] ? savedReason : getDefaultRestrictionReason(id);
+  };
+
+  const isRestrictionSelectedForReason = (id: string, reason: RestrictionReason) =>
+    selectedRestricted.includes(id) && getVisibleRestrictionReason(id) === reason;
+
   const toggleRestricted = (id: string, reason?: RestrictionReason) => {
+    const nextReason = reason ?? 'allergy';
+
     setSelectedRestricted(prev => {
       const isSelected = prev.includes(id);
       if (isSelected) {
+        const currentReason = selectedRestrictionReasons[id] ?? getDefaultRestrictionReason(id);
+        if (currentReason !== nextReason) {
+          setSelectedRestrictionReasons(current => ({
+            ...current,
+            [id]: nextReason,
+          }));
+          return prev;
+        }
+
         setSelectedRestrictionReasons(current => {
           const next = { ...current };
           delete next[id];
@@ -154,14 +306,14 @@ export default function ProfileView({
 
       setSelectedRestrictionReasons(current => ({
         ...current,
-        [id]: reason ?? 'allergy',
+        [id]: nextReason,
       }));
       return [...prev, id];
     });
   };
 
-  const getSelectedOptions = (options: SelectableOption[]) => (
-    options.filter(option => selectedRestricted.includes(option.id))
+  const getSelectedOptions = (options: SelectableOption[], reason: RestrictionReason) => (
+    options.filter(option => isRestrictionSelectedForReason(option.id, reason))
   );
 
   const renderSearchableRestrictionField = ({
@@ -200,7 +352,7 @@ export default function ProfileView({
 
       <div className="toggle-grid compact">
         {options.length > 0 ? options.map(option => {
-          const active = selectedRestricted.includes(option.id);
+          const active = isRestrictionSelectedForReason(option.id, reason);
           return (
             <button
               key={`${inputId}-${option.id}`}
@@ -252,30 +404,42 @@ export default function ProfileView({
     );
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSaveProfile({
-      userName,
-      restrictedIngredients: selectedRestricted,
-      restrictedIngredientReasons: Object.fromEntries(
-        selectedRestricted.map((id) => [id, selectedRestrictionReasons[id] ?? 'allergy']),
-      ) as Record<string, RestrictionReason>,
-      preferredDishes: selectedDishes,
-      preferredCuisines: selectedCuisines
-    });
-    setSaveSuccess(true);
-    setTimeout(() => setSaveSuccess(false), 3000);
+    setIsSaving(true);
+    setSaveError(null);
+    setSaveSuccess(false);
+
+    try {
+      await onSaveProfile({
+        userName,
+        restrictedIngredients: selectedRestricted,
+        restrictedIngredientReasons: Object.fromEntries(
+          selectedRestricted.map((id) => [id, getVisibleRestrictionReason(id)]),
+        ) as Record<string, RestrictionReason>,
+        preferredDishes: selectedDishes,
+        preferredCuisines: selectedCuisines,
+      });
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : 'プロフィール設定の保存に失敗しました。');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
     <div className="profile-container">
       {/* 戻るボタンとヘッダー */}
-      <div className="profile-header-actions">
-        <button className="back-to-recipes-btn" onClick={onBackToRecipes}>
-          <ArrowLeft size={16} />
-          <span>レシピ一覧へ戻る</span>
-        </button>
-      </div>
+      {!isSetupRequired && (
+        <div className="profile-header-actions">
+          <button className="back-to-recipes-btn" onClick={onBackToRecipes}>
+            <ArrowLeft size={16} />
+            <span>レシピ一覧へ戻る</span>
+          </button>
+        </div>
+      )}
 
       <div className="profile-card">
         <div className="profile-card-header">
@@ -284,7 +448,11 @@ export default function ProfileView({
           </div>
           <div>
             <h2>プロフィール & 食の制限設定</h2>
-            <p>アレルギー食材や料理の好みをいつでもここでカスタマイズできます。</p>
+            <p>
+              {isSetupRequired
+                ? 'まずアレルギー食材や料理の好みを設定してください。保存後にレシピ一覧を表示します。'
+                : 'アレルギー食材や料理の好みをいつでもここでカスタマイズできます。'}
+            </p>
           </div>
         </div>
 
@@ -295,6 +463,13 @@ export default function ProfileView({
             <div className="save-success-alert">
               <Check size={16} />
               <span>設定を正常に更新しました！レシピ一覧に即座に適用されます。</span>
+            </div>
+          )}
+
+          {saveError && (
+            <div className="save-error-alert" role="alert">
+              <ShieldAlert size={16} />
+              <span>{saveError}</span>
             </div>
           )}
 
@@ -314,6 +489,7 @@ export default function ProfileView({
               placeholder="あなたの名前を入力..."
               className="profile-text-input"
               required
+              disabled={isSaving}
             />
           </div>
 
@@ -325,19 +501,19 @@ export default function ProfileView({
               <ShieldAlert size={16} className="inline-icon text-red" />
               <span>食べられない・アレルギーのある食材</span>
             </label>
-            <p className="group-subdesc">3つの観点から検索して複数選択できます。選択済みの項目はタグとしてすぐ下に表示されます。</p>
+            <p className="group-subdesc">食材そのものがNGなら「アレルギー要素」、生・半生だけNGなら「調理状態」を選んでください。例: 生えびだけNGなら「えび」ではなく「生・半生のえび（加熱済みは可）」を選択します。</p>
 
             <div className="restriction-field-stack">
               <div className="restriction-field-card">
-                <span className="restriction-field-title">アレルギー要素</span>
+                <span className="restriction-field-title">アレルギー要素（加熱済みも含めて避ける）</span>
                 {renderSearchableRestrictionField({
                   inputId: 'allergy-search-input',
                   query: allergyQuery,
                   setQuery: setAllergyQuery,
                   options: visibleAllergyOptions,
-                  selectedOptions: getSelectedOptions(allergyOptions),
+                  selectedOptions: getSelectedOptions(allergyOptions, 'allergy'),
                   reason: 'allergy',
-                  placeholder: '小麦、卵、えびなどを検索...',
+                  placeholder: '小麦粉、卵、えび、ピスタチオなどを検索...',
                   emptyText: '該当するアレルギー要素が見つかりません。',
                   chipClassName: 'danger',
                 })}
@@ -350,11 +526,26 @@ export default function ProfileView({
                   query: veganQuery,
                   setQuery: setVeganQuery,
                   options: visibleVeganOptions,
-                  selectedOptions: getSelectedOptions(VEGAN_LEVEL_OPTIONS),
+                  selectedOptions: getSelectedOptions(VEGAN_LEVEL_OPTIONS, 'dislike'),
                   reason: 'dislike',
                   placeholder: '完全ヴィーガン、ベジタリアンなどを検索...',
                   emptyText: '該当するヴィーガンレベルが見つかりません。',
                   chipClassName: 'green',
+                })}
+              </div>
+
+              <div className="restriction-field-card">
+                <span className="restriction-field-title">調理状態で避けたいもの（生・半生だけNG）</span>
+                {renderSearchableRestrictionField({
+                  inputId: 'preparation-restriction-search-input',
+                  query: preparationQuery,
+                  setQuery: setPreparationQuery,
+                  options: visiblePreparationOptions,
+                  selectedOptions: getSelectedOptions(PREPARATION_RESTRICTION_OPTIONS, 'dislike'),
+                  reason: 'dislike',
+                  placeholder: '生えび、生サーモン、刺身、セビーチェなどを検索...',
+                  emptyText: '該当する調理条件が見つかりません。',
+                  chipClassName: 'amber',
                 })}
               </div>
 
@@ -365,7 +556,7 @@ export default function ProfileView({
                   query: religiousQuery,
                   setQuery: setReligiousQuery,
                   options: visibleReligiousOptions,
-                  selectedOptions: getSelectedOptions(RELIGIOUS_RESTRICTION_OPTIONS),
+                  selectedOptions: getSelectedOptions(RELIGIOUS_RESTRICTION_OPTIONS, 'religious'),
                   reason: 'religious',
                   placeholder: '豚肉、牛肉、甲殻類などを検索...',
                   emptyText: '該当する宗教上の制限項目が見つかりません。',
@@ -523,9 +714,9 @@ export default function ProfileView({
 
           {/* 送信アクション */}
           <div className="profile-submit-row">
-            <button type="submit" className="profile-save-btn" id="save-profile-btn">
+            <button type="submit" className="profile-save-btn" id="save-profile-btn" disabled={isSaving}>
               <Save size={18} />
-              <span>設定を保存する</span>
+              <span>{isSaving ? '保存中...' : '設定を保存する'}</span>
             </button>
           </div>
 

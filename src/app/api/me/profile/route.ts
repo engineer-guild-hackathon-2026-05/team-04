@@ -1,13 +1,18 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { cookies } from 'next/headers';
-import { DEMO_AUTH_COOKIE, hasDemoAuthCookie } from '@/lib/demoMode';
+import { DEMO_AUTH_COOKIE, getDemoSessionIdFromAuthCookie } from '@/lib/demoMode';
+import { isDietaryRestrictionId } from '@/lib/dietaryRestrictions';
 import { isIngredientCodeFormat, toIngredientCodeFromDbRow } from '@/lib/ingredientCodes';
+import { isPreparationRestrictionId } from '@/lib/preparationRestrictions';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
+import { DEMO_SESSION_HEADER, getDemoSession, isDemoPersistenceConfigured } from '@/lib/demoSession';
 import type { ProfileFallbackField, ProfilePayload, ProfileResponse, RestrictionReason } from '@/lib/apiTypes';
 
 type PreferenceRow = {
   preferred_dishes?: string[] | null;
   preferred_cuisines?: string[] | null;
+  non_ingredient_restrictions?: string[] | null;
+  non_ingredient_restriction_reasons?: unknown;
 };
 
 type RestrictedJoinRow = {
@@ -37,7 +42,6 @@ class UnknownRestrictedIngredientCodesError extends Error {
   }
 }
 
-const DEMO_PROFILE_NAME = 'デモユーザー';
 
 const EMPTY_PROFILE: ProfilePayload = {
   userName: '旅するグルメ',
@@ -74,10 +78,65 @@ function inferRestrictionReason(code: string): RestrictionReason {
   return 'allergy';
 }
 
-async function isDemoAuthenticated() {
-  const cookieStore = await cookies();
-  return hasDemoAuthCookie(cookieStore.get(DEMO_AUTH_COOKIE)?.value);
+function isSupportedNonIngredientRestrictionId(code: string) {
+  return isDietaryRestrictionId(code) || isPreparationRestrictionId(code);
 }
+
+function unsupportedNonIngredientRestrictionCodes(codes: string[]) {
+  return Array.from(new Set(
+    codes.filter((code) => !code.startsWith('ing-') && !isSupportedNonIngredientRestrictionId(code)),
+  ));
+}
+
+function supportedNonIngredientRestrictionCodes(codes: string[]) {
+  return Array.from(new Set(codes.filter(isSupportedNonIngredientRestrictionId)));
+}
+
+function clearDemoCookie(response: NextResponse) {
+  response.cookies.set(DEMO_AUTH_COOKIE, '', {
+    path: '/',
+    maxAge: 0,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+  });
+  return response;
+}
+
+function createMissingDemoSessionResponse() {
+  return clearDemoCookie(NextResponse.json({ error: 'Demo session not found.' }, { status: 401 }));
+}
+
+async function getDemoSessionIdForRequest(request: NextRequest) {
+  const sessionId = await getDemoSessionIdFromAuthCookie(request.cookies.get(DEMO_AUTH_COOKIE)?.value);
+  if (!sessionId) return null;
+
+  const hintedSessionId = request.headers.get(DEMO_SESSION_HEADER);
+  if (hintedSessionId && hintedSessionId !== sessionId) {
+    return 'mismatch';
+  }
+
+  return sessionId;
+}
+
+function hasPublicSupabaseConfig() {
+  return Boolean(
+    process.env.NEXT_PUBLIC_SUPABASE_URL
+      && (process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
+  );
+}
+
+async function getRealUserContext() {
+  if (!hasPublicSupabaseConfig()) return null;
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+
+  return { supabase, user, error };
+}
+
 
 async function restoreRestrictedIngredientRows(
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -96,6 +155,26 @@ async function restoreRestrictedIngredientRows(
 
   if (error) {
     console.warn('Failed to restore restricted ingredient rows after profile API insert failure.', error);
+  }
+}
+
+async function restoreDemoRestrictedIngredientRows(
+  supabase: ReturnType<typeof createAdminClient>,
+  sessionId: string,
+  rows: RestrictedJoinRow[],
+) {
+  if (rows.length === 0) return;
+
+  const { error } = await supabase.from('demo_restricted_ingredients').insert(
+    rows.map((row) => ({
+      session_id: sessionId,
+      ingredient_id: row.ingredient_id,
+      reason: row.reason ?? 'allergy',
+    })),
+  );
+
+  if (error) {
+    console.warn('Failed to restore demo restricted ingredient rows after profile API insert failure.', error);
   }
 }
 
@@ -177,24 +256,183 @@ async function replaceRestrictedIngredients(
   return { savedCodes: ingredientCodes, savedReasons, existingRows: existingRows ?? [] };
 }
 
-export async function GET() {
-  if (await isDemoAuthenticated()) {
-    return NextResponse.json({ ...EMPTY_PROFILE, userName: DEMO_PROFILE_NAME, source: 'demo' } satisfies ProfileResponse);
+
+async function replaceDemoRestrictedIngredients(
+  supabase: ReturnType<typeof createAdminClient>,
+  sessionId: string,
+  restrictionRequest: ResolvedRestrictedIngredientRequest,
+  restrictionReasons: Record<string, RestrictionReason>,
+) {
+  const { ingredientCodes, resolvedIngredients } = restrictionRequest;
+  const { data: existingRows, error: existingError } = await supabase
+    .from('demo_restricted_ingredients')
+    .select('ingredient_id, reason')
+    .eq('session_id', sessionId);
+  if (existingError) throw existingError;
+
+  const { error: deleteError } = await supabase
+    .from('demo_restricted_ingredients')
+    .delete()
+    .eq('session_id', sessionId);
+  if (deleteError) throw deleteError;
+
+  const existingReasonByIngredientId = new Map(
+    ((existingRows ?? []) as RestrictedJoinRow[]).map((row) => [row.ingredient_id, row.reason] as const),
+  );
+  const savedReasons: Record<string, RestrictionReason> = {};
+  const inserts = resolvedIngredients.map((ingredient) => {
+    const code = ingredient.ingredient_code ?? null;
+    const existingReason = existingReasonByIngredientId.get(ingredient.id);
+    const reason = code
+      ? restrictionReasons[code] ?? (isRestrictionReason(existingReason) ? existingReason : inferRestrictionReason(code))
+      : 'allergy';
+    if (code) savedReasons[code] = reason;
+
+    return {
+      session_id: sessionId,
+      ingredient_id: ingredient.id,
+      reason,
+    };
+  });
+
+  if (inserts.length > 0) {
+    const { error: insertError } = await supabase.from('demo_restricted_ingredients').insert(inserts);
+    if (insertError) {
+      await restoreDemoRestrictedIngredientRows(supabase, sessionId, (existingRows ?? []) as RestrictedJoinRow[]);
+      throw insertError;
+    }
   }
 
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    return NextResponse.json({ error: 'Supabase is not configured.' }, { status: 503 });
+  return { savedCodes: ingredientCodes, savedReasons };
+}
+
+async function readDemoProfile(sessionId: string) {
+  const supabase = createAdminClient();
+  const session = await getDemoSession(sessionId, supabase);
+  if (!session) return null;
+
+  const { data: profile, error: profileError } = await supabase
+    .from('demo_profiles')
+    .select('name, preferred_dishes, preferred_cuisines, non_ingredient_restrictions, non_ingredient_restriction_reasons')
+    .eq('session_id', sessionId)
+    .maybeSingle();
+  if (profileError) throw profileError;
+
+  const { data: restrictedRows, error: restrictedError } = await supabase
+    .from('demo_restricted_ingredients')
+    .select('ingredient_id, reason, ingredients ( ingredient_code, name_ja )')
+    .eq('session_id', sessionId);
+  if (restrictedError) throw restrictedError;
+
+  const profileRow = (profile ?? {}) as PreferenceRow & { name?: string | null };
+  const restrictedIngredients = ((restrictedRows ?? []) as RestrictedJoinRow[])
+    .map((row) => toIngredientCodeFromDbRow(row.ingredients ?? {}))
+    .filter((code): code is string => Boolean(code));
+  const restrictedIngredientReasons = Object.fromEntries(
+    ((restrictedRows ?? []) as RestrictedJoinRow[])
+      .map((row) => {
+        const code = toIngredientCodeFromDbRow(row.ingredients ?? {});
+        if (!code) return null;
+        return [code, isRestrictionReason(row.reason) ? row.reason : inferRestrictionReason(code)] as const;
+      })
+      .filter((entry): entry is readonly [string, RestrictionReason] => Boolean(entry)),
+  );
+  const nonIngredientRestrictions = normalizeStringArray(profileRow.non_ingredient_restrictions);
+  const nonIngredientRestrictionReasons = normalizeRestrictionReasonMap(profileRow.non_ingredient_restriction_reasons);
+
+  return {
+    userName: profileRow.name || session.display_name,
+    restrictedIngredients: [
+      ...restrictedIngredients,
+      ...nonIngredientRestrictions.filter((id) => !restrictedIngredients.includes(id)),
+    ],
+    restrictedIngredientReasons: {
+      ...restrictedIngredientReasons,
+      ...nonIngredientRestrictionReasons,
+    },
+    preferredDishes: profileRow.preferred_dishes ?? [],
+    preferredCuisines: profileRow.preferred_cuisines ?? [],
+    source: 'demo',
+    needsProfileSetup: false,
+  } satisfies ProfileResponse;
+}
+
+async function saveDemoProfile(sessionId: string, payload: ProfilePayload) {
+  const supabase = createAdminClient();
+  const session = await getDemoSession(sessionId, supabase);
+  if (!session) return null;
+
+  const userName = payload.userName.trim() || session.display_name;
+  const preferredDishes = normalizeStringArray(payload.preferredDishes);
+  const preferredCuisines = normalizeStringArray(payload.preferredCuisines);
+  const requestedRestrictedIngredients = normalizeStringArray(payload.restrictedIngredients);
+  const requestedRestrictionReasons = normalizeRestrictionReasonMap(payload.restrictedIngredientReasons);
+  const requestedNonIngredientRestrictions = supportedNonIngredientRestrictionCodes(requestedRestrictedIngredients);
+
+  let resolvedRestrictedIngredients: ResolvedRestrictedIngredientRequest;
+  try {
+    resolvedRestrictedIngredients = await resolveRestrictedIngredients(supabase, requestedRestrictedIngredients);
+  } catch (error) {
+    if (error instanceof UnknownRestrictedIngredientCodesError) {
+      return NextResponse.json({
+        error: 'Unknown restricted ingredient codes.',
+        unknownCodes: error.codes,
+      }, { status: 400 });
+    }
+    throw error;
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
+  const localOnlyRestrictions = requestedNonIngredientRestrictions;
+  const localOnlyRestrictionReasons = Object.fromEntries(
+    localOnlyRestrictions.map((code) => [code, requestedRestrictionReasons[code] ?? inferRestrictionReason(code)]),
+  ) as Record<string, RestrictionReason>;
 
-  if (userError || !user) {
-    return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
+  const { error: profileError } = await supabase
+    .from('demo_profiles')
+    .upsert({
+      session_id: sessionId,
+      name: userName,
+      preferred_dishes: preferredDishes,
+      preferred_cuisines: preferredCuisines,
+      non_ingredient_restrictions: localOnlyRestrictions,
+      non_ingredient_restriction_reasons: localOnlyRestrictionReasons,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'session_id' });
+  if (profileError) throw profileError;
+
+  const { savedCodes, savedReasons } = await replaceDemoRestrictedIngredients(
+    supabase,
+    sessionId,
+    resolvedRestrictedIngredients,
+    requestedRestrictionReasons,
+  );
+
+  return NextResponse.json({
+    userName,
+    restrictedIngredients: [
+      ...savedCodes,
+      ...localOnlyRestrictions,
+    ],
+    restrictedIngredientReasons: {
+      ...savedReasons,
+      ...localOnlyRestrictionReasons,
+    },
+    preferredDishes,
+    preferredCuisines,
+    source: 'demo',
+    needsProfileSetup: false,
+  } satisfies ProfileResponse);
+}
+
+export async function GET(request: NextRequest) {
+  const demoSessionId = await getDemoSessionIdForRequest(request);
+  if (demoSessionId === 'mismatch') {
+    return NextResponse.json({ error: 'Invalid demo session.' }, { status: 403 });
   }
+
+  const realUserContext = await getRealUserContext();
+  if (realUserContext?.user && !realUserContext.error) {
+    const { supabase, user } = realUserContext;
 
   const fallbackName =
     user.user_metadata?.name || user.user_metadata?.display_name || user.email?.split('@')[0] || EMPTY_PROFILE.userName;
@@ -212,7 +450,7 @@ export async function GET() {
 
   const { data: preferences, error: preferencesError } = await supabase
     .from('user_preferences')
-    .select('preferred_dishes, preferred_cuisines')
+    .select('preferred_dishes, preferred_cuisines, non_ingredient_restrictions, non_ingredient_restriction_reasons')
     .eq('user_id', user.id)
     .maybeSingle();
 
@@ -252,17 +490,44 @@ export async function GET() {
         })
         .filter((entry): entry is readonly [string, RestrictionReason] => Boolean(entry)),
     );
+  const needsProfileSetup = !preferencesError && !preferences;
   const preferenceRow = preferencesError ? {} as PreferenceRow : (preferences ?? {}) as PreferenceRow;
+  const nonIngredientRestrictions = normalizeStringArray(preferenceRow.non_ingredient_restrictions);
+  const nonIngredientRestrictionReasons = normalizeRestrictionReasonMap(preferenceRow.non_ingredient_restriction_reasons);
+  const combinedRestrictedIngredients = [
+    ...restrictedIngredients,
+    ...nonIngredientRestrictions.filter((id) => !restrictedIngredients.includes(id)),
+  ];
 
   return NextResponse.json({
     userName: profile?.name || fallbackName,
-    restrictedIngredients,
-    restrictedIngredientReasons,
+    restrictedIngredients: combinedRestrictedIngredients,
+    restrictedIngredientReasons: {
+      ...restrictedIngredientReasons,
+      ...nonIngredientRestrictionReasons,
+    },
     preferredDishes: preferenceRow.preferred_dishes ?? [],
     preferredCuisines: preferenceRow.preferred_cuisines ?? [],
     source,
+    needsProfileSetup,
     ...(fallbackFields.length > 0 ? { fallbackFields } : {}),
   } satisfies ProfileResponse);
+  }
+
+  if (demoSessionId) {
+    if (!isDemoPersistenceConfigured()) {
+      return NextResponse.json({ error: 'Demo persistence is not configured.' }, { status: 503 });
+    }
+    const demoProfile = await readDemoProfile(demoSessionId);
+    if (!demoProfile) return createMissingDemoSessionResponse();
+    return NextResponse.json(demoProfile);
+  }
+
+  if (!realUserContext) {
+    return NextResponse.json({ error: 'Supabase is not configured.' }, { status: 503 });
+  }
+
+  return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
 }
 
 export async function PUT(request: NextRequest) {
@@ -272,36 +537,27 @@ export async function PUT(request: NextRequest) {
   const submittedUserName = typeof payload.userName === 'string' && payload.userName.trim()
     ? payload.userName.trim()
     : null;
-  const requestedUserName = submittedUserName ?? DEMO_PROFILE_NAME;
   const preferredDishes = normalizeStringArray(payload.preferredDishes);
   const preferredCuisines = normalizeStringArray(payload.preferredCuisines);
   const requestedRestrictedIngredients = normalizeStringArray(payload.restrictedIngredients);
   const requestedRestrictionReasons = normalizeRestrictionReasonMap(payload.restrictedIngredientReasons);
-
-  if (await isDemoAuthenticated()) {
+  const unknownNonIngredientRestrictionCodes = unsupportedNonIngredientRestrictionCodes(requestedRestrictedIngredients);
+  if (unknownNonIngredientRestrictionCodes.length > 0) {
     return NextResponse.json({
-      userName: requestedUserName,
-      restrictedIngredients: requestedRestrictedIngredients,
-      restrictedIngredientReasons: requestedRestrictionReasons,
-      preferredDishes,
-      preferredCuisines,
-      source: 'demo',
-    } satisfies ProfileResponse);
+      error: 'Unknown restricted ingredient codes.',
+      unknownCodes: unknownNonIngredientRestrictionCodes,
+    }, { status: 400 });
+  }
+  const requestedNonIngredientRestrictions = supportedNonIngredientRestrictionCodes(requestedRestrictedIngredients);
+
+  const demoSessionId = await getDemoSessionIdForRequest(request);
+  if (demoSessionId === 'mismatch') {
+    return NextResponse.json({ error: 'Invalid demo session.' }, { status: 403 });
   }
 
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    return NextResponse.json({ error: 'Supabase is not configured.' }, { status: 503 });
-  }
-
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
-
-  if (userError || !user) {
-    return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
-  }
+  const realUserContext = await getRealUserContext();
+  if (realUserContext?.user && !realUserContext.error) {
+    const { supabase, user } = realUserContext;
 
   const userName = submittedUserName
     ?? user.user_metadata?.name
@@ -326,17 +582,6 @@ export async function PUT(request: NextRequest) {
     .upsert({ id: user.id, name: userName }, { onConflict: 'id' });
   if (profileError) throw profileError;
 
-  const { error: preferencesError } = await supabase
-    .from('user_preferences')
-    .upsert({
-      user_id: user.id,
-      preferred_dishes: preferredDishes,
-      preferred_cuisines: preferredCuisines,
-      updated_at: new Date().toISOString(),
-    }, { onConflict: 'user_id' });
-
-  if (preferencesError) throw preferencesError;
-
   const { savedCodes, savedReasons } = await replaceRestrictedIngredients(
     supabase,
     user.id,
@@ -344,7 +589,23 @@ export async function PUT(request: NextRequest) {
     requestedRestrictionReasons,
   );
 
-  const localOnlyRestrictions = requestedRestrictedIngredients.filter((code) => !code.startsWith('ing-'));
+  const { error: preferencesError } = await supabase
+    .from('user_preferences')
+    .upsert({
+      user_id: user.id,
+      preferred_dishes: preferredDishes,
+      preferred_cuisines: preferredCuisines,
+      non_ingredient_restrictions: requestedNonIngredientRestrictions,
+      non_ingredient_restriction_reasons: Object.fromEntries(
+        requestedNonIngredientRestrictions
+          .map((code) => [code, requestedRestrictionReasons[code] ?? inferRestrictionReason(code)]),
+      ),
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'user_id' });
+
+  if (preferencesError) throw preferencesError;
+
+  const localOnlyRestrictions = requestedNonIngredientRestrictions;
   const localOnlyRestrictionReasons = Object.fromEntries(
     localOnlyRestrictions.map((code) => [code, requestedRestrictionReasons[code] ?? inferRestrictionReason(code)]),
   ) as Record<string, RestrictionReason>;
@@ -364,5 +625,28 @@ export async function PUT(request: NextRequest) {
     preferredDishes,
     preferredCuisines,
     source: 'database',
+    needsProfileSetup: false,
   } satisfies ProfileResponse);
+  }
+
+  if (demoSessionId) {
+    if (!isDemoPersistenceConfigured()) {
+      return NextResponse.json({ error: 'Demo persistence is not configured.' }, { status: 503 });
+    }
+    const demoResponse = await saveDemoProfile(demoSessionId, {
+      userName: submittedUserName ?? '',
+      restrictedIngredients: requestedRestrictedIngredients,
+      restrictedIngredientReasons: requestedRestrictionReasons,
+      preferredDishes,
+      preferredCuisines,
+    });
+    if (!demoResponse) return createMissingDemoSessionResponse();
+    return demoResponse;
+  }
+
+  if (!realUserContext) {
+    return NextResponse.json({ error: 'Supabase is not configured.' }, { status: 503 });
+  }
+
+  return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
 }

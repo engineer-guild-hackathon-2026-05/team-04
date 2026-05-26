@@ -23,7 +23,7 @@ assert.equal(
 );
 assert.doesNotMatch(
   serverSource,
-  /process\.env\.NEXT_PUBLIC_SUPABASE_URL!|process\.env\.NEXT_PUBLIC_SUPABASE_ANON_KEY!/,
+  /process\.env\.NEXT_PUBLIC_SUPABASE_URL!|process\.env\.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!/,
   'src/lib/supabase/server.ts は env 欠落時に obscure な non-null crash を起こさないでください。',
 );
 assert.match(
@@ -58,7 +58,7 @@ assert.match(
   'auth callback は Supabase env 欠落時に /login?error=supabase_not_configured へ redirect してください。',
 );
 {
-  const configGuardIndex = callbackSource.search(/NEXT_PUBLIC_SUPABASE_URL[\s\S]*NEXT_PUBLIC_SUPABASE_ANON_KEY|hasSupabaseConfig|isSupabaseConfigured/);
+  const configGuardIndex = callbackSource.search(/NEXT_PUBLIC_SUPABASE_URL[\s\S]*NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY|hasSupabaseConfig|isSupabaseConfigured/);
   const createClientIndex = callbackSource.indexOf('createClient()');
   assert.notEqual(configGuardIndex, -1, 'auth callback は createClient 前に Supabase env 設定を判定してください。');
   assert.ok(
@@ -88,7 +88,7 @@ assert.equal(
 );
 {
   const clearCookieIndex = signoutSource.indexOf('response.cookies.set');
-  const configGuardIndex = signoutSource.search(/NEXT_PUBLIC_SUPABASE_URL[\s\S]*NEXT_PUBLIC_SUPABASE_ANON_KEY|hasSupabaseConfig|isSupabaseConfigured/);
+  const configGuardIndex = signoutSource.search(/NEXT_PUBLIC_SUPABASE_URL[\s\S]*NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY|hasSupabaseConfig|isSupabaseConfigured/);
   const createClientIndex = signoutSource.indexOf('createClient()');
   assert.ok(clearCookieIndex !== -1, 'signout は demo cookie を失効させてください。');
   assert.notEqual(configGuardIndex, -1, 'signout は Supabase 呼び出し前に env 設定を判定してください。');
@@ -107,30 +107,28 @@ assert.match(
   'signout は Supabase env 欠落時に Supabase を呼ばず、cookie clear 済み response を返してください。',
 );
 
-const previousAuthDemoCookieDecision = ({ isDemoEnabled, demoCookieValue, isValidDemoCookie }) => {
-  if (demoCookieValue && !isDemoEnabled) return 'clear-cookie';
-  if (demoCookieValue && isDemoEnabled && !isValidDemoCookie) return 'keep-invalid-cookie';
+const previousAuthDemoCookieDecision = ({ demoCookieValue, isValidDemoCookie }) => {
+  if (demoCookieValue && !isValidDemoCookie) return 'keep-invalid-cookie';
   return 'keep-cookie-state';
 };
-const fixedAuthDemoCookieDecision = ({ isDemoEnabled, demoCookieValue, isValidDemoCookie, method = 'GET' }) => {
-  if (method === 'POST' && isDemoEnabled) return 'route-handler-overwrites-cookie';
-  if (demoCookieValue && (!isDemoEnabled || !isValidDemoCookie)) return 'clear-cookie';
+const fixedAuthDemoCookieDecision = ({ demoCookieValue, isValidDemoCookie, method = 'GET' }) => {
+  if (method === 'POST') return 'route-handler-overwrites-cookie';
+  if (demoCookieValue && !isValidDemoCookie) return 'clear-cookie';
   return 'keep-cookie-state';
 };
 
 assert.equal(
-  previousAuthDemoCookieDecision({ isDemoEnabled: true, demoCookieValue: 'invalid', isValidDemoCookie: false }),
+  previousAuthDemoCookieDecision({ demoCookieValue: 'invalid', isValidDemoCookie: false }),
   'keep-invalid-cookie',
-  '再現: /auth/demo は demo mode 有効時の invalid demo cookie を消しません。',
+  '再現: /auth/demo は invalid guest cookie を消しません。',
 );
 assert.equal(
-  fixedAuthDemoCookieDecision({ isDemoEnabled: true, demoCookieValue: 'invalid', isValidDemoCookie: false }),
+  fixedAuthDemoCookieDecision({ demoCookieValue: 'invalid', isValidDemoCookie: false }),
   'clear-cookie',
-  '修正: /auth/demo は demo mode 有効時でも invalid demo cookie を clear してください。',
+  '修正: /auth/demo は invalid guest cookie を clear してください。',
 );
 assert.equal(
   fixedAuthDemoCookieDecision({
-    isDemoEnabled: true,
     demoCookieValue: 'invalid',
     isValidDemoCookie: false,
     method: 'POST',
@@ -140,8 +138,8 @@ assert.equal(
 );
 assert.match(
   middlewareSource,
-  /const shouldClearInvalidDemoCookie = Boolean\(demoCookieValue\) && isDemoEnabled && !isDemoAuthenticated;/,
-  'middleware は demo mode 有効時の invalid demo cookie を検出してください。',
+  /const shouldClearInvalidDemoCookie = Boolean\(demoCookieValue\) && !isDemoAuthenticated;/,
+  'middleware は invalid guest cookie を検出してください。',
 );
 assert.match(
   middlewareSource,

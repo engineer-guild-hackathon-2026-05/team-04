@@ -1,18 +1,48 @@
-import { MOCK_RECIPES, type Recipe, type RecipeIngredient, type RecipeStep } from './mockData';
+import {
+  type Recipe,
+  type RecipeCultureSection,
+  type RecipeCultureSectionKey,
+  type RecipeIngredient,
+  type RecipeRelatedSection,
+  type RecipeStep,
+} from './mockData';
 import { toIngredientCodeFromDbRow } from './ingredientCodes';
 
 type RecipeIngredientJoinRow = {
   quantity?: string | null;
   is_optional?: boolean | null;
+  display_name_ja?: string | null;
+  preparation_tags?: string[] | null;
   ingredients?: {
     ingredient_code?: string | null;
     name_ja?: string | null;
     name_en?: string | null;
+    category?: string | null;
+    is_allergen?: boolean | null;
+    dietary_tags?: string[] | null;
   } | {
     ingredient_code?: string | null;
     name_ja?: string | null;
     name_en?: string | null;
+    category?: string | null;
+    is_allergen?: boolean | null;
+    dietary_tags?: string[] | null;
   }[] | null;
+};
+
+type RecipeCultureSectionJoinRow = {
+  section_key?: string | null;
+  label?: string | null;
+  title?: string | null;
+  body?: string | null;
+  sort_order?: number | null;
+};
+
+type RecipeRelatedRecipeJoinRow = {
+  section_key?: string | null;
+  related_recipe_id?: string | null;
+  reason_label?: string | null;
+  sort_order?: number | null;
 };
 
 type RecipeDbRow = {
@@ -27,9 +57,18 @@ type RecipeDbRow = {
   is_vegan?: boolean | null;
   is_gluten_free?: boolean | null;
   tags?: string[] | null;
+  cultural_background?: string | null;
+  parent_recipe_id?: string | null;
   steps?: unknown;
   recipe_ingredients?: RecipeIngredientJoinRow[] | null;
+  recipe_culture_sections?: RecipeCultureSectionJoinRow[] | null;
+  recipe_related_recipes?: RecipeRelatedRecipeJoinRow[] | null;
 };
+
+const CULTURE_SECTION_KEYS = new Set<RecipeCultureSectionKey>(['origin', 'food_culture']);
+
+const isNonEmptyString = (value: unknown): value is string =>
+  typeof value === 'string' && value.trim().length > 0;
 
 export function normalizeRecipeSteps(value: unknown): RecipeStep[] {
   if (!Array.isArray(value)) return [];
@@ -50,6 +89,78 @@ export function normalizeRecipeSteps(value: unknown): RecipeStep[] {
     .filter((step): step is RecipeStep => Boolean(step));
 }
 
+export function normalizeRecipeCultureSections(
+  rows: RecipeCultureSectionJoinRow[] | null | undefined,
+): RecipeCultureSection[] {
+  return (rows ?? [])
+    .map((row): RecipeCultureSection | null => {
+      const key = row.section_key;
+      if (!key || !CULTURE_SECTION_KEYS.has(key as RecipeCultureSectionKey)) return null;
+      if (!isNonEmptyString(row.label) || !isNonEmptyString(row.title) || !isNonEmptyString(row.body)) return null;
+      if (!(typeof row.sort_order === 'number') || !Number.isFinite(row.sort_order)) return null;
+
+      return {
+        key: key as RecipeCultureSectionKey,
+        label: row.label.trim(),
+        title: row.title.trim(),
+        body: row.body.trim(),
+        sort_order: row.sort_order,
+      };
+    })
+    .filter((section): section is RecipeCultureSection => Boolean(section))
+    .sort((a, b) => a.sort_order - b.sort_order);
+}
+
+export function normalizeRecipeRelatedSections(
+  rows: RecipeRelatedRecipeJoinRow[] | null | undefined,
+  currentRecipeId: string,
+): RecipeRelatedSection[] {
+  const grouped = new Map<RecipeCultureSectionKey, RecipeRelatedSection['recipes']>();
+  type NormalizedRelatedEntry = {
+    key: RecipeCultureSectionKey;
+    recipe: RecipeRelatedSection['recipes'][number];
+  };
+
+  (rows ?? [])
+    .map((row): NormalizedRelatedEntry | null => {
+      const key = row.section_key;
+      if (!key || !CULTURE_SECTION_KEYS.has(key as RecipeCultureSectionKey)) return null;
+      if (!isNonEmptyString(row.related_recipe_id)) return null;
+      if (row.related_recipe_id === currentRecipeId) return null;
+      if (!(typeof row.sort_order === 'number') || !Number.isFinite(row.sort_order)) return null;
+
+      const reasonLabel = isNonEmptyString(row.reason_label) ? row.reason_label.trim() : undefined;
+      const recipeReference: RecipeRelatedSection['recipes'][number] = {
+        recipe_id: row.related_recipe_id.trim(),
+        sort_order: row.sort_order,
+      };
+
+      if (reasonLabel) recipeReference.reason_label = reasonLabel;
+
+      return {
+        key: key as RecipeCultureSectionKey,
+        recipe: recipeReference,
+      };
+    })
+    .filter((entry): entry is NormalizedRelatedEntry => entry !== null)
+    .sort((a, b) =>
+      a.recipe.sort_order - b.recipe.sort_order ||
+      a.recipe.recipe_id.localeCompare(b.recipe.recipe_id),
+    )
+    .forEach(({ key, recipe }) => {
+      const recipes = grouped.get(key) ?? [];
+      if (recipes.length >= 3) return;
+      grouped.set(key, [...recipes, recipe]);
+    });
+
+  return Array.from(grouped.entries())
+    .map(([key, recipes]) => ({
+      key,
+      recipes: recipes.slice(0, 3),
+    }))
+    .filter(section => section.recipes.length > 0);
+}
+
 function normalizeRecipeIngredients(rows: RecipeIngredientJoinRow[] | null | undefined): RecipeIngredient[] {
   return (rows ?? [])
     .map((row): RecipeIngredient | null => {
@@ -58,9 +169,13 @@ function normalizeRecipeIngredients(rows: RecipeIngredientJoinRow[] | null | und
 
       return {
         id: toIngredientCodeFromDbRow(ingredient) ?? `none-${ingredient.name_ja}`,
-        name_ja: ingredient.name_ja,
+        name_ja: row.display_name_ja?.trim() || ingredient.name_ja,
         quantity: row.quantity ?? '',
         is_optional: row.is_optional ?? false,
+        category: ingredient.category ?? undefined,
+        is_allergen: ingredient.is_allergen ?? false,
+        dietary_tags: ingredient.dietary_tags ?? [],
+        preparation_tags: row.preparation_tags ?? [],
       };
     })
     .filter((ingredient): ingredient is RecipeIngredient => Boolean(ingredient));
@@ -71,7 +186,6 @@ export function mapRecipeRowToRecipe(row: RecipeDbRow): Recipe | null {
 
   const ingredients = normalizeRecipeIngredients(row.recipe_ingredients);
   const steps = normalizeRecipeSteps(row.steps);
-
   return {
     id: row.id,
     title: row.title,
@@ -84,14 +198,11 @@ export function mapRecipeRowToRecipe(row: RecipeDbRow): Recipe | null {
     is_vegan: row.is_vegan ?? false,
     is_gluten_free: row.is_gluten_free ?? false,
     tags: row.tags ?? [],
+    cultural_background: row.cultural_background ?? null,
+    parent_recipe_id: row.parent_recipe_id ?? null,
     ingredients,
     steps,
+    culture_sections: normalizeRecipeCultureSections(row.recipe_culture_sections),
+    related_sections: normalizeRecipeRelatedSections(row.recipe_related_recipes, row.id),
   };
-}
-
-export function fallbackRecipes() {
-  return MOCK_RECIPES.map((recipe) => ({
-    ...recipe,
-    steps: normalizeRecipeSteps(recipe.steps),
-  }));
 }

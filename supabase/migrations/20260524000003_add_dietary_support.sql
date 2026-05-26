@@ -8,7 +8,7 @@ alter table public.ingredients
   add column is_allergen  boolean  not null default false,
   add column dietary_tags text[]   not null default '{}';
 
--- 既存28品目に is_allergen と dietary_tags を設定
+-- 令和8年4月時点の29品目に is_allergen と dietary_tags を設定
 update public.ingredients set is_allergen = true, dietary_tags = '{"shellfish","animal-product"}'   where name_en = 'shrimp';
 update public.ingredients set is_allergen = true, dietary_tags = '{"shellfish","animal-product"}'   where name_en = 'crab';
 update public.ingredients set is_allergen = true, dietary_tags = '{"gluten"}'                       where name_en = 'wheat';
@@ -34,7 +34,8 @@ update public.ingredients set is_allergen = true, dietary_tags = '{}'           
 update public.ingredients set is_allergen = true, dietary_tags = '{}'                               where name_en = 'banana';
 update public.ingredients set is_allergen = true, dietary_tags = '{}'                               where name_en = 'peach';
 update public.ingredients set is_allergen = true, dietary_tags = '{}'                               where name_en = 'apple';
-update public.ingredients set is_allergen = true, dietary_tags = '{}'                               where name_en = 'matsutake';
+update public.ingredients set is_allergen = true, dietary_tags = '{}'                               where name_en = 'pistachio';
+update public.ingredients set is_allergen = true, dietary_tags = '{}'                               where name_en = 'macadamia nut';
 update public.ingredients set is_allergen = true, dietary_tags = '{}'                               where name_en = 'yam';
 update public.ingredients set is_allergen = true, dietary_tags = '{"animal-product"}'               where name_en = 'gelatin';
 

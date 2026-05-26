@@ -29,9 +29,9 @@ assert.match(
   '認証後のプロフィール/制限食材同期は /api/me/profile の結果を使ってください。',
 );
 
-const fixedSync = (localRestrictedIngredients, databaseRestrictedIngredients, fallbackFields = [], source = 'database') => {
+const fixedSync = (localRestrictedIngredients, databaseRestrictedIngredients, fallbackFields = []) => {
   if (fallbackFields.includes('restrictedIngredients')) return localRestrictedIngredients;
-  const preserveLocalIngredientCodes = source === 'demo';
+  const preserveLocalIngredientCodes = false;
   return [
     ...databaseRestrictedIngredients,
     ...localRestrictedIngredients.filter((id) => preserveLocalIngredientCodes || !id.startsWith('ing-')),
@@ -43,6 +43,6 @@ assert.deepEqual(fixedSync(['ing-egg', 'diet-vegan'], []), ['diet-vegan']);
 assert.deepEqual(fixedSync(['ing-egg', 'diet-vegan'], ['ing-shrimp']), ['ing-shrimp', 'diet-vegan']);
 assert.deepEqual(fixedSync(['ing-egg'], [], ['restrictedIngredients']), ['ing-egg']);
 assert.deepEqual(fixedSync(['ing-egg'], ['ing-shrimp'], ['preferences']), ['ing-shrimp']);
-assert.deepEqual(fixedSync(['ing-egg', 'diet-vegan'], [], [], 'demo'), ['ing-egg', 'diet-vegan']);
+assert.deepEqual(fixedSync(['ing-egg', 'diet-vegan'], [], []), ['diet-vegan']);
 
 console.log('auth-db-sync regression checks passed');
