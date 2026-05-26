@@ -43,10 +43,6 @@ html, body {
   min-height: 100vh;
   color: var(--text-primary);
   background-color: var(--bg-main);
-  background-image: 
-    radial-gradient(circle at 10% 20%, rgba(220, 252, 231, 0.4) 0%, transparent 40%),
-    radial-gradient(circle at 90% 80%, rgba(254, 243, 199, 0.4) 0%, transparent 40%);
-  background-attachment: fixed;
   font-family: var(--font-family);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -497,12 +493,12 @@ button, input {
 }
 
 .hero-title-main {
-  font-size: clamp(1.3rem, 2.8vw, 1.9rem);
+  font-size: clamp(1.8rem, 3.2vw, 2.6rem);
   line-height: 1.2;
   font-weight: 900;
   letter-spacing: -0.03em;
   color: var(--text-primary);
-  margin-bottom: 6px;
+  margin-bottom: 10px;
 }
 
 .text-gradient {
@@ -512,9 +508,9 @@ button, input {
 }
 
 .hero-subtitle {
-  font-size: 0.85rem;
+  font-size: 1rem;
   color: var(--text-muted);
-  line-height: 1.6;
+  line-height: 1.7;
   margin-bottom: 0;
 }
 
