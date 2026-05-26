@@ -159,8 +159,38 @@ assert.doesNotMatch(
 );
 assert.match(
   page,
-  /rawMessage[\s\S]*status\s*===\s*404[\s\S]*fallback/,
+  /rawMessage[\s\S]*fallback/,
   'AI recipe 404 errors must prefer the server-provided error/message body before falling back.',
+);
+assert.match(
+  page,
+  /import type \{[^}]*ApiErrorResponse[^}]*RecipeSuggestResponse[^}]*RecipeSubstituteResponse[^}]*\} from '@\/lib\/apiTypes'/s,
+  'page must reuse shared AI API response/error types from apiTypes.',
+);
+assert.doesNotMatch(
+  page,
+  /type AiRecipeErrorResponse|type SuggestRecipesResponse|type SubstituteRecipeResponse/,
+  'page must not duplicate shared AI API response/error types locally.',
+);
+assert.match(
+  page,
+  /getAiRecipeErrorMessage\(status: number,\s*body: ApiErrorResponse \| null,[\s\S]*body\?\.error/,
+  'AI recipe error parsing must use the actual ApiErrorResponse.error contract.',
+);
+assert.doesNotMatch(
+  page,
+  /function getAiRecipeErrorMessage[^{]*\{[^}]*body\?\.message|function getAiRecipeErrorMessage[^{]*\{[^}]*status\s*===\s*404/,
+  'AI recipe error parsing must not read nonexistent message fields or keep duplicate 404 fallback branches.',
+);
+assert.doesNotMatch(
+  page,
+  /\/api\/recipes\/\$\{recipeId\}\/substitute`[\s\S]*locale:\s*'ja'/,
+  'substitute API request body must not send locale because RecipeSubstituteRequest does not support it.',
+);
+assert.match(
+  frontendDocs,
+  /POST \/api\/recipes\/suggest[\s\S]*"mood"[\s\S]*POST \/api\/recipes\/\[id\]\/substitute[\s\S]*"restrictedIngredients"/,
+  'frontend docs must label the suggest payload and show a substitute payload without mood.',
 );
 
 for (const [path, source] of [

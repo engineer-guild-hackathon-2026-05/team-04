@@ -8,7 +8,18 @@ import ListView from './components/ListView';
 import ProfileView from './components/ProfileView';
 import RecipeModal from './components/RecipeModal';
 import { INGREDIENT_MASTER, type IngredientMaster, type Recipe } from '@/lib/mockData';
-import type { IngredientSubstitution, IngredientsResponse, ProfileFallbackField, ProfilePayload, ProfileResponse, RecipesResponse, RestrictionReason } from '@/lib/apiTypes';
+import type {
+  ApiErrorResponse,
+  IngredientSubstitution,
+  IngredientsResponse,
+  ProfileFallbackField,
+  ProfilePayload,
+  ProfileResponse,
+  RecipeSuggestResponse,
+  RecipeSubstituteResponse,
+  RecipesResponse,
+  RestrictionReason,
+} from '@/lib/apiTypes';
 
 type CurrentView = 'landing' | 'list' | 'profile';
 type AuthStatus = 'checking' | 'authenticated' | 'unauthenticated';
@@ -26,19 +37,6 @@ type StoredProfile = {
 type ProfileSaveErrorResponse = {
   error?: string;
   unknownCodes?: string[];
-};
-
-type AiRecipeErrorResponse = {
-  error?: string;
-  message?: string;
-};
-
-type SuggestRecipesResponse = {
-  recipes?: Recipe[];
-};
-
-type SubstituteRecipeResponse = {
-  substitutions?: IngredientSubstitution[];
 };
 
 const PROFILE_STORAGE_KEY = 'globalbites_profile';
@@ -114,10 +112,9 @@ async function saveProfileToApi(profile: ProfilePayload) {
   return (await response.json()) as ProfileResponse;
 }
 
-function getAiRecipeErrorMessage(status: number, body: AiRecipeErrorResponse | null, fallback: string) {
+function getAiRecipeErrorMessage(status: number, body: ApiErrorResponse | null, fallback: string) {
   if (status === 401) return 'ログイン後にAIレシピ提案を利用できます。';
-  const rawMessage = body?.message ?? body?.error;
-  if (status === 404) return typeof rawMessage === 'string' && rawMessage.trim() ? rawMessage.trim() : fallback;
+  const rawMessage = body?.error;
   return typeof rawMessage === 'string' && rawMessage.trim() ? rawMessage.trim() : fallback;
 }
 
@@ -385,13 +382,13 @@ export default function Home() {
           restrictedIngredients,
         }),
       });
-      const body = await response.json().catch(() => null) as (SuggestRecipesResponse & AiRecipeErrorResponse) | null;
+      const body = await response.json().catch(() => null) as RecipeSuggestResponse | ApiErrorResponse | null;
 
       if (!response.ok) {
-        throw new Error(getAiRecipeErrorMessage(response.status, body, 'AIレシピ提案に失敗しました。時間をおいて再試行してください。'));
+        throw new Error(getAiRecipeErrorMessage(response.status, body && 'error' in body ? body : null, 'AIレシピ提案に失敗しました。時間をおいて再試行してください。'));
       }
 
-      const suggestedRecipes = Array.isArray(body?.recipes) ? body.recipes : [];
+      const suggestedRecipes = body && 'recipes' in body && Array.isArray(body.recipes) ? body.recipes : [];
       if (suggestedRecipes.length === 0) {
         throw new Error('提案できるレシピが見つかりませんでした。別の気分でお試しください。');
       }
@@ -433,17 +430,16 @@ export default function Home() {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
-          locale: 'ja',
           restrictedIngredients,
         }),
       });
-      const body = await response.json().catch(() => null) as (SubstituteRecipeResponse & AiRecipeErrorResponse) | null;
+      const body = await response.json().catch(() => null) as RecipeSubstituteResponse | ApiErrorResponse | null;
 
       if (!response.ok) {
-        throw new Error(getAiRecipeErrorMessage(response.status, body, '日本の食材での再提案に失敗しました。時間をおいて再試行してください。'));
+        throw new Error(getAiRecipeErrorMessage(response.status, body && 'error' in body ? body : null, '日本の食材での再提案に失敗しました。時間をおいて再試行してください。'));
       }
 
-      const substitutions = Array.isArray(body?.substitutions) ? body.substitutions : [];
+      const substitutions = body && 'substitutions' in body && Array.isArray(body.substitutions) ? body.substitutions : [];
       setSubstituteCache((currentCache) => ({ ...currentCache, [substituteCacheKey]: substitutions }));
       if (
         substituteRequestSeqRef.current !== requestSeq ||

@@ -157,12 +157,20 @@ Claudeへのプロンプト・期待するJSONの形例：
 | `POST /api/recipes/suggest` | 保存済みレシピからAIが候補を選ぶ | 必須 | 読み取り専用。DBへレシピを保存しない |
 | `POST /api/recipes/[id]/substitute` | 既存食材カタログから代替食材を選ぶ | 必須 | 読み取り専用。表示中モーダルの置換案だけ返す |
 
-AI提案APIに明示的な制限を渡す場合：
+`POST /api/recipes/suggest` に明示的な制限を渡す場合：
 
 ```json
 {
   "restrictedIngredients": ["ing-shrimp", "ing-milk", "diet-vegan", "prep-raw-fish"],
   "mood": "さっぱりした料理"
+}
+```
+
+`POST /api/recipes/[id]/substitute` に明示的な制限を渡す場合：
+
+```json
+{
+  "restrictedIngredients": ["ing-shrimp", "ing-milk", "diet-vegan", "prep-raw-fish"]
 }
 ```
 
