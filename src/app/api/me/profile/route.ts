@@ -198,7 +198,12 @@ async function replaceRestrictedIngredients(
 
 export async function GET() {
   if (await isDemoAuthenticated()) {
-    return NextResponse.json({ ...EMPTY_PROFILE, userName: DEMO_PROFILE_NAME, source: 'demo' } satisfies ProfileResponse);
+    return NextResponse.json({
+      ...EMPTY_PROFILE,
+      userName: DEMO_PROFILE_NAME,
+      source: 'demo',
+      needsProfileSetup: false,
+    } satisfies ProfileResponse);
   }
 
   if (!hasSupabaseConfig()) {
@@ -271,6 +276,7 @@ export async function GET() {
         })
         .filter((entry): entry is readonly [string, RestrictionReason] => Boolean(entry)),
     );
+  const needsProfileSetup = !preferencesError && !preferences;
   const preferenceRow = preferencesError ? {} as PreferenceRow : (preferences ?? {}) as PreferenceRow;
   const nonIngredientRestrictions = normalizeStringArray(preferenceRow.non_ingredient_restrictions);
   const nonIngredientRestrictionReasons = normalizeRestrictionReasonMap(preferenceRow.non_ingredient_restriction_reasons);
@@ -289,6 +295,7 @@ export async function GET() {
     preferredDishes: preferenceRow.preferred_dishes ?? [],
     preferredCuisines: preferenceRow.preferred_cuisines ?? [],
     source,
+    needsProfileSetup,
     ...(fallbackFields.length > 0 ? { fallbackFields } : {}),
   } satisfies ProfileResponse);
 }
@@ -322,6 +329,7 @@ export async function PUT(request: NextRequest) {
       preferredDishes,
       preferredCuisines,
       source: 'demo',
+      needsProfileSetup: false,
     } satisfies ProfileResponse);
   }
 
@@ -362,6 +370,13 @@ export async function PUT(request: NextRequest) {
     .upsert({ id: user.id, name: userName }, { onConflict: 'id' });
   if (profileError) throw profileError;
 
+  const { savedCodes, savedReasons } = await replaceRestrictedIngredients(
+    supabase,
+    user.id,
+    resolvedRestrictedIngredients,
+    requestedRestrictionReasons,
+  );
+
   const { error: preferencesError } = await supabase
     .from('user_preferences')
     .upsert({
@@ -377,13 +392,6 @@ export async function PUT(request: NextRequest) {
     }, { onConflict: 'user_id' });
 
   if (preferencesError) throw preferencesError;
-
-  const { savedCodes, savedReasons } = await replaceRestrictedIngredients(
-    supabase,
-    user.id,
-    resolvedRestrictedIngredients,
-    requestedRestrictionReasons,
-  );
 
   const localOnlyRestrictions = requestedNonIngredientRestrictions;
   const localOnlyRestrictionReasons = Object.fromEntries(
@@ -405,5 +413,6 @@ export async function PUT(request: NextRequest) {
     preferredDishes,
     preferredCuisines,
     source: 'database',
+    needsProfileSetup: false,
   } satisfies ProfileResponse);
 }

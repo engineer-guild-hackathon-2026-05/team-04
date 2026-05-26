@@ -152,6 +152,10 @@ function buildRestrictionReasons(
   ) as Record<string, RestrictionReason>;
 }
 
+function getAuthenticatedInitialView(remoteProfile: ProfileResponse | null): CurrentView {
+  return remoteProfile?.needsProfileSetup ? 'profile' : 'list';
+}
+
 function mergeProfile(localProfile: StoredProfile | null, remoteProfile: ProfileResponse | null): ProfilePayload {
   const fallbackFields = getProfileFallbackFields(remoteProfile);
   const shouldUseLocalRestrictions = fallbackFields.has('restrictedIngredients');
@@ -192,6 +196,7 @@ export default function Home() {
   const router = useRouter();
   const [currentView, setCurrentView] = useState<CurrentView>('list');
   const [authStatus, setAuthStatus] = useState<AuthStatus>('checking');
+  const [isProfileSetupRequired, setIsProfileSetupRequired] = useState<boolean>(false);
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
   const [userName, setUserName] = useState<string>(DEFAULT_USER_NAME);
   const [restrictedIngredients, setRestrictedIngredients] = useState<string[]>([]);
@@ -263,8 +268,10 @@ export default function Home() {
             preferredDishes: demoProfile?.preferredDishes ?? [],
             preferredCuisines: demoProfile?.preferredCuisines ?? [],
             source: 'demo',
+            needsProfileSetup: false,
           });
           setIsLoggedIn(true);
+          setIsProfileSetupRequired(false);
           setCurrentView('list');
           setUserName(merged.userName);
           setRestrictedIngredients(merged.restrictedIngredients);
@@ -282,6 +289,7 @@ export default function Home() {
         const remoteProfile = await fetchProfileFromApi();
         if (!remoteProfile) {
           setIsLoggedIn(false);
+          setIsProfileSetupRequired(false);
           setCurrentView('landing');
           setAuthStatus('unauthenticated');
           return;
@@ -290,7 +298,8 @@ export default function Home() {
         const sourceProfile = remoteProfile.source === 'demo' ? readDemoProfile() : parsed;
         const merged = mergeProfile(sourceProfile, remoteProfile);
         setIsLoggedIn(true);
-        setCurrentView('list');
+        setIsProfileSetupRequired(Boolean(remoteProfile.needsProfileSetup));
+        setCurrentView(getAuthenticatedInitialView(remoteProfile));
         setUserName(merged.userName);
         setRestrictedIngredients(merged.restrictedIngredients);
         setRestrictedIngredientReasons(merged.restrictedIngredientReasons);
@@ -305,6 +314,7 @@ export default function Home() {
       } catch (error) {
         console.error('Auth/profile sync failed. Treating the user as signed out.', error);
         setIsLoggedIn(false);
+        setIsProfileSetupRequired(false);
         setCurrentView('landing');
         setAuthStatus('unauthenticated');
       }
@@ -332,6 +342,12 @@ export default function Home() {
   };
 
   const handleNavigateHome = () => {
+    if (isProfileSetupRequired) {
+      setCurrentView('profile');
+      router.push('/app');
+      return;
+    }
+
     if (isLoggedIn) {
       setCurrentView('list');
       router.push('/app');
@@ -357,6 +373,7 @@ export default function Home() {
     localStorage.removeItem(PROFILE_STORAGE_KEY);
     localStorage.removeItem(DEMO_PROFILE_STORAGE_KEY);
     setCurrentView('landing');
+    setIsProfileSetupRequired(false);
     setAuthStatus('unauthenticated');
     router.push('/');
   };
@@ -498,11 +515,15 @@ export default function Home() {
     setPreferredDishes(profile.preferredDishes);
     setPreferredCuisines(profile.preferredCuisines);
 
-    setCurrentView('list');
+    if (!isProfileSetupRequired) {
+      setCurrentView('list');
+    }
 
     const demoSession = await fetchDemoSession();
     if (demoSession === 'authenticated') {
       writeDemoProfile(profile);
+      setIsProfileSetupRequired(false);
+      setCurrentView('list');
       return;
     }
 
@@ -513,6 +534,11 @@ export default function Home() {
     try {
       const savedProfile = await saveProfileToApi(profile);
       if (!savedProfile) {
+        if (isProfileSetupRequired) {
+          setCurrentView('profile');
+          console.warn('Profile setup could not be completed because authentication expired.');
+          throw new Error('ログイン状態を確認できませんでした。再度ログインしてプロフィール設定を保存してください。');
+        }
         saveToLocalStorage(profile);
         return;
       }
@@ -527,6 +553,8 @@ export default function Home() {
       } else {
         writeStoredProfile(merged);
       }
+      setIsProfileSetupRequired(false);
+      setCurrentView('list');
     } catch (dbErr) {
       if (dbErr instanceof ProfileSaveValidationError) {
         setUserName(previousProfile.userName);
@@ -536,7 +564,16 @@ export default function Home() {
         setPreferredCuisines(previousProfile.preferredCuisines);
         setCurrentView('profile');
         console.warn('Profile API rejected unknown restricted ingredient codes.', dbErr.unknownCodes);
-        return;
+        throw new Error('保存できない制限項目が含まれています。選択内容を確認してください。');
+      }
+      if (isProfileSetupRequired) {
+        setCurrentView('profile');
+        console.warn('Profile setup could not be completed until the database profile save succeeds.', dbErr);
+        throw new Error(
+          dbErr instanceof Error && dbErr.message.startsWith('ログイン状態')
+            ? dbErr.message
+            : 'プロフィール設定を保存できませんでした。通信状態を確認してもう一度お試しください。',
+        );
       }
       if (demoSession !== 'failed') {
         saveToLocalStorage(profile);
@@ -552,7 +589,7 @@ export default function Home() {
           <section className="auth-loading-card" role="status" aria-live="polite">
             <div className="auth-loading-spinner" aria-hidden="true" />
             <p className="auth-loading-title">ログイン状態を確認しています...</p>
-            <p className="auth-loading-copy">保存されたセッションを確認し、レシピ一覧へ移動します。</p>
+            <p className="auth-loading-copy">保存されたセッションを確認し、初回はプロフィール設定へ案内します。</p>
           </section>
         </main>
       </div>
@@ -575,7 +612,7 @@ export default function Home() {
           <LandingView onSignIn={handleSignIn} />
         )}
 
-        {currentView === 'list' && (
+        {currentView === 'list' && !isProfileSetupRequired && (
           <ListView
             recipes={recipes}
             restrictedIngredients={restrictedIngredients}
@@ -589,7 +626,7 @@ export default function Home() {
           />
         )}
 
-        {currentView === 'profile' && (
+        {(currentView === 'profile' || isProfileSetupRequired) && (
           <ProfileView
             ingredientOptions={ingredientOptions}
             recipeOptions={recipes}
@@ -600,6 +637,7 @@ export default function Home() {
             initialPreferredCuisines={preferredCuisines}
             onSaveProfile={handleSaveProfile}
             onBackToRecipes={() => setCurrentView('list')}
+            isSetupRequired={isProfileSetupRequired}
           />
         )}
       </main>

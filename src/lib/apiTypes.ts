@@ -20,6 +20,7 @@ export type ProfileFallbackField = 'userName' | 'restrictedIngredients' | 'prefe
 export type ProfileResponse = ProfilePayload & {
   source: 'database' | 'demo' | 'local-fallback' | 'partial-fallback';
   fallbackFields?: ProfileFallbackField[];
+  needsProfileSetup: boolean;
 };
 
 export type RecipesResponse = {
