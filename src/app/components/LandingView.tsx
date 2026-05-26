@@ -3,9 +3,7 @@
 import React from 'react';
 import { Compass, CheckCircle2, ShieldAlert, Sparkles } from 'lucide-react';
 
-interface LandingViewProps {}
-
-export default function LandingView({}: LandingViewProps) {
+export default function LandingView() {
   return (
     <div className="landing-container">
       <section className="landing-hero" aria-labelledby="hero-title">
