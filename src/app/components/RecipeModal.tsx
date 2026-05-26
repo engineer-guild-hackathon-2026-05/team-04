@@ -7,6 +7,7 @@ import {
   DIETARY_RESTRICTION_RULES,
   getDietaryConflictingIngredients,
   getSelectedDietaryRestrictionIds,
+  violatesDietaryRestrictions,
 } from '@/lib/dietaryRestrictions';
 
 type ModalTabKey = 'basic' | RecipeCultureSectionKey;
@@ -16,9 +17,16 @@ type ModalTab = {
   label: string;
 };
 
+type RelatedRecipeCard = {
+  reference: Recipe['related_sections'][number]['recipes'][number];
+  relatedRecipe: Recipe;
+};
+
 interface RecipeModalProps {
   recipe: Recipe | null;
+  recipes: Recipe[];
   onClose: () => void;
+  onSelectRecipe: (recipe: Recipe) => void;
   restrictedIngredients: string[];
 }
 
@@ -74,9 +82,19 @@ const normalizeRecipeStep = (step: RecipeStep, index: number) => {
 const isCultureTab = (tab: ModalTabKey): tab is RecipeCultureSectionKey =>
   tab === 'origin' || tab === 'food_culture';
 
+const hasDirectIngredientRestriction = (
+  relatedRecipe: Recipe,
+  restrictedIngredients: string[],
+) =>
+  relatedRecipe.ingredients.some((ingredient) =>
+    restrictedIngredients.includes(ingredient.id),
+  );
+
 export default function RecipeModal({
   recipe,
+  recipes,
   onClose,
+  onSelectRecipe,
   restrictedIngredients,
 }: RecipeModalProps) {
   const [activeTab, setActiveTab] = useState<ModalTabKey>('basic');
@@ -199,7 +217,44 @@ export default function RecipeModal({
     recipe.culture_sections.find(
       section => section.key === tab && (section.key === 'origin' || section.key === 'food_culture'),
     );
+  const recipeById = new Map(recipes.map((candidate) => [candidate.id, candidate]));
+  const getRelatedSection = (tab: RecipeCultureSectionKey) =>
+    recipe.related_sections.find(section => section.key === tab);
+  const getRelatedRecipeCards = (tab: RecipeCultureSectionKey) => {
+    const relatedSection = getRelatedSection(tab);
+
+    return (relatedSection?.recipes ?? [])
+      .map((reference) => {
+        const relatedRecipe = recipeById.get(reference.recipe_id);
+        if (!relatedRecipe) return null;
+
+        return {
+          reference,
+          relatedRecipe,
+        };
+      })
+      .filter((entry): entry is RelatedRecipeCard => entry !== null)
+      .filter(({ relatedRecipe }) =>
+        relatedRecipe.id !== recipe.id &&
+        !hasDirectIngredientRestriction(relatedRecipe, restrictedIngredients) &&
+        !violatesDietaryRestrictions(relatedRecipe, restrictedIngredients),
+      )
+      .slice(0, 3);
+  };
+  const handleRelatedRecipeSelect = (nextRecipe: Recipe) => {
+    onSelectRecipe(nextRecipe);
+  };
+  const handleRelatedRecipeKeyDown = (
+    event: KeyboardEvent<HTMLButtonElement>,
+    nextRecipe: Recipe,
+  ) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      handleRelatedRecipeSelect(nextRecipe);
+    }
+  };
   const activeCultureSection = isCultureTab(activeTab) ? getCultureSection(activeTab) : undefined;
+  const activeRelatedRecipeCards = isCultureTab(activeTab) ? getRelatedRecipeCards(activeTab) : [];
   const activeCultureFallback = isCultureTab(activeTab) ? CULTURE_SECTION_FALLBACK[activeTab] : '';
   const activePanelId = TAB_PANEL_IDS[activeTab];
 
@@ -342,17 +397,51 @@ export default function RecipeModal({
                 </section>
               </>
             ) : (
-              <article className="modal-culture-article" aria-live="polite">
-                <span className="modal-culture-kicker">
-                  {activeCultureSection?.label ?? MODAL_TABS.find(tab => tab.key === activeTab)?.label}
-                </span>
-                <h2>{activeCultureSection?.title ?? '準備中'}</h2>
-                {(activeCultureSection?.body ?? activeCultureFallback)
-                  .split(/\n+/)
-                  .map((paragraph, index) => (
-                    <p key={`${activeTab}-culture-paragraph-${index}`}>{paragraph}</p>
-                  ))}
-              </article>
+              <>
+                <article className="modal-culture-article" aria-live="polite">
+                  <span className="modal-culture-kicker">
+                    {activeCultureSection?.label ?? MODAL_TABS.find(tab => tab.key === activeTab)?.label}
+                  </span>
+                  <h2>{activeCultureSection?.title ?? '準備中'}</h2>
+                  {(activeCultureSection?.body ?? activeCultureFallback)
+                    .split(/\n+/)
+                    .map((paragraph, index) => (
+                      <p key={`${activeTab}-culture-paragraph-${index}`}>{paragraph}</p>
+                    ))}
+                </article>
+
+                {activeRelatedRecipeCards.length > 0 && (
+                  <section className="modal-related-recipes" aria-labelledby="modal-related-recipes-title">
+                    <div className="modal-related-header">
+                      <span className="modal-related-kicker">あわせて読みたいレシピ</span>
+                      <h3 id="modal-related-recipes-title">
+                        {activeTab === 'origin' ? '由来が近い料理' : '同じ国の別の料理'}
+                      </h3>
+                    </div>
+                    <div className="modal-related-grid">
+                      {activeRelatedRecipeCards.map(({ reference, relatedRecipe }) => (
+                        <button
+                          key={`${recipe.id}-${activeTab}-${relatedRecipe.id}`}
+                          type="button"
+                          className="modal-related-recipe-card"
+                          onClick={() => handleRelatedRecipeSelect(relatedRecipe)}
+                          onKeyDown={(event) => handleRelatedRecipeKeyDown(event, relatedRecipe)}
+                          aria-label={`${relatedRecipe.title} のレシピを表示`}
+                        >
+                          <span className="modal-related-flag" aria-hidden="true">{relatedRecipe.flag}</span>
+                          <span className="modal-related-copy">
+                            <span className="modal-related-title">{relatedRecipe.title}</span>
+                            <span className="modal-related-meta">{relatedRecipe.cuisine}料理・{relatedRecipe.cook_time_min}分</span>
+                            {reference.reason_label && (
+                              <span className="modal-related-reason">{reference.reason_label}</span>
+                            )}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </section>
+                )}
+              </>
             )}
           </div>
 

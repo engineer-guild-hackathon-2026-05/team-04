@@ -21,6 +21,17 @@ export interface RecipeCultureSection {
   sort_order: number;
 }
 
+export interface RecipeRelatedReference {
+  recipe_id: string;
+  reason_label?: string;
+  sort_order: number;
+}
+
+export interface RecipeRelatedSection {
+  key: RecipeCultureSectionKey;
+  recipes: RecipeRelatedReference[];
+}
+
 export interface RecipeIngredient {
   id: string;           // ingredient_id
   name_ja: string;      // 材料名(日本語)
@@ -46,6 +57,7 @@ export interface Recipe {
   ingredients: RecipeIngredient[];
   steps: RecipeStep[];  // 調理手順（DBでは { order, text }[]、旧mock文字列も許容）
   culture_sections: RecipeCultureSection[]; // 由来・食文化の読み物（DB-primary、fallbackは空配列）
+  related_sections: RecipeRelatedSection[]; // 由来・食文化タブの関連レシピ参照（DB-primary、fallbackは空配列）
 }
 
 // データベースの `ingredients` 初期データ (特定原材料8品目 + 推奨20品目) に準拠
@@ -108,6 +120,14 @@ export const MOCK_RECIPES: Recipe[] = [
       { id: "none-salt", name_ja: "塩・ブラックペッパー", quantity: "適量", is_optional: false },
     ],
     culture_sections: [],
+    related_sections: [
+      {
+        key: "origin",
+        recipes: [
+          { recipe_id: 'rec-dal', reason_label: "豆を主役にした日常料理", sort_order: 1 },
+        ],
+      },
+    ],
     steps: [
       "フライパンにオリーブオイルを熱し、みじん切りにした玉ねぎを透き通るまで中火で炒めます。",
       "すりおろしたニンニク、コリアンダーパウダー、クミンパウダーを加え、香りが立つまでさらに1分炒めます。",
@@ -140,6 +160,14 @@ export const MOCK_RECIPES: Recipe[] = [
       { id: "none-lime", name_ja: "レモン汁 (またはライム汁・ソース用)", quantity: "大さじ1", is_optional: false }
     ],
     culture_sections: [],
+    related_sections: [
+      {
+        key: "origin",
+        recipes: [
+          { recipe_id: 'rec-lobio', reason_label: "植物性の共同食", sort_order: 1 },
+        ],
+      },
+    ],
     steps: [
       "鍋にお湯を沸かし、キャベツともやしをシャキシャキ感が残る程度にサッと茹でてザルに上げ、水気をしっかり切ります。",
       "厚揚げはフライパンまたはトースターで表面がカリッとするまで焼き、食べやすい大きさに切ります。",
@@ -172,6 +200,14 @@ export const MOCK_RECIPES: Recipe[] = [
       { id: "none-salt", name_ja: "塩", quantity: "小さじ1", is_optional: false }
     ],
     culture_sections: [],
+    related_sections: [
+      {
+        key: "origin",
+        recipes: [
+          { recipe_id: 'rec-lobio', reason_label: "豆料理の家庭食", sort_order: 1 },
+        ],
+      },
+    ],
     steps: [
       "赤レンズ豆は水で軽く洗い、ザルに上げておきます。（浸水時間は不要です）",
       "深鍋に少量の油（またはココナッツオイル）を熱し、玉ねぎ、生姜、ニンニクを入れてキツネ色になるまで中火で炒めます。",
@@ -204,6 +240,14 @@ export const MOCK_RECIPES: Recipe[] = [
       { id: "none-salt", name_ja: "塩・コショウ", quantity: "適量", is_optional: false }
     ],
     culture_sections: [],
+    related_sections: [
+      {
+        key: "origin",
+        recipes: [
+          { recipe_id: 'rec-gadogado', reason_label: "屋台と手軽な食事", sort_order: 1 },
+        ],
+      },
+    ],
     steps: [
       "大豆ミートはパッケージの指示通りにお湯で戻し、水気をギューッとしっかり絞ります（大豆臭さを抜くポイントです）。",
       "【フレッシュサルサ作り】ボウルに角切りトマト、みじん切りのトッピング用玉ねぎ、刻んだパクチーの半分、レモン汁（大さじ1）、塩少々を混ぜ合わせて冷やしておきます。",

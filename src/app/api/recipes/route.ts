@@ -41,6 +41,12 @@ export async function GET() {
           title,
           body,
           sort_order
+        ),
+        recipe_related_recipes!recipe_related_recipes_recipe_id_fkey (
+          section_key,
+          related_recipe_id,
+          reason_label,
+          sort_order
         )
       `)
       .eq('is_public', true)
