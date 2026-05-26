@@ -99,8 +99,18 @@ assert.match(
 );
 assert.match(
   substituteRoute,
-  /MAX_SUBSTITUTE_CANDIDATES_FOR_AI[\s\S]*\.slice\(0,\s*MAX_SUBSTITUTE_CANDIDATES_FOR_AI\)[\s\S]*selectIngredientSubstitutionsWithOpenRouter/s,
-  'substitute route must cap replacement candidates before serializing them into the OpenRouter prompt.',
+  /FETCH_SUBSTITUTE_CANDIDATE_PAGE_SIZE[\s\S]*fetchSubstituteCandidateIngredients[\s\S]*while \(candidateIngredients\.length < MAX_SUBSTITUTE_CANDIDATES_FOR_AI[\s\S]*\.range\(from, to\)[\s\S]*candidateIngredients\.push\(ingredient\)[\s\S]*candidateIngredients\.length >= MAX_SUBSTITUTE_CANDIDATES_FOR_AI/s,
+  'substitute route must page ingredient candidates and filter until enough safe replacements are collected.',
+);
+assert.doesNotMatch(
+  substituteRoute,
+  /from\('ingredients'\)[\s\S]*\.limit\(MAX_SUBSTITUTE_CANDIDATES_FOR_AI\)[\s\S]*candidateIngredients/s,
+  'substitute route must not cap the ingredient query before applying restriction/diet/preparation filters.',
+);
+assert.match(
+  substituteRoute,
+  /selectIngredientSubstitutionsWithOpenRouter\([\s\S]*candidates: candidateIngredients/s,
+  'substitute route must still cap replacement candidates before serializing them into the OpenRouter prompt.',
 );
 assert.match(
   substituteRoute,

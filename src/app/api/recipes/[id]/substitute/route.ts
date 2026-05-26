@@ -5,10 +5,12 @@ import { OpenRouterConfigError, OpenRouterResponseError, selectIngredientSubstit
 import { apiError } from '@/lib/server/apiErrors';
 import { getRecipeRouteUser, isUuid, mergedRestrictionContext } from '@/lib/server/recipeRouteUtils';
 import { createClient } from '@/lib/supabase/server';
-import { includesRestrictedIngredientText, isDietaryConflictIngredient } from '@/lib/recipeAi';
+import { includesRestrictedIngredientText, isDietaryConflictIngredient, type RestrictionFact } from '@/lib/recipeAi';
 import { violatesPreparationRestrictions } from '@/lib/preparationRestrictions';
 
 const MAX_SUBSTITUTE_CANDIDATES_FOR_AI = 80;
+const FETCH_SUBSTITUTE_CANDIDATE_PAGE_SIZE = 200;
+const MAX_SUBSTITUTE_CANDIDATE_PAGES = 10;
 const SHELLFISH_INGREDIENT_CODES = new Set(['ing-shrimp', 'ing-crab', 'ing-squid', 'ing-abalone']);
 const FISH_INGREDIENT_CODES = new Set(['ing-salmon', 'ing-mackerel', 'ing-roe']);
 const SHELLFISH_TERMS = /えび|海老|かに|蟹|いか|イカ|あわび|貝|牡蠣|ホタテ|shrimp|prawn|crab|squid|abalone|shellfish|oyster|scallop/i;
@@ -111,6 +113,45 @@ function violatesPreparationCandidateConstraints(
   }, preparationRestrictions);
 }
 
+async function fetchSubstituteCandidateIngredients(input: {
+  supabase: Awaited<ReturnType<typeof createClient>>;
+  restrictions: RestrictionFact[];
+  dietaryConstraints: string[];
+  preparationRestrictions: string[];
+}) {
+  const candidateIngredients: IngredientMaster[] = [];
+  let page = 0;
+
+  while (candidateIngredients.length < MAX_SUBSTITUTE_CANDIDATES_FOR_AI && page < MAX_SUBSTITUTE_CANDIDATE_PAGES) {
+    const from = page * FETCH_SUBSTITUTE_CANDIDATE_PAGE_SIZE;
+    const to = from + FETCH_SUBSTITUTE_CANDIDATE_PAGE_SIZE - 1;
+    const { data, error } = await input.supabase
+      .from('ingredients')
+      .select('ingredient_code, name_ja, name_en, category, dietary_tags')
+      .order('name_ja', { ascending: true })
+      .range(from, to);
+
+    if (error) throw error;
+
+    const rows = (data ?? []) as IngredientCatalogRow[];
+    for (const row of rows) {
+      const ingredient = mapIngredientCatalogRow(row);
+      if (!ingredient) continue;
+      if (includesRestrictedIngredientText([ingredient.id, ingredient.name_ja, ingredient.name_en], input.restrictions)) continue;
+      if (isDietaryConflictIngredient(ingredient, input.dietaryConstraints)) continue;
+      if (violatesPreparationCandidateConstraints(ingredient, input.preparationRestrictions)) continue;
+
+      candidateIngredients.push(ingredient);
+      if (candidateIngredients.length >= MAX_SUBSTITUTE_CANDIDATES_FOR_AI) break;
+    }
+
+    if (rows.length < FETCH_SUBSTITUTE_CANDIDATE_PAGE_SIZE) break;
+    page += 1;
+  }
+
+  return candidateIngredients;
+}
+
 export async function POST(
   request: NextRequest,
   context: { params: Promise<{ id: string }> },
@@ -172,22 +213,12 @@ export async function POST(
       return apiError(400, 'invalid_restricted_ingredients', '利用できないNG材料が含まれています。', restrictionContext.unknownValues);
     }
 
-    const { data: ingredientRows, error: ingredientError } = await supabase
-      .from('ingredients')
-      .select('ingredient_code, name_ja, name_en, category, dietary_tags')
-      .order('name_ja', { ascending: true })
-      .limit(MAX_SUBSTITUTE_CANDIDATES_FOR_AI);
-
-    if (ingredientError) throw ingredientError;
-
-    const candidateIngredients = ((ingredientRows ?? []) as IngredientCatalogRow[])
-      .map(mapIngredientCatalogRow)
-      .filter((ingredient): ingredient is IngredientMaster => Boolean(ingredient))
-      .filter((ingredient) =>
-        !includesRestrictedIngredientText([ingredient.id, ingredient.name_ja, ingredient.name_en], restrictionContext.restrictions))
-      .filter((ingredient) => !isDietaryConflictIngredient(ingredient, restrictionContext.dietaryConstraints))
-      .filter((ingredient) => !violatesPreparationCandidateConstraints(ingredient, restrictionContext.preparationRestrictions))
-      .slice(0, MAX_SUBSTITUTE_CANDIDATES_FOR_AI);
+    const candidateIngredients = await fetchSubstituteCandidateIngredients({
+      supabase,
+      restrictions: restrictionContext.restrictions,
+      dietaryConstraints: restrictionContext.dietaryConstraints,
+      preparationRestrictions: restrictionContext.preparationRestrictions,
+    });
 
     const originalIngredients = originalIngredientsFromRecipe(recipe);
     const selections = await selectIngredientSubstitutionsWithOpenRouter({
