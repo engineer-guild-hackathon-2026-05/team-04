@@ -13,17 +13,21 @@ export default function LandingView({ onSignIn, previewRecipes = MOCK_RECIPES }:
   return (
     <div className="landing-container">
       <section className="landing-hero" aria-labelledby="hero-title">
-        <div className="hero-logo-wrapper">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.svg" alt="GlobalBites" className="hero-logo" />
+        <div className="hero-split">
+          <div className="hero-logo-wrapper">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.svg" alt="GlobalBites" className="hero-logo" />
+          </div>
+          <div className="hero-text">
+            <h1 id="hero-title" className="hero-title-main">
+              食べられる料理で、<span className="text-gradient">世界を旅する。</span>
+            </h1>
+            <p className="hero-subtitle">
+              「食べられないものがあるから」と、諦めてきた料理がある。<br />
+              あなたの食の制限を起点に、<strong>まだ知らない世界の味</strong>へ案内します。
+            </p>
+          </div>
         </div>
-        <h1 id="hero-title" className="hero-title-main">
-          食べられる料理で、<span className="text-gradient">世界を旅する。</span>
-        </h1>
-        <p className="hero-subtitle">
-          「食べられないものがあるから」と、諦めてきた料理がある。<br />
-          あなたの食の制限を起点に、<strong>まだ知らない世界の味</strong>へ案内します。
-        </p>
       </section>
 
       {previewRecipes.length > 0 && (
