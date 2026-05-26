@@ -35,7 +35,31 @@ Function('exports', 'module', 'require', transpiledRecipeAi)(
   },
 );
 
-const { parseRestrictionInput } = recipeAiModule.exports;
+const { includesRestrictedIngredientText, parseRestrictionInput } = recipeAiModule.exports;
+
+
+const milkRestriction = [{
+  id: 'ing-milk',
+  name_ja: '乳',
+  name_en: 'milk',
+  dietary_tags: ['dairy', 'animal-product'],
+}];
+
+assert.equal(
+  includesRestrictedIngredientText(['豆乳'], milkRestriction),
+  false,
+  '短い日本語 alias「乳」は豆乳のような安全な語の部分文字列として一致してはいけません。',
+);
+assert.equal(
+  includesRestrictedIngredientText(['乳化剤'], milkRestriction),
+  false,
+  '短い日本語 alias「乳」は乳化剤のような非乳製品語の部分文字列として一致してはいけません。',
+);
+assert.equal(
+  includesRestrictedIngredientText(['牛乳'], milkRestriction),
+  true,
+  '牛乳のような明確な乳製品 alias は引き続き一致してください。',
+);
 
 const parsed = parseRestrictionInput([
   'ing-shrimp',

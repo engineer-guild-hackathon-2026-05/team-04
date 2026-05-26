@@ -85,7 +85,7 @@ const ANIMAL_INGREDIENT_PATTERNS = {
   meat: ['牛肉', '豚肉', '鶏肉', '羊肉', '肉', 'ハム', 'ベーコン', 'ソーセージ', '鴨', 'ラム', 'beef', 'pork', 'chicken', 'meat', 'ham', 'bacon', 'sausage', 'duck', 'lamb', 'mutton'],
   seafood: ['魚', 'さけ', '鮭', 'さば', '鯖', 'まぐろ', 'ツナ', 'えび', '海老', 'かに', '蟹', 'いか', 'イカ', 'たこ', 'タコ', 'あわび', 'いくら', '貝', '牡蠣', 'ホタテ', 'ナンプラー', 'fish', 'fish sauce', 'salmon', 'mackerel', 'tuna', 'shrimp', 'prawn', 'crab', 'squid', 'octopus', 'abalone', 'roe', 'shellfish', 'oyster', 'scallop'],
   egg: ['卵', '玉子', 'たまご', 'エッグ', 'egg'],
-  dairy: ['乳', '牛乳', 'バター', 'チーズ', 'ヨーグルト', 'クリーム', 'ミルク', 'milk', 'butter', 'cheese', 'yogurt', 'cream', 'dairy'],
+  dairy: ['乳', '乳製品', '牛乳', 'バター', 'チーズ', 'ヨーグルト', 'クリーム', 'ミルク', 'milk', 'butter', 'cheese', 'yogurt', 'cream', 'dairy'],
   otherAnimalProduct: ['ゼラチン', 'はちみつ', '蜂蜜', 'ラード', 'ブイヨン', 'コンソメ', 'gelatin', 'honey', 'lard', 'bouillon', 'consomme', 'stock'],
 };
 
@@ -109,12 +109,21 @@ function uniqueStrings(values: Array<string | null | undefined>) {
   return Array.from(new Set(values.map((value) => value?.trim()).filter((value): value is string => Boolean(value))));
 }
 
+function isSingleJapaneseCharacter(value: string) {
+  return /^\p{Script=Han}$|^\p{Script=Hiragana}$|^\p{Script=Katakana}$/u.test(value);
+}
+
 function textMatchesToken(haystack: string, needle: string) {
   const normalizedNeedle = normalizeSearchText(needle);
   if (!normalizedNeedle) return false;
 
   if (/[a-z0-9]/i.test(normalizedNeedle)) {
-    return new RegExp(`(^|[^\\p{L}\\p{N}])${escapeRegExp(normalizedNeedle)}(?=$|[^\\p{L}\\p{N}])`, 'iu')
+    return new RegExp(String.raw`(^|[^\p{L}\p{N}])${escapeRegExp(normalizedNeedle)}(?=$|[^\p{L}\p{N}])`, 'iu')
+      .test(haystack);
+  }
+
+  if (isSingleJapaneseCharacter(normalizedNeedle)) {
+    return new RegExp(String.raw`(^|[^\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}])${escapeRegExp(normalizedNeedle)}(?=$|[^\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}])`, 'u')
       .test(haystack);
   }
 
