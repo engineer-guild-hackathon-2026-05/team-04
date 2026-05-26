@@ -189,7 +189,7 @@
   v. tags(like allergic of something, gluten-free, vegan, etc)
   3. detail page: modal, activate when card is clicked
   - ingredient list (bullet point) on top
-  - recipe (instructions, numbered list) below the ingredient list 
+  - recipe (instructions, numbered list) below the ingredient list
   4. profile
   - username
   - data from initial form (ingredients they can't eat, preference of dish, preference of cousine/culture)
