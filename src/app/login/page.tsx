@@ -70,7 +70,8 @@ function LoginForm() {
     ? '認証リンクの有効期限が切れているか、認証に失敗しました。もう一度お試しください。'
     : '';
 
-  const [mode, setMode] = useState<AuthMode>('signin');
+  const initialMode = searchParams.get('mode') === 'signup' ? 'signup' : 'signin';
+  const [mode, setMode] = useState<AuthMode>(initialMode);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

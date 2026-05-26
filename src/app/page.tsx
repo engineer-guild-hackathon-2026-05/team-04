@@ -295,6 +295,10 @@ export default function Home() {
     router.push('/login?redirect=/app');
   };
 
+  const handleSignUp = () => {
+    router.push('/login?mode=signup&redirect=/app');
+  };
+
   const handleSignOut = async () => {
     await fetch('/auth/signout', { method: 'POST' }).catch(() => null);
     setIsLoggedIn(false);
@@ -388,12 +392,13 @@ export default function Home() {
         userName={userName}
         isLoggedIn={isLoggedIn}
         onSignIn={handleSignIn}
+        onSignUp={handleSignUp}
         onSignOut={handleSignOut}
       />
 
       <main className="main-content">
         {authStatus === 'unauthenticated' && currentView === 'landing' && (
-          <LandingView onSignIn={handleSignIn} />
+          <LandingView previewRecipes={recipes.length > 0 ? recipes.slice(0, 3) : undefined} />
         )}
 
         {currentView === 'list' && (

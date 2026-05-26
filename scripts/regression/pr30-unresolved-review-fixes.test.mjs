@@ -5,6 +5,7 @@ const middlewareSource = readFileSync('src/lib/supabase/middleware.ts', 'utf8');
 const authDemoRouteSource = readFileSync('src/app/auth/demo/route.ts', 'utf8');
 const demoSessionSource = readFileSync('src/lib/demoSession.ts', 'utf8');
 const profileRouteSource = readFileSync('src/app/api/me/profile/route.ts', 'utf8');
+const signoutRouteSource = readFileSync('src/app/auth/signout/route.ts', 'utf8');
 
 const previousLoginRedirectDecision = ({ hasSignedDemoCookie, pathname }) => {
   const isDemoAuthenticated = hasSignedDemoCookie;
@@ -216,6 +217,37 @@ assert.match(
   authDemoRouteSource,
   /const payload = await request\.json\(\)\.catch\(\(\): unknown => \(\{\}\)\);\s*const \{ session, isNew \} = await restoreOrCreateDemoSession\(getDemoLoginSessionId\(payload\)\);/,
   'POST /auth/demo は JSON null / 配列 / 非object を missing sessionId として restoreOrCreateDemoSession へ渡してください。',
+);
+
+const previousSignoutDecision = ({ hasDemoCookie, hasSupabaseSession }) => {
+  if (hasDemoCookie) return 'clear-demo-cookie-only';
+  return hasSupabaseSession ? 'clear-supabase-session' : 'redirect-login';
+};
+const fixedSignoutDecision = ({ hasDemoCookie, hasSupabaseSession }) => {
+  const cleared = ['clear-demo-cookie'];
+  if (hasSupabaseSession) cleared.push('clear-supabase-session');
+  return hasDemoCookie ? cleared.join('+') : cleared.at(-1);
+};
+
+assert.equal(
+  previousSignoutDecision({ hasDemoCookie: true, hasSupabaseSession: true }),
+  'clear-demo-cookie-only',
+  '再現: demo cookie と Supabase session が併存すると、signout が Supabase signOut 前に return していました。',
+);
+assert.equal(
+  fixedSignoutDecision({ hasDemoCookie: true, hasSupabaseSession: true }),
+  'clear-demo-cookie+clear-supabase-session',
+  '修正: signout は demo cookie を消した後も Supabase session があれば signOut してください。',
+);
+assert.doesNotMatch(
+  signoutRouteSource,
+  /hasDemoAuthCookie\([\s\S]*?return response;[\s\S]*?hasSupabaseConfig\(\)/,
+  'signout は valid demo cookie だけを理由に Supabase signOut 前に早期returnしないでください。',
+);
+assert.match(
+  signoutRouteSource,
+  /response\.cookies\.set\(DEMO_AUTH_COOKIE[\s\S]*if \(!hasSupabaseConfig\(\)\) \{[\s\S]*return response;[\s\S]*const supabase = await createClient\(\);[\s\S]*await supabase\.auth\.signOut\(\);/,
+  'signout は常に demo cookie をclearし、Supabase設定がある場合は既存Supabase sessionも失効してください。',
 );
 
 console.log('PR #30 unresolved review regression checks passed');
