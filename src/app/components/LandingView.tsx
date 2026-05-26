@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Clock, Eye, LogIn, ShieldCheck, Sparkles } from 'lucide-react';
+import { Clock, ShieldCheck, Sparkles } from 'lucide-react';
 import { MOCK_RECIPES, type Recipe } from '@/lib/mockData';
 
 interface LandingViewProps {
@@ -38,13 +38,7 @@ export default function LandingView({ onSignIn, previewRecipes = MOCK_RECIPES }:
 
           <div className="landing-preview-grid">
             {previewRecipes.slice(0, 3).map((recipe) => (
-              <button
-                key={recipe.id}
-                type="button"
-                className="landing-preview-card"
-                onClick={onSignIn}
-                aria-label={`${recipe.title} — ログインして詳細を見る`}
-              >
+              <div key={recipe.id} className="landing-preview-card">
                 <div className="landing-preview-card-header">
                   <span className="landing-preview-title">{recipe.title.split('(')[0].trim()}</span>
                   <span className="landing-preview-flag">{recipe.flag}</span>
@@ -57,12 +51,6 @@ export default function LandingView({ onSignIn, previewRecipes = MOCK_RECIPES }:
                     <Clock size={11} />
                     {recipe.cook_time_min}分
                   </span>
-                  <div className="landing-preview-hover-overlay">
-                    <span className="landing-preview-hover-label">
-                      <Eye size={14} />
-                      ログインして見る
-                    </span>
-                  </div>
                 </div>
 
                 <div className="landing-preview-card-body">
@@ -80,14 +68,9 @@ export default function LandingView({ onSignIn, previewRecipes = MOCK_RECIPES }:
                     ))}
                   </div>
                 </div>
-              </button>
+              </div>
             ))}
           </div>
-
-          <button className="landing-preview-cta" onClick={onSignIn}>
-            <LogIn size={16} />
-            サインアップして無料で始める
-          </button>
         </section>
       )}
     </div>

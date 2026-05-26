@@ -141,7 +141,7 @@ button, input {
   width: 100%;
   max-width: 1200px;
   margin: 0 auto;
-  padding: 100px 24px 60px 24px; /* navbarの高さ分をあける */
+  padding: 84px 24px 40px 24px; /* navbarの高さ分をあける */
   z-index: 1;
 }
 
@@ -444,7 +444,7 @@ button, input {
 .landing-container {
   display: flex;
   flex-direction: column;
-  gap: 80px;
+  gap: 28px;
   animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
@@ -452,16 +452,16 @@ button, input {
   text-align: center;
   max-width: 800px;
   margin: 0 auto;
-  padding: 20px 0;
+  padding: 0;
 }
 
 .hero-logo-wrapper {
-  margin-bottom: 32px;
+  margin-bottom: 14px;
 }
 
 .hero-logo {
   width: 100%;
-  max-width: 480px;
+  max-width: 300px;
   height: auto;
   display: inline-block;
 }
@@ -490,12 +490,12 @@ button, input {
 }
 
 .hero-title-main {
-  font-size: clamp(2.2rem, 5.5vw, 3.8rem);
-  line-height: 1.15;
+  font-size: clamp(1.6rem, 3.5vw, 2.4rem);
+  line-height: 1.2;
   font-weight: 900;
   letter-spacing: -0.03em;
   color: var(--text-primary);
-  margin-bottom: 24px;
+  margin-bottom: 10px;
 }
 
 .text-gradient {
@@ -505,10 +505,10 @@ button, input {
 }
 
 .hero-subtitle {
-  font-size: 1.12rem;
+  font-size: 0.95rem;
   color: var(--text-muted);
-  line-height: 1.8;
-  margin-bottom: 40px;
+  line-height: 1.65;
+  margin-bottom: 0;
 }
 
 .hero-cta-box {
@@ -622,7 +622,7 @@ button, input {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 28px;
+  gap: 14px;
 }
 
 .landing-preview-heading {
@@ -663,27 +663,18 @@ button, input {
 .landing-preview-card {
   display: flex;
   flex-direction: column;
-  border: none;
-  border-radius: 20px;
+  border-radius: 16px;
   overflow: hidden;
-  cursor: pointer;
   background: white;
-  padding: 0;
   box-shadow: var(--shadow-premium);
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
   text-align: left;
-}
-
-.landing-preview-card:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-hover);
 }
 
 .landing-preview-card-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 14px 8px;
+  padding: 8px 12px 6px;
   gap: 8px;
 }
 
@@ -710,14 +701,9 @@ button, input {
 
 .landing-preview-photo {
   width: 100%;
-  aspect-ratio: 16 / 9;
+  aspect-ratio: 16 / 7;
   object-fit: cover;
   display: block;
-  transition: transform 0.3s ease;
-}
-
-.landing-preview-card:hover .landing-preview-photo {
-  transform: scale(1.04);
 }
 
 .landing-preview-time {
@@ -761,7 +747,7 @@ button, input {
 }
 
 .landing-preview-card-body {
-  padding: 10px 14px;
+  padding: 6px 12px;
   flex: 1;
 }
 
@@ -779,7 +765,7 @@ button, input {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 14px 12px;
+  padding: 6px 12px 10px;
   gap: 8px;
   flex-wrap: wrap;
 }
