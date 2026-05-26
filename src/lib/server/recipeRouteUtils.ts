@@ -20,6 +20,16 @@ type RestrictedJoinRow = {
   } | null;
 };
 
+type PreferenceRestrictionRow = {
+  non_ingredient_restrictions?: string[] | null;
+};
+
+const EMPTY_RESTRICTION_INPUT: ParsedRestrictionInput = {
+  ingredientCodes: [],
+  dietaryConstraints: [],
+  preparationRestrictions: [],
+};
+
 export function isUuid(value: string) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }
@@ -89,6 +99,22 @@ export async function readRestrictionFactsByCodes(
   return facts;
 }
 
+export async function readUserNonIngredientRestrictions(
+  supabase: SupabaseServerClient,
+  userId: string,
+): Promise<ParsedRestrictionInput | { error: string; unknownValues: string[] }> {
+  const { data, error } = await supabase
+    .from('user_preferences')
+    .select('non_ingredient_restrictions')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (error) throw error;
+
+  const savedRestrictions = ((data ?? {}) as PreferenceRestrictionRow).non_ingredient_restrictions ?? [];
+  return parseRestrictionInput(savedRestrictions);
+}
+
 export async function getRecipeRouteUser(supabase: SupabaseServerClient): Promise<RecipeRouteUser | null> {
   const { data: { user }, error: userError } = await supabase.auth.getUser();
   if (!userError && user) {
@@ -114,6 +140,10 @@ export async function mergedRestrictionContext(input: {
   const savedFacts = input.userId === '00000000-0000-0000-0000-000000000000'
     ? []
     : await readUserRestrictionFacts(input.supabase, input.userId);
+  const savedNonIngredientContext = input.userId === '00000000-0000-0000-0000-000000000000'
+    ? EMPTY_RESTRICTION_INPUT
+    : await readUserNonIngredientRestrictions(input.supabase, input.userId);
+  if ('error' in savedNonIngredientContext) return savedNonIngredientContext;
   const clientFacts = await readRestrictionFactsByCodes(input.supabase, parsed.ingredientCodes);
   if ('error' in clientFacts) return clientFacts;
   const factsById = new Map<string, RestrictionFact>();
@@ -124,7 +154,7 @@ export async function mergedRestrictionContext(input: {
 
   return {
     restrictions: Array.from(factsById.values()),
-    dietaryConstraints: parsed.dietaryConstraints,
-    preparationRestrictions: parsed.preparationRestrictions,
+    dietaryConstraints: Array.from(new Set([...savedNonIngredientContext.dietaryConstraints, ...parsed.dietaryConstraints])),
+    preparationRestrictions: Array.from(new Set([...savedNonIngredientContext.preparationRestrictions, ...parsed.preparationRestrictions])),
   };
 }

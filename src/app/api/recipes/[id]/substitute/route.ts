@@ -6,8 +6,13 @@ import { apiError } from '@/lib/server/apiErrors';
 import { getRecipeRouteUser, isUuid, mergedRestrictionContext } from '@/lib/server/recipeRouteUtils';
 import { createClient } from '@/lib/supabase/server';
 import { includesRestrictedIngredientText, isDietaryConflictIngredient } from '@/lib/recipeAi';
+import { violatesPreparationRestrictions } from '@/lib/preparationRestrictions';
 
 const MAX_SUBSTITUTE_CANDIDATES_FOR_AI = 80;
+const SHELLFISH_INGREDIENT_CODES = new Set(['ing-shrimp', 'ing-crab', 'ing-squid', 'ing-abalone']);
+const FISH_INGREDIENT_CODES = new Set(['ing-salmon', 'ing-mackerel', 'ing-roe']);
+const SHELLFISH_TERMS = /えび|海老|かに|蟹|いか|イカ|あわび|貝|牡蠣|ホタテ|shrimp|prawn|crab|squid|abalone|shellfish|oyster|scallop/i;
+const FISH_TERMS = /魚|さけ|鮭|さば|鯖|まぐろ|ツナ|いくら|fish|salmon|mackerel|tuna|roe/i;
 
 type RecipeIngredientRow = {
   display_name_ja?: string | null;
@@ -64,6 +69,46 @@ function originalIngredientsFromRecipe(recipe: RecipeRow): OriginalIngredient[] 
       };
     })
     .filter((ingredient): ingredient is OriginalIngredient => Boolean(ingredient));
+}
+
+function inferredPreparationTags(ingredient: IngredientMaster) {
+  const tags = new Set<string>();
+  const dietaryTags = new Set(ingredient.dietary_tags ?? []);
+  const text = [ingredient.id, ingredient.name_ja, ingredient.name_en, ingredient.category].join('\n');
+  const isShellfish = SHELLFISH_INGREDIENT_CODES.has(ingredient.id) ||
+    dietaryTags.has('shellfish') ||
+    SHELLFISH_TERMS.test(text);
+  const isFish = FISH_INGREDIENT_CODES.has(ingredient.id) ||
+    dietaryTags.has('fish') ||
+    FISH_TERMS.test(text);
+
+  if (isShellfish || isFish) {
+    tags.add('raw');
+    tags.add('seafood');
+  }
+  if (isShellfish) tags.add('shellfish');
+  if (isFish) tags.add('fish');
+
+  return Array.from(tags);
+}
+
+function violatesPreparationCandidateConstraints(
+  ingredient: IngredientMaster,
+  preparationRestrictions: string[],
+) {
+  if (preparationRestrictions.length === 0) return false;
+
+  return violatesPreparationRestrictions({
+    ingredients: [{
+      id: ingredient.id,
+      name_ja: ingredient.name_ja,
+      quantity: '',
+      is_optional: false,
+      category: ingredient.category,
+      dietary_tags: ingredient.dietary_tags,
+      preparation_tags: inferredPreparationTags(ingredient),
+    }],
+  }, preparationRestrictions);
 }
 
 export async function POST(
@@ -141,6 +186,7 @@ export async function POST(
       .filter((ingredient) =>
         !includesRestrictedIngredientText([ingredient.id, ingredient.name_ja, ingredient.name_en], restrictionContext.restrictions))
       .filter((ingredient) => !isDietaryConflictIngredient(ingredient, restrictionContext.dietaryConstraints))
+      .filter((ingredient) => !violatesPreparationCandidateConstraints(ingredient, restrictionContext.preparationRestrictions))
       .slice(0, MAX_SUBSTITUTE_CANDIDATES_FOR_AI);
 
     const originalIngredients = originalIngredientsFromRecipe(recipe);

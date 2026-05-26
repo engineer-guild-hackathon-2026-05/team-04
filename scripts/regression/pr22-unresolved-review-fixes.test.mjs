@@ -128,13 +128,28 @@ assert.match(
 );
 assert.match(
   routeUtils,
-  /preparationRestrictions:\s*parsed\.preparationRestrictions/,
+  /preparationRestrictions:\s*Array\.from\(new Set\(\[[\s\S]*parsed\.preparationRestrictions[\s\S]*\]\)\)/,
   'AI route restriction context must preserve parsed prep-* restrictions for downstream route behavior.',
+);
+assert.match(
+  routeUtils,
+  /readUserNonIngredientRestrictions[\s\S]*from\('user_preferences'\)[\s\S]*select\('non_ingredient_restrictions'\)[\s\S]*parseRestrictionInput/s,
+  'AI route restriction context must read persisted diet-* / prep-* restrictions from user_preferences.',
+);
+assert.match(
+  routeUtils,
+  /dietaryConstraints:\s*Array\.from\(new Set\(\[\.\.\.savedNonIngredientContext\.dietaryConstraints,\s*\.\.\.parsed\.dietaryConstraints\]\)\)[\s\S]*preparationRestrictions:\s*Array\.from\(new Set\(\[\.\.\.savedNonIngredientContext\.preparationRestrictions,\s*\.\.\.parsed\.preparationRestrictions\]\)\)/s,
+  'AI route restriction context must merge persisted non-ingredient diet/prep restrictions with client request restrictions.',
 );
 assert.match(
   suggestRoute,
   /violatesPreparationRestrictions[\s\S]*preparationRestrictions/,
   'AI recipe suggestions must filter candidates with selected prep-* restrictions before prompting OpenRouter.',
+);
+assert.match(
+  substituteRoute,
+  /violatesPreparationCandidateConstraints[\s\S]*restrictionContext\.preparationRestrictions/s,
+  'substitute route must filter replacement candidates with selected prep-* restrictions before prompting OpenRouter.',
 );
 
 assert.doesNotMatch(
