@@ -660,7 +660,6 @@ button, input {
   border: none;
   border-radius: 20px;
   overflow: hidden;
-  cursor: pointer;
   background: white;
   padding: 0;
   box-shadow: var(--shadow-premium);

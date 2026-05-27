@@ -2,9 +2,16 @@
 
 import Image from 'next/image';
 import React from 'react';
-import { Compass, CheckCircle2, ShieldAlert, Sparkles } from 'lucide-react';
+import { Clock, Compass, CheckCircle2, ShieldAlert, ShieldCheck, Sparkles } from 'lucide-react';
+import { MOCK_RECIPES, type Recipe } from '@/lib/mockData';
 
-export default function LandingView() {
+type LandingViewProps = {
+  previewRecipes?: Recipe[];
+};
+
+export default function LandingView({ previewRecipes = MOCK_RECIPES }: LandingViewProps) {
+  const visiblePreviewRecipes = previewRecipes.slice(0, 3);
+
   return (
     <div className="landing-container">
       <section className="landing-hero" aria-labelledby="hero-title">
@@ -32,6 +39,54 @@ export default function LandingView() {
           食の選択肢を広げたい人と海外料理が好きな人が、条件に合うレシピを見つけられます。
         </p>
       </section>
+
+      {visiblePreviewRecipes.length > 0 && (
+        <section className="landing-preview-section" aria-label="アプリプレビュー">
+          <div className="landing-preview-heading">
+            <span className="landing-preview-badge">
+              <Sparkles size={12} />
+              アプリプレビュー
+            </span>
+            <p className="landing-preview-label">実際に見つかるレシピの一例です</p>
+          </div>
+
+          <div className="landing-preview-grid">
+            {visiblePreviewRecipes.map((recipe) => (
+              <article key={recipe.id} className="landing-preview-card">
+                <div className="landing-preview-card-header">
+                  <span className="landing-preview-title">{recipe.title.split('(')[0].trim()}</span>
+                  <span className="landing-preview-flag" aria-hidden="true">{recipe.flag}</span>
+                </div>
+
+                <div className="landing-preview-img-wrapper">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={recipe.image_url} alt={recipe.title} className="landing-preview-photo" />
+                  <span className="landing-preview-time">
+                    <Clock size={11} />
+                    {recipe.cook_time_min}分
+                  </span>
+                </div>
+
+                <div className="landing-preview-card-body">
+                  <p className="landing-preview-desc">{recipe.description}</p>
+                </div>
+
+                <div className="landing-preview-card-footer">
+                  <span className="landing-preview-safe">
+                    <ShieldCheck size={12} />
+                    制限設定で絞り込み可
+                  </span>
+                  <div className="landing-preview-tags" aria-label={`${recipe.title}の特徴`}>
+                    {recipe.tags.slice(0, 2).map((tag) => (
+                      <span key={tag} className="landing-preview-tag">{tag}</span>
+                    ))}
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="features-grid" aria-label="サービスの強み">
         <div className="feature-card">
