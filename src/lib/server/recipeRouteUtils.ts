@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { cookies } from 'next/headers';
-import { DEMO_AUTH_COOKIE, hasDemoAuthCookie } from '@/lib/demoMode';
+import { DEMO_AUTH_COOKIE, LEGACY_DEMO_AUTH_COOKIE, hasDemoAuthCookie } from '@/lib/demoMode';
 import type { createClient } from '@/lib/supabase/server';
 import { parseRestrictionInput, type ParsedRestrictionInput, type RestrictionFact } from '@/lib/recipeAi';
 
@@ -122,7 +122,9 @@ export async function getRecipeRouteUser(supabase: SupabaseServerClient): Promis
   }
 
   const cookieStore = await cookies();
-  if (await hasDemoAuthCookie(cookieStore.get(DEMO_AUTH_COOKIE)?.value)) {
+  const demoCookieValue = cookieStore.get(DEMO_AUTH_COOKIE)?.value
+    ?? cookieStore.get(LEGACY_DEMO_AUTH_COOKIE)?.value;
+  if (await hasDemoAuthCookie(demoCookieValue)) {
     return { id: '00000000-0000-0000-0000-000000000000', source: 'demo' };
   }
 

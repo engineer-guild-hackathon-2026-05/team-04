@@ -1,24 +1,27 @@
 import { createServerClient } from "@supabase/ssr";
 import type { User } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
-import { DEMO_AUTH_COOKIE, getDemoSessionIdFromAuthCookie } from "@/lib/demoMode";
+import { DEMO_AUTH_COOKIE, LEGACY_DEMO_AUTH_COOKIE, getDemoSessionIdFromAuthCookie } from "@/lib/demoMode";
 import { getSupabaseConfig } from "@/lib/supabase/config";
 
 // Next.js middleware から呼ばれ、リクエストごとにセッション Cookie を更新する。
 // この処理を怠ると Server Component 側で getUser() がスタンプの古いセッションを返す。
 function clearDemoCookie(response: NextResponse) {
-  response.cookies.set(DEMO_AUTH_COOKIE, "", {
-    path: "/",
-    maxAge: 0,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-  });
+  for (const cookieName of [DEMO_AUTH_COOKIE, LEGACY_DEMO_AUTH_COOKIE]) {
+    response.cookies.set(cookieName, "", {
+      path: "/",
+      maxAge: 0,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+    });
+  }
   return response;
 }
 
 export async function updateSession(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const demoCookieValue = request.cookies.get(DEMO_AUTH_COOKIE)?.value;
+  const demoCookieValue = request.cookies.get(DEMO_AUTH_COOKIE)?.value
+    ?? request.cookies.get(LEGACY_DEMO_AUTH_COOKIE)?.value;
   const demoSessionId = await getDemoSessionIdFromAuthCookie(demoCookieValue);
   const isDemoAuthenticated = Boolean(demoSessionId);
   const shouldClearInvalidDemoCookie = Boolean(demoCookieValue) && !isDemoAuthenticated;

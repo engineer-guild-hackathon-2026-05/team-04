@@ -17,7 +17,7 @@ const canonicalOriginFallback = ({ requestOrigin, configuredOrigins }) =>
 
 assert.equal(
   previousRedirectOrigin({
-    requestOrigin: 'https://globalbites.example',
+    requestOrigin: 'https://edible.example',
     protocol: 'https:',
     forwardedHost: 'evil.example',
     isLocalEnv: false,
@@ -27,32 +27,32 @@ assert.equal(
 );
 assert.equal(
   fixedRedirectOrigin({
-    requestOrigin: 'https://globalbites.example',
+    requestOrigin: 'https://edible.example',
     protocol: 'https:',
     forwardedHost: 'evil.example',
     isLocalEnv: false,
-    allowedOrigins: ['https://globalbites.example'],
+    allowedOrigins: ['https://edible.example'],
   }),
-  'https://globalbites.example',
+  'https://edible.example',
   '修正: allowlist に無い forwarded host は採用しません。',
 );
 assert.equal(
   fixedRedirectOrigin({
     requestOrigin: 'https://internal.example',
     protocol: 'https:',
-    forwardedHost: 'app.globalbites.example',
+    forwardedHost: 'app.edible.example',
     isLocalEnv: false,
-    allowedOrigins: ['https://app.globalbites.example'],
+    allowedOrigins: ['https://app.edible.example'],
   }),
-  'https://app.globalbites.example',
+  'https://app.edible.example',
   '修正: allowlist 済み forwarded host だけを公開originとして採用します。',
 );
 assert.equal(
   canonicalOriginFallback({
     requestOrigin: 'http://localhost:3000',
-    configuredOrigins: ['https://globalbites.example'],
+    configuredOrigins: ['https://edible.example'],
   }),
-  'https://globalbites.example',
+  'https://edible.example',
   '再現: configured origin を fallback にすると、localhost callback で発行された session cookie と redirect 先 host がずれます。',
 );
 assert.equal(
@@ -61,7 +61,7 @@ assert.equal(
     protocol: 'http:',
     forwardedHost: null,
     isLocalEnv: false,
-    allowedOrigins: ['https://globalbites.example', 'http://localhost:3000'],
+    allowedOrigins: ['https://edible.example', 'http://localhost:3000'],
   }),
   'http://localhost:3000',
   '修正: trusted forwarded host が無い場合は、session cookie を受け取った request origin に留まります。',

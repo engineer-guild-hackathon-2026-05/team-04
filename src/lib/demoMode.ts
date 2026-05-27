@@ -1,4 +1,5 @@
-export const DEMO_AUTH_COOKIE = 'globalbites_demo_auth';
+export const DEMO_AUTH_COOKIE = 'edible_demo_auth';
+export const LEGACY_DEMO_AUTH_COOKIE = 'globalbites_demo_auth';
 export const DEMO_AUTH_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 7;
 
 const DEMO_COOKIE_VERSION = 'v1';

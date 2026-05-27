@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { DEMO_AUTH_COOKIE, getDemoSessionIdFromAuthCookie } from '@/lib/demoMode';
+import { DEMO_AUTH_COOKIE, LEGACY_DEMO_AUTH_COOKIE, getDemoSessionIdFromAuthCookie } from '@/lib/demoMode';
 import { isDietaryRestrictionId } from '@/lib/dietaryRestrictions';
 import { isIngredientCodeFormat, toIngredientCodeFromDbRow } from '@/lib/ingredientCodes';
 import { isPreparationRestrictionId } from '@/lib/preparationRestrictions';
@@ -93,12 +93,14 @@ function supportedNonIngredientRestrictionCodes(codes: string[]) {
 }
 
 function clearDemoCookie(response: NextResponse) {
-  response.cookies.set(DEMO_AUTH_COOKIE, '', {
-    path: '/',
-    maxAge: 0,
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
-  });
+  for (const cookieName of [DEMO_AUTH_COOKIE, LEGACY_DEMO_AUTH_COOKIE]) {
+    response.cookies.set(cookieName, '', {
+      path: '/',
+      maxAge: 0,
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+    });
+  }
   return response;
 }
 
@@ -107,7 +109,9 @@ function createMissingDemoSessionResponse() {
 }
 
 async function getDemoSessionIdForRequest(request: NextRequest) {
-  const sessionId = await getDemoSessionIdFromAuthCookie(request.cookies.get(DEMO_AUTH_COOKIE)?.value);
+  const demoCookieValue = request.cookies.get(DEMO_AUTH_COOKIE)?.value
+    ?? request.cookies.get(LEGACY_DEMO_AUTH_COOKIE)?.value;
+  const sessionId = await getDemoSessionIdFromAuthCookie(demoCookieValue);
   if (!sessionId) return null;
 
   const hintedSessionId = request.headers.get(DEMO_SESSION_HEADER);

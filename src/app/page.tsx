@@ -20,7 +20,7 @@ import type {
   RecipesResponse,
   RestrictionReason,
 } from '@/lib/apiTypes';
-import { DEMO_SESSION_STORAGE_KEY, LEGACY_DEMO_PROFILE_STORAGE_KEY } from '@/lib/demoSessionKeys';
+import { DEMO_SESSION_STORAGE_KEY, LEGACY_DEMO_PROFILE_STORAGE_KEY, LEGACY_DEMO_SESSION_STORAGE_KEY } from '@/lib/demoSessionKeys';
 
 type CurrentView = 'landing' | 'list' | 'profile';
 type AuthStatus = 'checking' | 'authenticated' | 'unauthenticated';
@@ -40,7 +40,8 @@ type ProfileSaveErrorResponse = {
   unknownCodes?: string[];
 };
 
-const PROFILE_STORAGE_KEY = 'globalbites_profile';
+const PROFILE_STORAGE_KEY = 'edible_profile';
+const LEGACY_PROFILE_STORAGE_KEY = 'globalbites_profile';
 const DEFAULT_USER_NAME = 'ゲスト愛好家';
 
 class ProfileSaveValidationError extends Error {
@@ -84,6 +85,7 @@ async function fetchDemoSession(): Promise<DemoSessionResult> {
     const data = await response.json().catch(() => null) as { sessionId?: string; userName?: string } | null;
     if (data?.sessionId) {
       localStorage.setItem(DEMO_SESSION_STORAGE_KEY, data.sessionId);
+      localStorage.removeItem(LEGACY_DEMO_SESSION_STORAGE_KEY);
       return { status: 'authenticated', sessionId: data.sessionId, userName: data.userName };
     }
     return { status: 'failed' };
@@ -237,7 +239,8 @@ export default function Home() {
   }, [selectedRecipeId, restrictedIngredients]);
 
   useEffect(() => {
-    const parsed = readStoredProfile(PROFILE_STORAGE_KEY, 'local storage profile');
+    const parsed = readStoredProfile(PROFILE_STORAGE_KEY, 'local storage profile')
+      ?? readStoredProfile(LEGACY_PROFILE_STORAGE_KEY, 'legacy local storage profile');
 
     if (parsed?.userName) setUserName(parsed.userName);
     if (parsed?.restrictedIngredients) setRestrictedIngredients(parsed.restrictedIngredients);
@@ -376,7 +379,9 @@ export default function Home() {
     setPreferredDishes([]);
     setPreferredCuisines([]);
     localStorage.removeItem(PROFILE_STORAGE_KEY);
+    localStorage.removeItem(LEGACY_PROFILE_STORAGE_KEY);
     localStorage.removeItem(DEMO_SESSION_STORAGE_KEY);
+    localStorage.removeItem(LEGACY_DEMO_SESSION_STORAGE_KEY);
     localStorage.removeItem(LEGACY_DEMO_PROFILE_STORAGE_KEY);
     setCurrentView('landing');
     setIsProfileSetupRequired(false);

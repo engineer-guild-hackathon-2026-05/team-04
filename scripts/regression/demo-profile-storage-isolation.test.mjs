@@ -5,7 +5,7 @@ const source = readFileSync('src/app/page.tsx', 'utf8');
 const loginSource = readFileSync('src/app/login/page.tsx', 'utf8');
 const keysSource = readFileSync('src/lib/demoSessionKeys.ts', 'utf8');
 
-assert.match(keysSource, /DEMO_SESSION_STORAGE_KEY\s*=\s*'globalbites_demo_session_id'/, 'demo localStorageにはsession idだけを保存してください。');
+assert.match(keysSource, /DEMO_SESSION_STORAGE_KEY\s*=\s*'edible_demo_session_id'/, 'demo localStorageにはsession idだけを保存してください。');
 assert.match(keysSource, /LEGACY_DEMO_PROFILE_STORAGE_KEY\s*=\s*'globalbites_demo_profile'/, '旧demo profile keyは明示的に清掃できるようにしてください。');
 assert.match(loginSource, /JSON\.stringify\(\{ sessionId: existingSessionId \|\| undefined \}\)/, 'one-click login は既存session idをDB session復元ヒントとしてだけ送ってください。');
 

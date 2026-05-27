@@ -1,12 +1,13 @@
 'use client';
 
 import { FormEvent, Suspense, useMemo, useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Globe, Loader2, LogIn, PlayCircle, UserPlus } from 'lucide-react';
+import { Loader2, LogIn, PlayCircle, UserPlus } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { sanitizeAuthRedirect } from '@/lib/authRedirect';
-import { DEMO_SESSION_STORAGE_KEY, LEGACY_DEMO_PROFILE_STORAGE_KEY } from '@/lib/demoSessionKeys';
+import { DEMO_SESSION_STORAGE_KEY, LEGACY_DEMO_PROFILE_STORAGE_KEY, LEGACY_DEMO_SESSION_STORAGE_KEY } from '@/lib/demoSessionKeys';
 
 type AuthMode = 'signin' | 'signup';
 
@@ -30,12 +31,14 @@ type DemoSignInResult = {
 
 async function clearDemoAuthState() {
   localStorage.removeItem(DEMO_SESSION_STORAGE_KEY);
+  localStorage.removeItem(LEGACY_DEMO_SESSION_STORAGE_KEY);
   localStorage.removeItem(LEGACY_DEMO_PROFILE_STORAGE_KEY);
   await fetch('/auth/demo', { method: 'DELETE' }).catch(() => null);
 }
 
 async function tryDemoSignIn(): Promise<DemoSignInResult> {
-  const existingSessionId = localStorage.getItem(DEMO_SESSION_STORAGE_KEY);
+  const existingSessionId = localStorage.getItem(DEMO_SESSION_STORAGE_KEY)
+    ?? localStorage.getItem(LEGACY_DEMO_SESSION_STORAGE_KEY);
   const response = await fetch('/auth/demo', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -53,6 +56,7 @@ async function tryDemoSignIn(): Promise<DemoSignInResult> {
   if (!data?.sessionId) return { status: 'failed' };
 
   localStorage.setItem(DEMO_SESSION_STORAGE_KEY, data.sessionId);
+  localStorage.removeItem(LEGACY_DEMO_SESSION_STORAGE_KEY);
   localStorage.removeItem(LEGACY_DEMO_PROFILE_STORAGE_KEY);
 
   return {
@@ -158,9 +162,15 @@ function LoginForm() {
   return (
     <main className="auth-page-shell">
       <section className="auth-card" aria-labelledby="auth-title">
-        <Link href="/" className="auth-brand" aria-label="GlobalBites トップへ戻る">
-          <Globe size={28} />
-          <span>GlobalBites</span>
+        <Link href="/" className="auth-brand" aria-label="Edible トップへ戻る">
+          <Image
+            src="/logo-cropped.png"
+            alt="Edible"
+            width={128}
+            height={50}
+            className="auth-brand-logo"
+            priority
+          />
         </Link>
 
         <div className="auth-mode-tabs" role="tablist" aria-label="認証モード">
